@@ -2,7 +2,7 @@ name: "系统异常"
 table: "system_anomaly"
 columns:
   - event_record_id
-  - timestamp
+  - event_time
   - event_id
   - provider_name
   - level

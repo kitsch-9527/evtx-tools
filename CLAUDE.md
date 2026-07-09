@@ -122,7 +122,7 @@ security, persistence, system, remote, process, powershell, mssql, web
 ```yaml
 name: "规则名"
 table: "输出表名"
-columns: [event_id, timestamp, message]    # 可选
+columns: [event_id, event_time, message]    # 可选
 event_ids: [4624, 4625]                    # OR
 channels: ["Security"]                     # AND
 provider_like: ["MSSQL%"]                  # AND

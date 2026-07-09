@@ -2,7 +2,7 @@ name: "SQL Server 审计"
 table: "mssql_events"
 columns:
   - event_record_id
-  - timestamp
+  - event_time
   - event_id
   - provider_name
   - severity

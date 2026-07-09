@@ -56,7 +56,7 @@ pub fn compute_message_id(event_id: u32, qualifiers: Option<u16>) -> u32 {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ParsedEvent {
     pub event_record_id: Option<u64>,
-    pub timestamp: Option<String>,
+    pub event_time: Option<String>,
     pub provider_name: Option<String>,
     pub provider_guid: Option<String>,
     pub event_id: Option<u32>,
@@ -180,7 +180,7 @@ mod tests {
     fn test_parsed_event_creation_roundtrip() {
         let event = ParsedEvent {
             event_record_id: Some(1),
-            timestamp: Some("2024-01-01T00:00:00Z".into()),
+            event_time: Some("2024-01-01T00:00:00Z".into()),
             provider_name: Some("Test-Provider".into()),
             provider_guid: Some("{00000000-0000-0000-0000-000000000000}".into()),
             event_id: Some(4624),
@@ -228,7 +228,7 @@ mod tests {
     fn test_parsed_event_all_none() {
         let event = ParsedEvent {
             event_record_id: None,
-            timestamp: None,
+            event_time: None,
             provider_name: None,
             provider_guid: None,
             event_id: None,

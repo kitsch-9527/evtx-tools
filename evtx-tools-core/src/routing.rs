@@ -201,7 +201,7 @@ mod tests {
             provider_name: provider.map(|s| s.to_string()),
             message: message.map(|s| s.to_string()),
             // Everything else default
-            timestamp: None,
+            event_time: None,
             provider_guid: None,
             qualifiers: None,
             level: None,
@@ -538,7 +538,7 @@ name: "登录审计"
 table: "logon_events"
 columns:
   - event_id
-  - timestamp
+  - event_time
   - user_name
 event_ids: [4624, 4625]
 channels: ["Security"]

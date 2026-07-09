@@ -9,7 +9,7 @@ use crate::{ParsedEvent, Result};
 /// The canonical column order for CSV output, matching the `events` table.
 const CSV_HEADER: &[&str] = &[
     "event_record_id",
-    "timestamp",
+    "event_time",
     "provider_name",
     "provider_guid",
     "event_id",
@@ -61,7 +61,7 @@ pub fn write_events<W: Write>(mut writer: W, events: &[ParsedEvent]) -> Result<(
     for event in events {
         wtr.write_record(&[
             opt_u64_str(&event.event_record_id),
-            opt_str(&event.timestamp),
+            opt_str(&event.event_time),
             opt_str(&event.provider_name),
             opt_str(&event.provider_guid),
             opt_u32_str(&event.event_id),
@@ -124,7 +124,7 @@ mod tests {
     fn make_test_event(event_record_id: u64) -> ParsedEvent {
         ParsedEvent {
             event_record_id: Some(event_record_id),
-            timestamp: Some("2024-01-01T00:00:00Z".into()),
+            event_time: Some("2024-01-01T00:00:00Z".into()),
             provider_name: Some("Test-Provider".into()),
             provider_guid: None,
             event_id: Some(4624),
@@ -201,7 +201,7 @@ mod tests {
         let mut output = Vec::new();
         let event = ParsedEvent {
             event_record_id: Some(1),
-            timestamp: None,
+            event_time: None,
             provider_name: None,
             provider_guid: None,
             event_id: None,
@@ -264,7 +264,7 @@ mod tests {
         let mut output = Vec::new();
         let event = ParsedEvent {
             event_record_id: Some(42),
-            timestamp: Some("2025-06-15T10:30:00Z".into()),
+            event_time: Some("2025-06-15T10:30:00Z".into()),
             provider_name: Some("Microsoft-Windows-Security-Auditing".into()),
             provider_guid: Some("{54849625-5478-4994-A5BA-3E3B0328C30D}".into()),
             event_id: Some(4625),

@@ -169,7 +169,8 @@ pub fn extract_fields(
     let computer = sys_get("Computer");
 
     // ---- Timestamps ----
-    let timestamp = get_attr(system.and_then(|s| s.get("TimeCreated")), "SystemTime");
+    let timestamp = get_attr(system.and_then(|s| s.get("TimeCreated")), "SystemTime")
+        .map(|s| convert_timestamp_local(&s));
 
     // ---- Execution (Process / Thread) ----
     let execution = system.and_then(|s| s.get("Execution"));
@@ -225,7 +226,7 @@ pub fn extract_fields(
 
     let parsed = ParsedEvent {
         event_record_id: Some(event_record_id),
-        timestamp,
+        event_time: timestamp,
         provider_name,
         provider_guid,
         event_id,
@@ -258,9 +259,89 @@ pub fn extract_fields(
 // Tests
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Timestamp conversion
+// ---------------------------------------------------------------------------
+
+/// Convert a UTC ISO 8601 timestamp string to local time.
+///
+/// Input:  `"2024-01-15T10:30:00.000Z"` (any RFC 3339 / ISO 8601 UTC format)
+/// Output: `"2024-01-15 18:30:00.000000"` (local time, no `T`/`Z`, microsecond precision)
+///
+/// If parsing fails, returns the original string unchanged.
+pub fn convert_timestamp_local(ts: &str) -> String {
+    match chrono::DateTime::parse_from_rfc3339(ts) {
+        Ok(dt) => dt.with_timezone(&chrono::Local).format("%Y-%m-%d %H:%M:%S.%6f").to_string(),
+        Err(_) => ts.to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use chrono::{TimeZone, Utc, Local};
     use super::*;
+
+    // ── Timestamp conversion tests ──
+
+    #[test]
+    fn test_convert_timestamp_local_utc_input() {
+        let result = convert_timestamp_local("2024-01-15T10:30:00.000Z");
+        // Must use space not T, must not end with Z
+        assert!(!result.contains('T'), "should not contain T separator");
+        assert!(!result.ends_with('Z'), "should not end with Z");
+        // Must contain space separator
+        assert!(result.contains(' '), "should have space separator");
+        // Must have microsecond precision (at least 6 digits after last dot)
+        let parts: Vec<&str> = result.split('.').collect();
+        assert!(parts.len() == 2, "should have fractional seconds: {result}");
+        assert_eq!(parts[1].len(), 6, "should have 6-digit microsecond precision");
+        // Result must not equal the input (format changed and timezone applied)
+        assert_ne!(result, "2024-01-15T10:30:00.000Z");
+    }
+
+    #[test]
+    fn test_convert_timestamp_local_invariant_format() {
+        let result = convert_timestamp_local("2024-01-15T10:30:00.000Z");
+        // Verify the overall format pattern: YYYY-MM-DD HH:MM:SS.ffffff
+        assert!(result.len() == 26, "expected 26 chars, got '{result}' (len={})", result.len());
+        assert_eq!(&result[4..5], "-", "position 4 should be -");
+        assert_eq!(&result[7..8], "-", "position 7 should be -");
+        assert_eq!(&result[10..11], " ", "position 10 should be space");
+        assert_eq!(&result[13..14], ":", "position 13 should be :");
+        assert_eq!(&result[16..17], ":", "position 16 should be :");
+        assert_eq!(&result[19..20], ".", "position 19 should be .");
+    }
+
+    #[test]
+    fn test_convert_timestamp_local_offset_applied() {
+        // Verify the timezone was actually applied — local time differs from UTC
+        let utc_dt = Utc.with_ymd_and_hms(2024, 1, 15, 10, 30, 0).unwrap();
+        let local_dt = utc_dt.with_timezone(&Local);
+        let expected = local_dt.format("%Y-%m-%d %H:%M:%S.%6f").to_string();
+        assert_eq!(convert_timestamp_local("2024-01-15T10:30:00.000Z"), expected);
+    }
+
+    #[test]
+    fn test_convert_timestamp_local_invalid_input() {
+        // Non-parseable input should be returned unchanged
+        assert_eq!(convert_timestamp_local("not-a-timestamp"), "not-a-timestamp");
+    }
+
+    #[test]
+    fn test_convert_timestamp_local_empty() {
+        assert_eq!(convert_timestamp_local(""), "");
+    }
+
+    #[test]
+    fn test_convert_timestamp_local_microsecond_precision() {
+        // Input with full microseconds
+        let result = convert_timestamp_local("2024-01-15T10:30:00.123456Z");
+        let parts: Vec<&str> = result.split('.').collect();
+        assert_eq!(parts[1].len(), 6);
+        // The fractional part after conversion should still be 123456
+        // (timezone offset doesn't affect sub-second precision)
+        assert_eq!(parts[1], "123456", "microseconds should be preserved");
+    }
 
     /// Create a minimal mock EVTX JSON value for field-extraction testing.
     fn make_mock_json() -> Value {
@@ -332,7 +413,8 @@ mod tests {
         // System fields
         assert_eq!(event.channel.as_deref(), Some("Security"));
         assert_eq!(event.computer.as_deref(), Some("PC-01.domain.local"));
-        assert_eq!(event.timestamp.as_deref(), Some("2024-01-15T10:30:00.000Z"));
+        let expected_ts = convert_timestamp_local("2024-01-15T10:30:00.000Z");
+        assert_eq!(event.event_time.as_deref(), Some(expected_ts.as_str()));
 
         // Execution
         assert_eq!(event.process_id, Some(500));

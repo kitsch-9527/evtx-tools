@@ -2,7 +2,7 @@ name: "远程访问"
 table: "remote_events"
 columns:
   - event_record_id
-  - timestamp
+  - event_time
   - event_id
   - user_name
   - computer

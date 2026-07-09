@@ -2,7 +2,7 @@ name: "Lua MSSQL 登录"
 table: "lua_MSSQL_login"
 columns:
   - event_record_id
-  - timestamp
+  - event_time
   - event_id
   - provider_name
   - message

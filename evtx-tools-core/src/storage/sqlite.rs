@@ -9,7 +9,7 @@ use crate::{ParsedEvent, Result};
 const CREATE_EVENTS_TABLE: &str = "
 CREATE TABLE IF NOT EXISTS events (
     event_record_id     INTEGER NOT NULL,
-    timestamp           TEXT,
+    event_time          TEXT,
     provider_name       TEXT,
     provider_guid       TEXT,
     event_id            INTEGER,
@@ -57,7 +57,7 @@ const BULK_INSERT_PRAGMAS: &[&str] = &[
 
 /// Indexes — created AFTER all data is inserted to avoid per-row index maintenance.
 const CREATE_INDEXES: &[&str] = &[
-    "CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);",
+    "CREATE INDEX IF NOT EXISTS idx_events_event_time ON events(event_time);",
     "CREATE INDEX IF NOT EXISTS idx_events_level ON events(level);",
     "CREATE INDEX IF NOT EXISTS idx_events_channel ON events(channel);",
     "CREATE INDEX IF NOT EXISTS idx_events_provider ON events(provider_name);",
@@ -112,7 +112,7 @@ pub fn insert_events(conn: &Connection, batch: &[ParsedEvent]) -> Result<()> {
             sql.push('(');
             append_int_opt(&mut sql, &event.event_record_id);
             sql.push(',');
-            append_text_opt(&mut sql, &event.timestamp);
+            append_text_opt(&mut sql, &event.event_time);
             sql.push(',');
             append_text_opt(&mut sql, &event.provider_name);
             sql.push(',');
@@ -292,7 +292,7 @@ pub fn insert_scenario_event(conn: &Connection, rule: &crate::routing::Rule, eve
     sql.push_str(&format!("INSERT INTO {} VALUES (", rule.table));
     append_int_opt(&mut sql, &event.event_record_id);
     sql.push(',');
-    append_text_opt(&mut sql, &event.timestamp);
+    append_text_opt(&mut sql, &event.event_time);
     sql.push(',');
     append_text_opt(&mut sql, &event.provider_name);
     sql.push(',');
@@ -431,7 +431,7 @@ mod scenario_tests {
         let event = ParsedEvent {
             event_record_id: Some(42),
             event_id: Some(4624),
-            timestamp: Some("2024-01-15T10:30:00Z".into()),
+            event_time: Some("2024-01-15T10:30:00Z".into()),
             provider_name: Some("Test".into()),
             channel: Some("Security".into()),
             computer: Some("PC-1".into()),
@@ -483,7 +483,7 @@ mod tests {
     fn make_test_event(event_record_id: u64, provider: &str) -> ParsedEvent {
         ParsedEvent {
             event_record_id: Some(event_record_id),
-            timestamp: Some("2024-01-01T00:00:00Z".into()),
+            event_time: Some("2024-01-01T00:00:00Z".into()),
             provider_name: Some(provider.into()),
             provider_guid: None,
             event_id: Some(4624),
@@ -583,7 +583,7 @@ mod tests {
 
         let event = ParsedEvent {
             event_record_id: Some(1),
-            timestamp: None,
+            event_time: None,
             provider_name: None,
             provider_guid: None,
             event_id: None,
@@ -613,15 +613,15 @@ mod tests {
         insert_events(&conn, &[event]).unwrap();
 
         // All columns should be NULL
-        let (timestamp, provider, message): (Option<String>, Option<String>, Option<String>) = conn
+        let (event_time, provider, message): (Option<String>, Option<String>, Option<String>) = conn
             .query_row(
-                "SELECT timestamp, provider_name, message FROM events WHERE event_record_id = 1",
+                "SELECT event_time, provider_name, message FROM events WHERE event_record_id = 1",
                 [],
                 |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )
             .unwrap();
 
-        assert!(timestamp.is_none());
+        assert!(event_time.is_none());
         assert!(provider.is_none());
         assert!(message.is_none());
     }

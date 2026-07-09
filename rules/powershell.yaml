@@ -2,7 +2,7 @@ name: "PowerShell 活动"
 table: "powershell_events"
 columns:
   - event_record_id
-  - timestamp
+  - event_time
   - event_id
   - computer
   - message

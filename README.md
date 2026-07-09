@@ -76,7 +76,7 @@ name: "My Analysis"               # 规则名称
 table: "my_events"                # 输出场景表名
 columns:                          # 可选，限制输出列
   - event_id
-  - timestamp
+  - event_time
   - user_name
   - message
 event_ids: [4624, 4625]           # 按 EventID 过滤（最快）

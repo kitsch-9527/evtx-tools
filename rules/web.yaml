@@ -2,7 +2,7 @@ name: "Web 服务审计"
 table: "web_events"
 columns:
   - event_record_id
-  - timestamp
+  - event_time
   - event_id
   - provider_name
   - computer

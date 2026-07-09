@@ -2,7 +2,7 @@ name: "Lua 登录审计"
 table: "lua_4624_4625"
 columns:
   - event_record_id
-  - timestamp
+  - event_time
   - event_id
   - provider_name
   - channel

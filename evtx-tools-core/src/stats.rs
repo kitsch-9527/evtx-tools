@@ -10,7 +10,7 @@
 //! |-------|---------|--------|
 //! | `stat_event_id` | event_id, provider_name, count | `ParsedEvent.event_id` + `.provider_name` |
 //! | `stat_severity` | level, severity, count | `ParsedEvent.level` + `.severity` |
-//! | `stat_hourly`  | hour_bucket, count | `ParsedEvent.timestamp` (truncated to hour) |
+//! | `stat_hourly`  | hour_bucket, count | `ParsedEvent.event_time` (truncated to hour) |
 //! | `stat_channel` | channel, count | `ParsedEvent.channel` |
 //! | `stat_computer` | computer, count | `ParsedEvent.computer` |
 //! | `stat_event_id_hourly` | event_id, provider_name, hour_bucket, count | 前三者的笛卡尔积 — 检测时间跳变 |
@@ -117,7 +117,7 @@ impl StatsCollector {
             *self.event_id.entry((eid, provider.to_string())).or_insert(0) += 1;
 
             // stat_event_id_hourly: (event_id, provider_name, hour_bucket)
-            if let Some(ref ts) = event.timestamp {
+            if let Some(ref ts) = event.event_time {
                 if ts.len() >= 13 {
                     let bucket = ts[..13].to_string();
                     let seq = event.sequence_number
@@ -145,8 +145,8 @@ impl StatsCollector {
         let sev = event.severity.clone().unwrap_or_default();
         *self.severity.entry((event.level, sev)).or_insert(0) += 1;
 
-        // stat_hourly: YYYY-MM-DDTHH from timestamp
-        if let Some(ref ts) = event.timestamp {
+        // stat_hourly: YYYY-MM-DD HH from event_time
+        if let Some(ref ts) = event.event_time {
             if ts.len() >= 13 {
                 let bucket = ts[..13].to_string();
                 *self.hourly.entry(bucket).or_insert(0) += 1;
@@ -391,7 +391,7 @@ mod tests {
             provider_name: provider.map(|s| s.to_string()),
             level,
             severity: severity.map(|s| s.to_string()),
-            timestamp: timestamp.map(|s| s.to_string()),
+            event_time: timestamp.map(|s| s.to_string()),
             channel: channel.map(|s| s.to_string()),
             computer: computer.map(|s| s.to_string()),
             // Everything else None

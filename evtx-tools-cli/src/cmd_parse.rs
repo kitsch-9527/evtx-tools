@@ -1064,7 +1064,7 @@ mod routing_tests {
             event_record_id: Some(1),
             event_id: Some(4624),
             channel: Some("Security".into()),
-            timestamp: None,
+            event_time: None,
             provider_name: None,
             provider_guid: None,
             qualifiers: None,

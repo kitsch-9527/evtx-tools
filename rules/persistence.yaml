@@ -2,7 +2,7 @@ name: "持久化分析"
 table: "persistence_events"
 columns:
   - event_record_id
-  - timestamp
+  - event_time
   - event_id
   - provider_name
   - channel
