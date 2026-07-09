@@ -275,7 +275,7 @@ impl MessageDb {
         let mut stmt = self
             .conn
             .prepare(&query)
-            .map_err(|e| format!("failed to prepare warmup query: {e}"))?;
+            .map_err(|e| format!("failed to prepare v4 warmup query: {e}"))?;
 
         let param_refs: Vec<&dyn rusqlite::types::ToSql> =
             params.iter().map(|v| v as &dyn rusqlite::types::ToSql).collect();
@@ -309,11 +309,11 @@ impl MessageDb {
                     },
                 ))
             })
-            .map_err(|e| format!("failed to execute warmup query: {e}"))?;
+            .map_err(|e| format!("failed to execute v4 warmup query: {e}"))?;
 
         for row in rows {
             let (provider_name, event_id, msg_row) =
-                row.map_err(|e| format!("failed to read warmup row: {e}"))?;
+                row.map_err(|e| format!("failed to read v4 warmup row: {e}"))?;
             self.cache.insert((provider_name, event_id), msg_row);
         }
 

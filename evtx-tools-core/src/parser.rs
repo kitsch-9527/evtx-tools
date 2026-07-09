@@ -46,6 +46,44 @@ pub fn detect_evtx_build(path: &str) -> Option<u32> {
     Some(u16::from_le_bytes(buf) as u32)
 }
 
+/// Scan an EVTX file and collect unique channel names.
+///
+/// Opens the EVTX file, iterates all records, and extracts the `System/Channel`
+/// field from each. Returns a deduplicated, alphabetically-sorted list of
+/// channel names found in the file.
+///
+/// This is a lightweight operation — it reads only the Channel field from each
+/// record without doing full field extraction or message substitution. Suitable
+/// for GUI workflows that need to determine which rules may apply before
+/// running the full parse pipeline.
+///
+/// `num_threads` controls parallelism (same semantics as [`open_evtx`]).
+///
+/// # Errors
+///
+/// Returns `Err` if the EVTX file cannot be opened or if any record fails to
+/// parse.
+///
+/// # Example
+///
+/// ```no_run
+/// use evtx_tools_core::parser::scan_evtx_channels;
+///
+/// let channels = scan_evtx_channels("Security.evtx", 1).unwrap();
+/// assert!(channels.contains(&"Security".to_string()));
+/// ```
+pub fn scan_evtx_channels(path: &str, num_threads: usize) -> Result<Vec<String>> {
+    let mut parser = open_evtx(path, num_threads)?;
+    let mut channels = std::collections::BTreeSet::new();
+    for raw in iter_raw_json_values(&mut parser) {
+        let (value, _record_id) = raw?;
+        if let Some(ch) = value["Event"]["System"]["Channel"].as_str() {
+            channels.insert(ch.to_string());
+        }
+    }
+    Ok(channels.into_iter().collect())
+}
+
 /// Iterate over all events in an EVTX file, yielding `(ParsedEvent, EventData Value)` tuples.
 ///
 /// Each record is rendered to a JSON [`Value`], then all 22 fields are
@@ -145,6 +183,51 @@ pub fn extract_fields(
         get_str(parent.and_then(|o| o.get("#attributes")).and_then(|a| a.get(attr)))
     }
 
+    /// Convert UserData JSON (from the evtx crate) into a flat key-value object
+    /// suitable for parameter extraction.
+    ///
+    /// UserData format (evtx 0.12):
+    /// ```json
+    /// {"CbsPackageChangeState": {"#attributes": {"xmlns": "..."},
+    ///   "PackageIdentifier": "KB5087051", "IntendedPackageStateTextized": "Absent"}}
+    /// ```
+    /// → Output: `{"PackageIdentifier": "KB5087051", "IntendedPackageStateTextized": "Absent"}`
+    ///
+    /// Returns `None` if UserData is not in the expected format.
+    fn extract_userdata_as_eventdata(userdata: &Value) -> Option<Value> {
+        let userdata_obj = userdata.as_object()?;
+        // UserData always contains exactly one child element (the event-specific XML element)
+        let (_event_name, event_data_value) = userdata_obj.iter().next()?;
+        // The child element is an object with key-value pairs (and possibly #attributes)
+        match event_data_value {
+            Value::Object(obj) => {
+                let mut flat = serde_json::Map::new();
+                for (k, v) in obj.iter() {
+                    // Skip XML attribute wrappers (#attributes, xmlns, etc.)
+                    if k.starts_with('#') || k.starts_with('@') {
+                        continue;
+                    }
+                    // Extract string/number values directly, handle #text wrapper
+                    let extracted = match v {
+                        Value::String(s) => Some(Value::String(s.clone())),
+                        Value::Number(n) => Some(Value::Number(n.clone())),
+                        Value::Object(o) => {
+                            // Handle {"#text": "value"} wrapper from evtx crate
+                            let inner = o.get("#text").or_else(|| o.get("$")).cloned();
+                            inner
+                        }
+                        _ => None,
+                    };
+                    if let Some(val) = extracted {
+                        flat.insert(k.clone(), val);
+                    }
+                }
+                if flat.is_empty() { None } else { Some(Value::Object(flat)) }
+            }
+            _ => None,
+        }
+    }
+
     // Helper to get a top-level field from the `System` section.
     let sys_get = |key: &str| -> Option<String> { get_str(system.and_then(|s| s.get(key))) };
 
@@ -185,24 +268,28 @@ pub fn extract_fields(
     // ---- Derived fields ----
     let severity = level.map(|l| severity_from_level(l).to_string());
 
-    // ---- EventData (evtx 0.12 returns a flat key-value object) ----
+    // ---- EventData / UserData (evtx 0.12 returns flat key-value or UserData) ----
     // evtx 0.12 format: {"SubjectUserSid":"S-1-5-...","SubjectUserName":"SYSTEM",...}
     // OLD evtx 0.8 format: {"Data":[{"#attributes":{"Name":"..."},"$":"..."}]}
-    // We handle both by checking the actual structure.
-    let event_data_ref = data
-        .get("Event")
-        .and_then(|v| v.get("EventData"));
+    // UserData format: {"CbsEventName": {"#attributes":{...}, "Key1":"val1", "Key2":"val2"}}
+    let event = data.get("Event");
+    let event_data_ref = event.and_then(|v| v.get("EventData"));
 
-    // Clone once: serialise to String for output AND keep a Value for message
-    // resolution (avoids Value→String→Value round trip in extract_subst_params).
-    let event_data_value = event_data_ref.cloned();
-    let event_data = event_data_ref.map(|v| serde_json::to_string(v).unwrap_or_default());
+    // Fall back to UserData when EventData is not present (Setup channel events, etc.)
+    let event_data_value = if event_data_ref.is_some() {
+        event_data_ref.cloned()
+    } else {
+        // Extract UserData content as a flat object
+        event.and_then(|v| v.get("UserData")).and_then(extract_userdata_as_eventdata)
+    };
+    let event_data = event_data_value.as_ref().map(|v| serde_json::to_string(v).unwrap_or_default());
 
-    // ---- user_name / user_sid from EventData (evtx 0.12) ----
+    // ---- user_name / user_sid from EventData/UserData (evtx 0.12) ----
     // In evtx 0.12, System.Security is null — UserID/UserName are in EventData
     // as SubjectUserName / SubjectUserSid (or TargetUserName for logon events).
+    // Also handles UserData format (Setup channel events).
     // Fall back to old System.Security/@UserID for evtx 0.8 compatibility.
-    let (user_name, user_sid) = match event_data_ref.and_then(|v| v.as_object()) {
+    let (user_name, user_sid) = match event_data_value.as_ref().and_then(|v| v.as_object()) {
         Some(obj) => {
             let un = obj.get("SubjectUserName")
                 .or_else(|| obj.get("TargetUserName"))
@@ -511,5 +598,27 @@ mod tests {
     #[test]
     fn test_detect_evtx_build_invalid_path() {
         assert_eq!(detect_evtx_build("/nonexistent/file.evtx"), None);
+    }
+
+    // -----------------------------------------------------------------------
+    // scan_evtx_channels tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_scan_evtx_channels_real_file() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../data/test-dataset/evtx/DE_WinEventLogSvc_Crash_System_7036.evtx"
+        );
+        let channels = scan_evtx_channels(path, 1).unwrap();
+        assert!(!channels.is_empty(), "expected at least one channel");
+        assert!(channels.contains(&"System".to_string()),
+            "expected System channel in '{}', got: {:?}", path, channels);
+    }
+
+    #[test]
+    fn test_scan_evtx_channels_not_found() {
+        let result = scan_evtx_channels("/nonexistent/file.evtx", 1);
+        assert!(result.is_err(), "expected Err for non-existent file");
     }
 }

@@ -395,6 +395,11 @@ fn process_parallel_batch(
             let params = apply_param_enums(&params, &row.row.parameters);
             // Apply Layer 2: CRIM VMAP/BMAP value map resolution
             let params = evtx_tools_core::substitute::apply_value_maps(&params, &row.row.parameters, &row.value_maps, &row.bitmap_names);
+            // Expand %%N parameter references in parameter VALUES
+            // (the template was already expanded above; param values may also
+            // contain %%N refs, e.g. %%1843 → "虚拟帐户", which must be resolved
+            // before substitute_format_message consumes %% → %)
+            let params = expand_params_par_refs(params, db);
             let param_refs: Vec<&str> = params.iter().map(|s| s.as_str()).collect();
             event.message = Some(substitute_format_message(&template, &param_refs));
         } else {
@@ -554,7 +559,9 @@ fn extract_subst_params(
     //   {"SubjectUserSid":"S-1-5-...","SubjectUserName":"jipeng.song",...}
     //   param_map: "1" → "SubjectUserSid", "2" → "SubjectUserName"
     if let (Some(params), Some(obj)) = (param_map.as_ref(), parsed.as_object()) {
-        if !params.is_empty() && !obj.contains_key("#text") {
+        // Skip classic format (has "Data" key wrapping the actual data) —
+        // Strategy 1.75 handles that case below.
+        if !params.is_empty() && !obj.contains_key("#text") && !obj.contains_key("Data") {
             let max_idx: usize = params.keys()
                 .filter_map(|k| k.parse::<usize>().ok())
                 .max().unwrap_or(0);
@@ -604,11 +611,69 @@ fn extract_subst_params(
         }
     }
 
+    // Strategy 1.75: Classic "Data" array (evtx 0.12 classic format).
+    // Format: {"Data": [{"#attributes": {"Name": "Param1"}, "$": "val1"}, ...], "Binary": null}
+    // This handles the case where EventData wraps the actual data under a "Data" key as an array.
+    // With param_map: lookup by Name attribute (named).
+    // Without param_map: extract positionally from array order.
+    // Must run BEFORE Strategy 2 (flat-object fallback) which would otherwise
+    // treat "Data"/"Binary" as parameter keys and return empty strings.
+    if let Some(obj) = parsed.as_object() {
+        if let Some(data_arr) = obj.get("Data").and_then(|v| v.as_array()) {
+            if let Some(params) = param_map.as_ref() {
+                // With param_map: build name→value map, then extract by param name
+                let data_map: std::collections::HashMap<&str, &str> = data_arr.iter().filter_map(|item| {
+                    let attrs = item.get("#attributes")?;
+                    let name = attrs.get("Name")?.as_str()?;
+                    let value = item.get("$").or_else(|| item.get("#text"))
+                        .and_then(|v| v.as_str()).unwrap_or("");
+                    Some((name, value))
+                }).collect();
+
+                if !data_map.is_empty() {
+                    let max_idx: usize = params.keys()
+                        .filter_map(|k| k.parse::<usize>().ok())
+                        .max().unwrap_or(0);
+                    if max_idx > 0 {
+                        let mut result: Vec<String> = Vec::with_capacity(max_idx);
+                        for i in 1..=max_idx {
+                            let idx_str = i.to_string();
+                            let value = match params.get(&idx_str) {
+                                Some(param_name) => data_map.get(param_name.as_str()).unwrap_or(&"").to_string(),
+                                None => String::new(),
+                            };
+                            result.push(value);
+                        }
+                        return result;
+                    }
+                }
+            } else {
+                // Without param_map: extract positionally (by array index)
+                let values: Vec<String> = data_arr.iter().map(|item| {
+                    // Each item: {"$": "value"} or {"#text": "value"}
+                    if let Some(val) = item.get("$").or_else(|| item.get("#text")) {
+                        match val {
+                            Value::String(s) => s.clone(),
+                            Value::Number(n) => n.to_string(),
+                            _ => String::new(),
+                        }
+                    } else {
+                        String::new()
+                    }
+                }).collect();
+                if !values.is_empty() {
+                    return values;
+                }
+            }
+        }
+    }
     // Strategy 2: Flat object positional fallback (NO param_map).
     // When DB lacks parameter mapping, use JSON key order (which preserves
     // BinXML template order in serde_json and evtx 0.12).
+    // Excludes classic format objects (those with a "Data" key) — they are
+    // handled by Strategy 1.75 above.
     if let Some(obj) = parsed.as_object() {
-        if !obj.contains_key("#text") {
+        if !obj.contains_key("#text") && !obj.contains_key("Data") {
             let values: Vec<String> = obj.iter().map(|(_k, v)| match v {
                 Value::String(s) => s.clone(),
                 Value::Number(n) => n.to_string(),
@@ -664,6 +729,34 @@ fn extract_subst_params(
     }
 
     Vec::new()
+}
+
+/// Expand `%%N` parameter references in a vector of parameter values.
+///
+/// After enum resolution and value map application, some parameter values may
+/// still contain `%%N` references (e.g. `%%1843` → "虚拟帐户"). These need to
+/// be expanded BEFORE `substitute_format_message` because substitute() consumes
+/// `%%` → `%`, which would corrupt the `%%N` marker into `%N` (a positional
+/// reference), leaving the remaining digits as literal text.
+fn expand_params_par_refs(
+    params: Vec<String>,
+    db: &std::sync::Arc<std::sync::Mutex<MessageDb>>,
+) -> Vec<String> {
+    let has_any_ref = params.iter().any(|p| p.contains("%%"));
+    if !has_any_ref {
+        return params;
+    }
+    let guard = match db.lock() {
+        Ok(g) => g,
+        Err(_) => return params,
+    };
+    params.into_iter().map(|p| {
+        if p.contains("%%") {
+            guard.expand_message(&p)
+        } else {
+            p
+        }
+    }).collect()
 }
 
 /// Write a batch of events to SQLite and/or CSV output.
@@ -1031,7 +1124,192 @@ mod tests {
         let result = extract_subst_params(&None, None, &None);
         assert!(result.is_empty());
     }
-}
+
+    // ── Strategy 1.75: Classic Data array with param_map (named lookup) ──
+
+    #[test]
+    fn test_extract_subst_params_classic_data_array_with_param_map() {
+        // Classic format: {"Data": [{"#attributes": {"Name": "Param1"}, "$": "val1"}, ...], "Binary": null}
+        // With param_map → extract by name
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": [
+                {"#attributes": {"Name": "SubjectUserSid"}, "$": "S-1-5-21-1000"},
+                {"#attributes": {"Name": "SubjectUserName"}, "$": "admin"},
+                {"#attributes": {"Name": "LogonType"}, "$": "2"}
+            ],
+            "Binary": null
+        }));
+        let param_map: Option<HashMap<String, String>> = Some(HashMap::from([
+            ("1".into(), "SubjectUserSid".into()),
+            ("2".into(), "SubjectUserName".into()),
+            ("3".into(), "LogonType".into()),
+        ]));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &param_map);
+        assert_eq!(result, vec!["S-1-5-21-1000", "admin", "2"]);
+    }
+
+    #[test]
+    fn test_extract_subst_params_classic_data_array_with_param_map_uses_text_fallback() {
+        // Some items use #text instead of $
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": [
+                {"#attributes": {"Name": "Param1"}, "#text": "value_from_text"},
+                {"#attributes": {"Name": "Param2"}, "$": "value_from_dollar"}
+            ]
+        }));
+        let param_map: Option<HashMap<String, String>> = Some(HashMap::from([
+            ("1".into(), "Param1".into()),
+            ("2".into(), "Param2".into()),
+        ]));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &param_map);
+        assert_eq!(result, vec!["value_from_text", "value_from_dollar"]);
+    }
+
+    #[test]
+    fn test_extract_subst_params_classic_data_array_with_param_map_unmatched_params_empty() {
+        // param_map has an entry (e.g. %3) that doesn't match any Data item → empty string
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": [
+                {"#attributes": {"Name": "Param1"}, "$": "value1"}
+            ]
+        }));
+        let param_map: Option<HashMap<String, String>> = Some(HashMap::from([
+            ("1".into(), "Param1".into()),
+            ("2".into(), "Param2".into()),
+        ]));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &param_map);
+        assert_eq!(result, vec!["value1", ""]);
+    }
+
+    // ── Strategy 1.75: Classic Data array WITHOUT param_map (positional) ──
+
+    #[test]
+    fn test_extract_subst_params_classic_data_array_no_param_map() {
+        // Without param_map, extract values positionally from Data array
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": [
+                {"$": "first_value"},
+                {"$": "second_value"},
+                {"$": "third_value"}
+            ],
+            "Binary": null
+        }));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &None);
+        assert_eq!(result, vec!["first_value", "second_value", "third_value"]);
+    }
+
+    #[test]
+    fn test_extract_subst_params_classic_data_array_no_param_map_uses_text_fallback() {
+        // Without param_map, use #text if $ is not present
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": [
+                {"#text": "text_val1"},
+                {"$": "dollar_val2"}
+            ]
+        }));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &None);
+        assert_eq!(result, vec!["text_val1", "dollar_val2"]);
+    }
+
+    // ── Regression: flat object format still works correctly ──
+
+    #[test]
+    fn test_extract_subst_params_flat_object_with_param_map_still_works() {
+        // Manifest-based flat format must not be affected by the fix
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "SubjectUserSid": "S-1-5-21-1000",
+            "SubjectUserName": "admin",
+            "LogonType": "2"
+        }));
+        let param_map: Option<HashMap<String, String>> = Some(HashMap::from([
+            ("1".into(), "SubjectUserSid".into()),
+            ("2".into(), "SubjectUserName".into()),
+            ("3".into(), "LogonType".into()),
+        ]));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &param_map);
+        assert_eq!(result, vec!["S-1-5-21-1000", "admin", "2"]);
+    }
+
+    #[test]
+    fn test_extract_subst_params_flat_object_no_param_map_still_works() {
+        // Flat object positional fallback must not regress
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Sid": "S-1-5-18",
+            "Name": "SYSTEM"
+        }));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &None);
+        assert_eq!(result, vec!["S-1-5-18", "SYSTEM"]);
+    }
+
+    // ── Regression: Strategy 1.5 (#text inside "Data") still works ──
+
+    #[test]
+    fn test_extract_subst_params_data_hash_text_still_works() {
+        // The existing #text format must not be broken
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": {"#text": ["C:\\path.msi", "2128", "(NULL)", ""]},
+            "Binary": null
+        }));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &None);
+        assert_eq!(result.len(), 4);
+        assert_eq!(result[0], "C:\\path.msi");
+        assert_eq!(result[1], "2128");
+    }
+
+    // ── Strategy 2: flat object with "Data" key must NOT be picked up ──
+
+    #[test]
+    fn test_extract_subst_params_classic_data_array_not_leaked_to_strategy2() {
+        // Without Strategy 1.75, Strategy 2 would pick up "Data" and "Binary" keys
+        // as parameters, returning ["", ""]. With the fix, it correctly returns
+        // positional values from the Data array.
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": [
+                {"$": "correct_val1"},
+                {"$": "correct_val2"}
+            ],
+            "Binary": null
+        }));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &None);
+        assert_eq!(result, vec!["correct_val1", "correct_val2"],
+            "Strategy 2 must NOT extract 'Data'/'Binary' keys; Strategy 1.75 must handle this");
+    }
+
+    #[test]
+    fn test_extract_subst_params_empty_data_array_returns_empty() {
+        // Empty Data array → fall through to Vec::new()
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": [],
+            "Binary": null
+        }));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &None);
+        assert!(result.is_empty(), "empty Data array should produce empty result");
+    }
+
+    #[test]
+    fn test_extract_subst_params_data_array_items_no_value_fallback() {
+        // Data items that lack both $ and #text → empty string for that position
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": [
+                {"#attributes": {"Name": "Param1"}},
+                {"$": "val2"}
+            ]
+        }));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &None);
+        assert_eq!(result, vec!["", "val2"]);
+    }
+} // mod tests
 
 // ---------------------------------------------------------------------------
 // Routing helper — build a SceneRouter from CLI args

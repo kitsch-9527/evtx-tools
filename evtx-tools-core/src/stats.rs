@@ -12,6 +12,7 @@
 //! | `stat_severity` | level, severity, count | `ParsedEvent.level` + `.severity` |
 //! | `stat_hourly`  | hour_bucket, count | `ParsedEvent.event_time` (truncated to hour) |
 //! | `stat_channel` | channel, count | `ParsedEvent.channel` |
+//! | `stat_source` | provider_name, count | `ParsedEvent.provider_name` — 对应事件查看器「来源」|
 //! | `stat_computer` | computer, count | `ParsedEvent.computer` |
 //! | `stat_event_id_hourly` | event_id, provider_name, hour_bucket, count | 前三者的笛卡尔积 — 检测时间跳变 |
 
@@ -97,6 +98,8 @@ pub struct StatsCollector {
     hourly: HashMap<String, u64>,
     /// channel → count
     channel: HashMap<String, u64>,
+    /// provider_name → count（事件查看器「来源」）
+    source: HashMap<String, u64>,
     /// computer → count
     computer: HashMap<String, u64>,
     /// (event_id, provider_name, hour_bucket) → HourlyRange
@@ -159,6 +162,13 @@ impl StatsCollector {
             *self.channel.entry(channel.to_string()).or_insert(0) += 1;
         }
 
+        // stat_source（事件查看器「来源」）
+        if let Some(ref provider) = event.provider_name {
+            if !provider.is_empty() {
+                *self.source.entry(provider.clone()).or_insert(0) += 1;
+            }
+        }
+
         // stat_computer
         if let Some(ref comp) = event.computer {
             if !comp.is_empty() {
@@ -180,6 +190,9 @@ impl StatsCollector {
         }
         for (k, v) in other.channel {
             *self.channel.entry(k).or_insert(0) += v;
+        }
+        for (k, v) in other.source {
+            *self.source.entry(k).or_insert(0) += v;
         }
         for (k, v) in other.computer {
             *self.computer.entry(k).or_insert(0) += v;
@@ -270,6 +283,22 @@ impl StatsCollector {
                 }).collect()
             };
             tables.push(("stat_channel", cols, rows));
+        }
+
+        // stat_source: provider_name TEXT, count INTEGER
+        {
+            let cols = vec!["provider_name", "count"];
+            let rows: Vec<Vec<SqlValue>> = {
+                let mut pairs: Vec<_> = self.source.iter().collect();
+                pairs.sort_by(|a, b| b.1.cmp(a.1));
+                pairs.into_iter().map(|(prov, cnt)| {
+                    vec![
+                        SqlValue::Text(prov.clone()),
+                        SqlValue::Int(*cnt as i64),
+                    ]
+                }).collect()
+            };
+            tables.push(("stat_source", cols, rows));
         }
 
         // stat_computer: computer TEXT, count INTEGER
@@ -423,6 +452,7 @@ mod tests {
         assert!(collector.severity.is_empty());
         assert!(collector.hourly.is_empty());
         assert!(collector.channel.is_empty());
+        assert!(collector.source.is_empty());
         assert!(collector.computer.is_empty());
     }
 
@@ -438,6 +468,7 @@ mod tests {
         assert_eq!(collector.severity.get(&(Some(0), "信息".into())), Some(&1));
         assert_eq!(collector.hourly.get("2024-01-15T10"), Some(&1));
         assert_eq!(collector.channel.get("Security"), Some(&1));
+        assert_eq!(collector.source.get("Test"), Some(&1));
         assert_eq!(collector.computer.get("PC-1"), Some(&1));
     }
 
@@ -479,6 +510,9 @@ mod tests {
 
         assert_eq!(collector.severity.len(), 3);  // (0,信息), (3,警告), (4,信息)
         assert_eq!(collector.channel.len(), 2);
+        assert_eq!(collector.source.len(), 2);    // Sec, SCM
+        assert_eq!(collector.source.get("Sec"), Some(&2));
+        assert_eq!(collector.source.get("SCM"), Some(&1));
         assert_eq!(collector.computer.len(), 2);
         assert_eq!(collector.hourly.len(), 2);   // T10 + T11
     }
@@ -493,6 +527,8 @@ mod tests {
         // Should not crash, should not add to event_id/channel/computer maps
         assert!(collector.event_id.is_empty());
         assert!(collector.channel.is_empty());
+        assert!(!collector.source.is_empty());   // provider_name = "X" → source has it
+        assert_eq!(collector.source.get("X"), Some(&1));
         assert!(collector.computer.is_empty());
 
         // severity should still get the entry (with empty string)
@@ -537,7 +573,7 @@ mod tests {
         let table_count: i64 = conn
             .query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE 'stat_%'", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(table_count, 6, "expected 6 stat tables");
+        assert_eq!(table_count, 7, "expected 7 stat tables");
 
         // Verify data
         let count: i64 = conn
@@ -561,7 +597,7 @@ mod tests {
         let count: i64 = conn
             .query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE 'stat_%'", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(count, 6, "tables should exist even empty");
+        assert_eq!(count, 7, "tables should exist even empty");
     }
 
     #[test]
