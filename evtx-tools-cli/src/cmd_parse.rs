@@ -266,10 +266,36 @@ fn process_parallel_batch(
     target_lang: &str,
     batch: &mut [(ParsedEvent, Option<Value>)],
 ) {
-    let Some(ref db) = msg_db else { return };
     if batch.is_empty() {
         return;
     }
+
+    // --- Handle no messages.db: set fallback for all events ---
+    let db = match msg_db {
+        Some(ref db) => db,
+        None => {
+            for (event, ev_data) in batch.iter_mut() {
+                if event.message.is_some() {
+                    continue;
+                }
+                let raw_values = extract_subst_params(
+                    &event.event_data,
+                    ev_data.as_ref(),
+                    &None,
+                );
+                event.message = Some(
+                    evtx_tools_core::substitute::generate_fallback_message(
+                        event.provider_name.as_deref(),
+                        event.event_id,
+                        &raw_values,
+                        target_lang,
+                        false, // has_msg_db = false
+                    ),
+                );
+            }
+            return;
+        }
+    };
 
     // --- 1. Warmup (lock held, single-threaded) ---
     if !new_pairs.is_empty() {
@@ -293,56 +319,69 @@ fn process_parallel_batch(
     // run without the lock so all rayon threads execute simultaneously.
     batch.par_iter_mut().for_each(|(event, event_data_value)| {
         // ---- Brief lock: fetch cloned MessageRow and value_maps ----
-        let (maybe_row, local_value_maps, local_bitmap_names): (
-            Option<MessageRow>,
-            std::collections::HashMap<String, std::collections::HashMap<String, String>>,
-            std::collections::HashSet<String>,
-        ) = {
-            let guard = match db.lock() {
-                Ok(g) => g,
-                Err(_) => return,
-            };
-            let provider = match event.provider_name.as_ref() {
-                Some(p) => p.as_str(),
-                None => return,
-            };
-            let eid = match event.event_id {
-                Some(e) => e,
-                None => return,
-            };
+        // Use an inner closure so that any lookup failure falls through
+        // to fallback message generation rather than silently leaving
+        // the message as None.
+        struct ResolveResult {
+            row: MessageRow,
+            value_maps: std::collections::HashMap<String, std::collections::HashMap<String, String>>,
+            bitmap_names: std::collections::HashSet<String>,
+        }
+
+        let resolved = (|| -> Option<ResolveResult> {
+            let guard = db.lock().ok()?;
+            let provider = event.provider_name.as_ref()?;
+            let provider_str = provider.as_str();
+            let eid = event.event_id?;
             let mid = compute_message_id(eid, event.qualifiers);
             let row = guard
-                .get(provider, mid)
-                .or_else(|| guard.get(provider, eid))
-                .cloned();
-            // Fetch relevant value_maps if the row has parameter names
-            let vms = match &row {
-                Some(r) => r.parameters.as_ref()
-                    .map(|pm| guard.get_param_value_maps(pm))
-                    .unwrap_or_default(),
-                None => std::collections::HashMap::new(),
-            };
-            (row, vms, guard.get_bitmap_names())
-        };
-        // Lock released — data is owned.
+                .get(provider_str, mid)
+                .or_else(|| guard.get(provider_str, eid))
+                .cloned()?;
+            let vms = row.parameters.as_ref()
+                .map(|pm| guard.get_param_value_maps(pm))
+                .unwrap_or_default();
+            Some(ResolveResult {
+                row,
+                value_maps: vms,
+                bitmap_names: guard.get_bitmap_names(),
+            })
+        })();
 
-        let row = match maybe_row {
+        let row = match resolved {
             Some(r) => r,
-            None => return,
+            None => {
+                // Cache miss or missing provider/eid — set fallback message
+                let raw_values = extract_subst_params(
+                    &event.event_data,
+                    event_data_value.as_ref(),
+                    &None,
+                );
+                event.message = Some(
+                    evtx_tools_core::substitute::generate_fallback_message(
+                        event.provider_name.as_deref(),
+                        event.event_id,
+                        &raw_values,
+                        target_lang,
+                        true, // has_msg_db = true
+                    ),
+                );
+                return;
+            }
         };
 
         // ---- Heavy work (no lock): substitute + copy metadata ----
         // Step 1: Expand %%N parameter references BEFORE substitute, because
         // substitute() consumes %% → % (literal percent), which destroys the
         // %%NNNN marker that expand_param_refs needs to look up (e.g. %%1843).
-        let template = if row.template.contains("%%") {
+        let template = if row.row.template.contains("%%") {
             if let Ok(guard) = db.lock() {
-                guard.expand_message(&row.template)
+                guard.expand_message(&row.row.template)
             } else {
-                row.template.clone()
+                row.row.template.clone()
             }
         } else {
-            row.template.clone()
+            row.row.template.clone()
         };
 
         // Step 2: Substitute %1–%99 positional parameters.
@@ -350,39 +389,39 @@ fn process_parallel_batch(
             let params = extract_subst_params(
                 &event.event_data,
                 event_data_value.as_ref(),
-                &row.parameters,
+                &row.row.parameters,
             );
             // Apply Layer 1 enum resolution (standard type conventions)
-            let params = apply_param_enums(&params, &row.parameters);
+            let params = apply_param_enums(&params, &row.row.parameters);
             // Apply Layer 2: CRIM VMAP/BMAP value map resolution
-            let params = evtx_tools_core::substitute::apply_value_maps(&params, &row.parameters, &local_value_maps, &local_bitmap_names);
+            let params = evtx_tools_core::substitute::apply_value_maps(&params, &row.row.parameters, &row.value_maps, &row.bitmap_names);
             let param_refs: Vec<&str> = params.iter().map(|s| s.as_str()).collect();
             event.message = Some(substitute_format_message(&template, &param_refs));
         } else {
             event.message = Some(template);
         }
 
-        if let Some(ref t) = row.task {
+        if let Some(ref t) = row.row.task {
             if !t.is_empty() {
                 event.task_category = Some(t.clone());
             }
         }
-        if let Some(ref o) = row.opcode {
+        if let Some(ref o) = row.row.opcode {
             if !o.is_empty() {
                 event.opcode = Some(o.clone());
             }
         }
-        if let Some(ref k) = row.keywords {
+        if let Some(ref k) = row.row.keywords {
             if !k.is_empty() {
                 event.keywords = Some(k.clone());
             }
         }
-        if let Some(ref ln) = row.level_name {
+        if let Some(ref ln) = row.row.level_name {
             if !ln.is_empty() {
                 event.level_name = Some(ln.clone());
             }
         }
-        if let Some(ref kn) = row.keywords_name {
+        if let Some(ref kn) = row.row.keywords_name {
             if !kn.is_empty() {
                 event.keywords_name = Some(kn.clone());
             }

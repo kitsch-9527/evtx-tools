@@ -563,6 +563,94 @@ fn is_boolean_field(name: &str) -> bool {
     false
 }
 
+// ---------------------------------------------------------------------------
+// Fallback message generation (Windows Event Viewer compatible)
+// ---------------------------------------------------------------------------
+
+/// Generate a Windows-compatible fallback message when the event's message
+/// template cannot be found.
+///
+/// Matches Windows Event Viewer's behavior when `EvtFormatMessage` fails with
+/// `ERROR_EVT_MESSAGE_NOT_FOUND` or `ERROR_EVT_MESSAGE_ID_NOT_FOUND`.
+///
+/// # Parameters
+///
+/// - `provider`: The event provider name (e.g. "Microsoft-Windows-Security-Auditing").
+/// - `event_id`: The event identifier.
+/// - `raw_values`: Raw substitution parameter values from EventData (one per `%N` slot).
+/// - `lang`: Language code — currently `"zh-CN"` for Chinese, anything else for English.
+/// - `has_msg_db`: Whether a messages database was loaded (controls the "resource exists" trailer):
+///   - `false` → "本地计算机上未安装引发此事件的组件" (provider not installed)
+///   - `true`  → also append "消息资源存在，但在消息表中找不到该消息" (ID not in table)
+pub fn generate_fallback_message(
+    provider: Option<&str>,
+    event_id: Option<u32>,
+    raw_values: &[String],
+    lang: &str,
+    has_msg_db: bool,
+) -> String {
+    let provider = provider.unwrap_or("(unknown)");
+    let eid = event_id.unwrap_or(0);
+
+    let is_zh = lang.starts_with("zh");
+    let mut result = String::new();
+
+    // ---- Header ----
+    if is_zh {
+        result.push_str(&format!(
+            "无法找到来自源 {} 的事件 ID {} 的描述。\n\
+             本地计算机上未安装引发此事件的组件，或者安装已损坏。可以安装或修复本地计算机上的组件。\n\
+             \n\
+             如果该事件产生于另一台计算机，则必须在该事件中保存显示信息。",
+            provider, eid,
+        ));
+    } else {
+        result.push_str(&format!(
+            "The description for Event ID {} from source {} cannot be found. \
+             The component that raises this event is not installed on your local computer \
+             or the installation is corrupted. You can install or repair the component on \
+             the local computer.\n\
+             \n\
+             If the event originated on another computer, the display information had to \
+             be saved with the event.",
+            eid, provider,
+        ));
+    }
+
+    // ---- Values section ----
+    if !raw_values.is_empty() {
+        result.push_str("\n\n");
+        if is_zh {
+            result.push_str("以下是包含在事件中的信息:");
+        } else {
+            result.push_str("The following information was included with the event:");
+        }
+        result.push_str("\n\n");
+        for v in raw_values {
+            result.push_str(v);
+            result.push('\n');
+        }
+    }
+
+    // ---- Trailer (only for scenario ②: DB loaded but cache miss) ----
+    if has_msg_db {
+        // Ensure blank line before trailer (unless values section just added one)
+        if !raw_values.is_empty() {
+            // last value already pushed '\n', add one more blank line
+            result.push('\n');
+        } else {
+            result.push_str("\n\n");
+        }
+        if is_zh {
+            result.push_str("消息资源存在，但在消息表中找不到该消息。");
+        } else {
+            result.push_str("The message resource is present but the message is not found in the string/message table.");
+        }
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1208,6 +1296,155 @@ mod tests {
         assert_eq!(crate::substitute::match_bitmap("abc", &entries), None);
         assert_eq!(crate::substitute::match_bitmap("-1", &entries), None);
         assert_eq!(crate::substitute::match_bitmap("", &entries), None);
+    }
+
+    // -----------------------------------------------------------------------
+    // generate_fallback_message tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn fallback_zh_cache_miss_with_values() {
+        // Scenario ②: messages.db loaded but cache miss → "消息资源存在" appended
+        let values = vec![
+            "MSIXDeployment".to_string(),
+            "windows.applicationData".to_string(),
+            "DeleteMachineFolder".to_string(),
+            "Package removed: 系统找不到指定的路径。".to_string(),
+        ];
+        let result = crate::substitute::generate_fallback_message(
+            Some("Microsoft-Windows-AppXDeploymentServer"),
+            Some(2562),
+            &values,
+            "zh-CN",
+            true,
+        );
+
+        // Must contain header
+        assert!(result.contains("无法找到来自源 Microsoft-Windows-AppXDeploymentServer 的事件 ID 2562 的描述。"),
+            "should contain Chinese header with provider and event ID");
+        assert!(result.contains("本地计算机上未安装引发此事件的组件"),
+            "should contain 'not installed' message");
+
+        // Must contain values section
+        assert!(result.contains("以下是包含在事件中的信息:"),
+            "should contain values section header");
+        assert!(result.contains("MSIXDeployment"),
+            "should contain first raw value");
+        assert!(result.contains("windows.applicationData"),
+            "should contain second raw value");
+
+        // Must contain trailing "资源存在" message (scenario ②)
+        assert!(result.contains("消息资源存在，但在消息表中找不到该消息。"),
+            "should contain 'resource exists' line for scenario ②");
+
+        // Values must appear as separate lines
+        let lines: Vec<&str> = result.lines().collect();
+        let val1_pos = lines.iter().position(|l| l.contains("MSIXDeployment")).unwrap();
+        let val2_pos = lines.iter().position(|l| l.contains("windows.applicationData")).unwrap();
+        assert!(val2_pos > val1_pos, "values should be in order");
+    }
+
+    #[test]
+    fn fallback_zh_no_db_no_values() {
+        // Scenario ①: no messages.db at all
+        let result = crate::substitute::generate_fallback_message(
+            Some("Test-Provider"),
+            Some(100),
+            &[],
+            "zh-CN",
+            false,
+        );
+
+        assert!(result.contains("无法找到来自源 Test-Provider 的事件 ID 100 的描述。"),
+            "should contain Chinese header");
+        // No values section when empty
+        assert!(!result.contains("以下是包含在事件中的信息:"),
+            "should NOT contain values header when no values");
+        // No "资源存在" line (scenario ①)
+        assert!(!result.contains("消息资源存在"),
+            "should NOT contain 'resource exists' for scenario ①");
+    }
+
+    #[test]
+    fn fallback_en_cache_miss_with_values() {
+        // English fallback with values
+        let values = vec![
+            "admin".to_string(),
+            "PC-01".to_string(),
+        ];
+        let result = crate::substitute::generate_fallback_message(
+            Some("Microsoft-Windows-Security-Auditing"),
+            Some(4624),
+            &values,
+            "en-US",
+            true,
+        );
+
+        assert!(result.contains("The description for Event ID 4624 from source Microsoft-Windows-Security-Auditing cannot be found."),
+            "should contain English header");
+        assert!(result.contains("The following information was included with the event:"),
+            "should contain English values header");
+        assert!(result.contains("admin"),
+            "should contain first value");
+        assert!(result.contains("The message resource is present"),
+            "should contain 'resource exists' for scenario ②");
+    }
+
+    #[test]
+    fn fallback_en_no_db_no_values() {
+        let result = crate::substitute::generate_fallback_message(
+            Some("Unknown-Provider"),
+            Some(999),
+            &[],
+            "en-US",
+            false,
+        );
+
+        assert!(result.contains("Event ID 999"),
+            "should contain event ID");
+        assert!(result.contains("Unknown-Provider"),
+            "should contain provider name");
+        assert!(!result.contains("The following information"),
+            "should NOT contain values header when no values");
+        assert!(!result.contains("message resource is present"),
+            "should NOT contain 'resource exists' for scenario ①");
+    }
+
+    #[test]
+    fn fallback_missing_provider_eid_defaults() {
+        // When provider and event_id are None, should use fallback text
+        let result = crate::substitute::generate_fallback_message(
+            None,
+            None,
+            &[],
+            "zh-CN",
+            false,
+        );
+
+        assert!(result.contains("(unknown)"),
+            "should replace missing provider with fallback text");
+        assert!(result.contains("事件 ID 0"),
+            "should use 0 for missing event ID");
+    }
+
+    #[test]
+    fn fallback_values_line_separated() {
+        // Each value should appear on its own line
+        let values = vec!["val1".to_string(), "val2".to_string(), "val3".to_string()];
+        let result = crate::substitute::generate_fallback_message(
+            Some("P"), Some(1), &values, "en-US", true,
+        );
+
+        let lines: Vec<&str> = result.lines().collect();
+        let v1 = lines.iter().position(|l| l.trim() == "val1");
+        let v2 = lines.iter().position(|l| l.trim() == "val2");
+        let v3 = lines.iter().position(|l| l.trim() == "val3");
+        assert!(v1.is_some() && v2.is_some() && v3.is_some(),
+            "all values should appear");
+        assert!(v2.unwrap() > v1.unwrap(),
+            "val2 should come after val1");
+        assert!(v3.unwrap() > v2.unwrap(),
+            "val3 should come after val2");
     }
 
     // -----------------------------------------------------------------------
