@@ -1,0 +1,12 @@
+name: "远程访问"
+table: "remote_events"
+columns:
+  - event_record_id
+  - timestamp
+  - event_id
+  - user_name
+  - computer
+  - message
+  - event_data
+event_ids: [4624, 4648, 4778, 4779, 5156, 5158, 1149]
+channels: ["Security"]

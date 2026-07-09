@@ -1,0 +1,7 @@
+﻿"record_id","event_id","provider","message"
+"3828","60","Microsoft-Windows-Bits-Client","BITS stopped transferring the hola transfer job that is associated with the C:\Windows\system32\cmd.exe URL. The status code is 0x0."
+"3827","59","Microsoft-Windows-Bits-Client","BITS started the hola transfer job that is associated with the C:\Windows\system32\cmd.exe URL."
+"3825","3","Microsoft-Windows-Bits-Client","The BITS service created a new job: hola, with owner IEWIN7\IEUser"
+"3818","60","Microsoft-Windows-Bits-Client","BITS stopped transferring the backdoor transfer job that is associated with the C:\Windows\system32\cmd.exe URL. The status code is 0x0."
+"3817","59","Microsoft-Windows-Bits-Client","BITS started the backdoor transfer job that is associated with the C:\Windows\system32\cmd.exe URL."
+"3815","3","Microsoft-Windows-Bits-Client","The BITS service created a new job: backdoor, with owner IEWIN7\IEUser"

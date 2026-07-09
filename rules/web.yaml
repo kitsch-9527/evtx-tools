@@ -1,0 +1,14 @@
+name: "Web 服务审计"
+table: "web_events"
+columns:
+  - event_record_id
+  - timestamp
+  - event_id
+  - provider_name
+  - computer
+  - message
+channels: ["Application"]
+provider_like:
+  - "ASP.NET%"
+  - "IIS%"
+  - "W3SVC%"

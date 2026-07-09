@@ -1,0 +1,14 @@
+name: "安全审计"
+table: "security_events"
+columns:
+  - event_record_id
+  - timestamp
+  - event_id
+  - provider_name
+  - user_name
+  - computer
+  - message
+  - severity
+  - event_data
+event_ids: [4624, 4625, 4648, 4672, 4720, 4728, 4732, 4776, 1102]
+channels: ["Security"]

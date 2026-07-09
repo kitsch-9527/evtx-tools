@@ -1,0 +1,7 @@
+﻿"record_id","event_id","provider","message"
+"65380","7036","Service Control Manager","The Windows Insider Service service entered the stopped state."
+"65379","7036","Service Control Manager","The TCP/IP NetBIOS Helper service entered the running state."
+"65378","7036","Service Control Manager","The Time Broker service entered the running state."
+"65377","7036","Service Control Manager","The Windows Event Log service entered the running state."
+"65376","7036","Service Control Manager","The Windows Insider Service service entered the running state."
+"65371","7036","Service Control Manager","The Windows Error Reporting Service service entered the running state."

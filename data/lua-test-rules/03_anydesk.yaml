@@ -1,0 +1,11 @@
+name: "Lua AnyDesk"
+table: "lua_AnyDesk"
+columns:
+  - event_record_id
+  - timestamp
+  - event_id
+  - provider_name
+  - message
+message_like:
+  - "%AnyDesk%"
+  - "%anydesk%"

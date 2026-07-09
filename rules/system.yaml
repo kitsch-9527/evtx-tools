@@ -1,0 +1,13 @@
+name: "系统异常"
+table: "system_anomaly"
+columns:
+  - event_record_id
+  - timestamp
+  - event_id
+  - provider_name
+  - level
+  - severity
+  - computer
+  - message
+event_ids: [6008, 41, 1074, 1001, 1102, 104, 7031, 7034, 1100]
+channels: ["System", "Security", "Application"]

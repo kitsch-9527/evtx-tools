@@ -1,0 +1,19 @@
+[package]
+name = "evtx-tools-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "evtx-tools"
+path = "src/main.rs"
+
+[[bin]]
+name = "evtx-batch"
+path = "src/bin/batch.rs"
+
+[dependencies]
+evtx-tools-core = { path = "../evtx-tools-core" }
+clap = { version = "4", features = ["derive"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde_json = "1"
+rayon = "1"

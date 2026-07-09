@@ -1,0 +1,13 @@
+name: "持久化分析"
+table: "persistence_events"
+columns:
+  - event_record_id
+  - timestamp
+  - event_id
+  - provider_name
+  - channel
+  - computer
+  - message
+  - event_data
+event_ids: [7045, 4697, 4698, 4699, 4700, 4701, 4702, 7036, 5617, 5618, 5619, 5620]
+channels: ["System", "Security"]

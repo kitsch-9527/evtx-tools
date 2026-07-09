@@ -1,0 +1,18 @@
+name: "SQL Server 审计"
+table: "mssql_events"
+columns:
+  - event_record_id
+  - timestamp
+  - event_id
+  - provider_name
+  - severity
+  - computer
+  - message
+event_ids: [18456, 18452, 18451, 18450, 18453, 18454, 18455]
+channels: ["Application"]
+provider_like:
+  - "MSSQL%"
+message_like:
+  - "登录"
+  - "login"
+  - "Login"

@@ -1,0 +1,10 @@
+name: "Lua ASP.NET"
+table: "lua_ASPNET"
+columns:
+  - event_record_id
+  - timestamp
+  - event_id
+  - provider_name
+  - message
+provider_like:
+  - "ASP.NET%"
