@@ -12,6 +12,29 @@
 use crate::ParsedEvent;
 
 // ---------------------------------------------------------------------------
+// Regex wrapper — compiled at rule-load time
+// ---------------------------------------------------------------------------
+
+/// A pre-compiled regular expression stored inside a rule filter.
+///
+/// Compiled once during YAML deserialization so that every `.is_match()`
+/// call on each event is fast (no re-compilation).
+#[derive(Debug, Clone)]
+pub struct CompiledRegex(pub regex::Regex);
+
+impl<'de> serde::Deserialize<'de> for CompiledRegex {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        regex::Regex::new(&s)
+            .map(CompiledRegex)
+            .map_err(|e| serde::de::Error::custom(format!("invalid regex pattern: {e}")))
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Rule definition (YAML-deserializable)
 // ---------------------------------------------------------------------------
 
@@ -36,10 +59,22 @@ pub struct RuleFilter {
     pub event_ids: Option<Vec<u32>>,
     /// Match if `channel` equals one of these values.
     pub channels: Option<Vec<String>>,
-    /// Match if `provider_name` matches at least one SQL LIKE pattern.
+    /// Match if `level` is in this list of numeric values.
+    pub levels: Option<Vec<u8>>,
+    /// Match if `provider_name` matches at least one SQL LIKE pattern (YAML: `provider_name`).
+    /// Legacy alias `provider_like` still accepted for backward compatibility.
+    #[serde(alias = "provider_like", rename = "provider_name")]
     pub provider_like: Option<Vec<String>>,
-    /// Match if `message` matches at least one SQL LIKE pattern.
+    /// Match if `message` matches at least one SQL LIKE pattern (YAML: `message`).
+    /// Legacy alias `message_like` still accepted for backward compatibility.
+    #[serde(alias = "message_like", rename = "message")]
     pub message_like: Option<Vec<String>>,
+    /// Match if `provider_name` matches at least one regex (YAML: `provider_name|re`).
+    #[serde(alias = "provider_name|re")]
+    pub provider_name_re: Option<Vec<CompiledRegex>>,
+    /// Match if `message` matches at least one regex (YAML: `message|re`).
+    #[serde(alias = "message|re")]
+    pub message_re: Option<Vec<CompiledRegex>>,
 }
 
 impl RuleFilter {
@@ -60,6 +95,12 @@ impl RuleFilter {
                 _ => return false,
             }
         }
+        if let Some(ref ids) = self.levels {
+            match event.level {
+                Some(lvl) if ids.contains(&lvl) => {}
+                _ => return false,
+            }
+        }
         if let Some(ref patterns) = self.provider_like {
             match event.provider_name.as_ref() {
                 Some(prov) if patterns_match(prov, patterns) => {}
@@ -69,6 +110,18 @@ impl RuleFilter {
         if let Some(ref patterns) = self.message_like {
             match event.message.as_ref() {
                 Some(msg) if patterns_match(msg, patterns) => {}
+                _ => return false,
+            }
+        }
+        if let Some(ref patterns) = self.provider_name_re {
+            match event.provider_name.as_ref() {
+                Some(prov) if patterns.iter().any(|p| p.0.is_match(prov)) => {}
+                _ => return false,
+            }
+        }
+        if let Some(ref patterns) = self.message_re {
+            match event.message.as_ref() {
+                Some(msg) if patterns.iter().any(|p| p.0.is_match(msg)) => {}
                 _ => return false,
             }
         }
@@ -134,7 +187,11 @@ fn like_match(value: &str, pattern: &str) -> bool {
 
 /// Parse a single rule from YAML string.
 pub fn rule_from_yaml(yaml: &str) -> std::result::Result<Rule, String> {
-    serde_yaml::from_str(yaml).map_err(|e| format!("failed to parse rule: {e}"))
+    let rule: Rule = serde_yaml::from_str(yaml).map_err(|e| format!("failed to parse rule: {e}"))?;
+    if rule.columns.as_ref().map_or(true, |c| c.is_empty()) {
+        return Err("rule must have a non-empty 'columns' field (e.g. columns: [event_id, message])".into());
+    }
+    Ok(rule)
 }
 
 /// Parse multiple YAML rules from (name, yaml_content) pairs.
@@ -234,6 +291,9 @@ mod tests {
             channels: None,
             provider_like: None,
             message_like: None,
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(Some(4624), None, None, None);
         assert!(filter.matches(&event));
@@ -246,6 +306,9 @@ mod tests {
             channels: None,
             provider_like: None,
             message_like: None,
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(Some(4688), None, None, None);
         assert!(!filter.matches(&event));
@@ -258,6 +321,9 @@ mod tests {
             channels: None,
             provider_like: None,
             message_like: None,
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(Some(9999), None, None, None);
         assert!(filter.matches(&event));
@@ -272,6 +338,9 @@ mod tests {
             channels: Some(vec!["Security".into()]),
             provider_like: None,
             message_like: None,
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(Some(4624), Some("Security"), None, None);
         assert!(filter.matches(&event));
@@ -284,6 +353,9 @@ mod tests {
             channels: Some(vec!["Security".into()]),
             provider_like: None,
             message_like: None,
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(Some(4624), Some("System"), None, None);
         assert!(!filter.matches(&event));
@@ -296,6 +368,9 @@ mod tests {
             channels: Some(vec!["Security".into(), "System".into()]),
             provider_like: None,
             message_like: None,
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(Some(4624), Some("System"), None, None);
         assert!(filter.matches(&event));
@@ -310,6 +385,9 @@ mod tests {
             channels: None,
             provider_like: Some(vec!["MSSQL%".into()]),
             message_like: None,
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(None, None, Some("MSSQLSERVER"), None);
         assert!(filter.matches(&event));
@@ -322,6 +400,9 @@ mod tests {
             channels: None,
             provider_like: Some(vec!["asp.net%".into()]),
             message_like: None,
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(None, None, Some("ASP.NET 4.0"), None);
         assert!(filter.matches(&event));
@@ -334,6 +415,9 @@ mod tests {
             channels: None,
             provider_like: Some(vec!["MSSQL%".into()]),
             message_like: None,
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(None, None, Some("ASP.NET"), None);
         assert!(!filter.matches(&event));
@@ -346,6 +430,9 @@ mod tests {
             channels: None,
             provider_like: Some(vec!["MSSQL%".into(), "ASP.NET%".into()]),
             message_like: None,
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event1 = make_event(None, None, Some("MSSQLSERVER"), None);
         let event2 = make_event(None, None, Some("ASP.NET 2.0"), None);
@@ -362,6 +449,9 @@ mod tests {
             channels: None,
             provider_like: None,
             message_like: Some(vec!["%登录%".into()]),
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(None, None, None, Some("用户已成功登录"));
         assert!(filter.matches(&event));
@@ -374,6 +464,9 @@ mod tests {
             channels: None,
             provider_like: None,
             message_like: Some(vec!["%AnyDesk%".into()]),
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(None, None, None, Some("普通信息事件"));
         assert!(!filter.matches(&event));
@@ -386,6 +479,9 @@ mod tests {
             channels: None,
             provider_like: None,
             message_like: Some(vec!["%login%".into(), "%登录%".into()]),
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event_en = make_event(None, None, None, Some("User login successful"));
         let event_zh = make_event(None, None, None, Some("用户已成功登录"));
@@ -402,6 +498,9 @@ mod tests {
             channels: Some(vec!["Application".into()]),
             provider_like: Some(vec!["MSSQL%".into()]),
             message_like: Some(vec!["%登录%".into()]),
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         let event = make_event(
             Some(18456), Some("Application"), Some("MSSQLSERVER"),
@@ -417,6 +516,9 @@ mod tests {
             channels: Some(vec!["Application".into()]),
             provider_like: Some(vec!["MSSQL%".into()]),
             message_like: Some(vec!["%登录%".into()]),
+            levels: None,
+            provider_name_re: None,
+            message_re: None,
         };
         // Wrong channel
         let event = make_event(
@@ -458,6 +560,9 @@ channels: ["Security"]
                 channels: Some(vec!["Security".into()]),
                 provider_like: None,
                 message_like: None,
+                provider_name_re: None,
+                message_re: None,
+                levels: None,
             },
         }
     }
@@ -472,6 +577,9 @@ channels: ["Security"]
                 channels: Some(vec!["System".into(), "Security".into()]),
                 provider_like: None,
                 message_like: None,
+                provider_name_re: None,
+                message_re: None,
+                levels: None,
             },
         }
     }
@@ -561,6 +669,7 @@ channels: ["Security"]
         let yaml = r#"
 name: "minimal"
 table: "t"
+columns: [event_id]
 event_ids: [1]
 "#;
         let rule = rule_from_yaml(yaml).unwrap();
@@ -596,14 +705,237 @@ channels: ["Security"]
         }
     }
 
+    // ── Cycle 7: levels filtering ──
+
+    #[test]
+    fn test_matches_level_in_list() {
+        let filter = RuleFilter {
+            event_ids: None,
+            channels: None,
+            levels: Some(vec![1, 2, 3]),
+            provider_like: None,
+            message_like: None,
+            provider_name_re: None,
+            message_re: None,
+        };
+        let event = ParsedEvent {
+            level: Some(2),
+            ..make_event(None, None, None, None)
+        };
+        assert!(filter.matches(&event));
+    }
+
+    #[test]
+    fn test_rejects_level_not_in_list() {
+        let filter = RuleFilter {
+            event_ids: None,
+            channels: None,
+            levels: Some(vec![1, 2]),
+            provider_like: None,
+            message_like: None,
+            provider_name_re: None,
+            message_re: None,
+        };
+        let event = ParsedEvent {
+            level: Some(5),
+            ..make_event(None, None, None, None)
+        };
+        assert!(!filter.matches(&event));
+    }
+
+    #[test]
+    fn test_no_levels_accepts_any() {
+        let filter = RuleFilter {
+            event_ids: None,
+            channels: None,
+            levels: None,
+            provider_like: None,
+            message_like: None,
+            provider_name_re: None,
+            message_re: None,
+        };
+        let event = ParsedEvent {
+            level: Some(99),
+            ..make_event(None, None, None, None)
+        };
+        assert!(filter.matches(&event));
+    }
+
+    #[test]
+    fn test_missing_level_rejects() {
+        let filter = RuleFilter {
+            event_ids: None,
+            channels: None,
+            levels: Some(vec![1, 2]),
+            provider_like: None,
+            message_like: None,
+            provider_name_re: None,
+            message_re: None,
+        };
+        let event = ParsedEvent {
+            level: None,
+            ..make_event(None, None, None, None)
+        };
+        assert!(!filter.matches(&event));
+    }
+
+    // ── Cycle 8: regex matching (|re modifier) ──
+
+    #[test]
+    fn test_matches_message_regex() {
+        let filter = RuleFilter {
+            event_ids: None,
+            channels: None,
+            provider_like: None,
+            message_like: None,
+            message_re: Some(vec![super::CompiledRegex(regex::Regex::new("失败$").unwrap())]),
+            provider_name_re: None,
+            levels: None,
+        };
+        let event = make_event(None, None, None, Some("用户已成功登录失败"));
+        assert!(filter.matches(&event));
+    }
+
+    #[test]
+    fn test_rejects_message_regex() {
+        let filter = RuleFilter {
+            event_ids: None,
+            channels: None,
+            provider_like: None,
+            message_like: None,
+            message_re: Some(vec![super::CompiledRegex(regex::Regex::new("失败$").unwrap())]),
+            provider_name_re: None,
+            levels: None,
+        };
+        let event = make_event(None, None, None, Some("用户已成功登录"));
+        assert!(!filter.matches(&event));
+    }
+
+    #[test]
+    fn test_matches_provider_name_regex() {
+        let filter = RuleFilter {
+            event_ids: None,
+            channels: None,
+            provider_like: None,
+            message_like: None,
+            message_re: None,
+            provider_name_re: Some(vec![super::CompiledRegex(regex::Regex::new("^MSSQL").unwrap())]),
+            levels: None,
+        };
+        let event = make_event(None, None, Some("MSSQLSERVER"), None);
+        assert!(filter.matches(&event));
+    }
+
+    #[test]
+    fn test_rejects_provider_name_regex() {
+        let filter = RuleFilter {
+            event_ids: None,
+            channels: None,
+            provider_like: None,
+            message_like: None,
+            message_re: None,
+            provider_name_re: Some(vec![super::CompiledRegex(regex::Regex::new("^MSSQL").unwrap())]),
+            levels: None,
+        };
+        let event = make_event(None, None, Some("ASP.NET"), None);
+        assert!(!filter.matches(&event));
+    }
+
+    #[test]
+    fn test_message_regex_multiple_patterns_or() {
+        // Multiple regex patterns — any should match (OR)
+        let filter = RuleFilter {
+            event_ids: None,
+            channels: None,
+            provider_like: None,
+            message_like: None,
+            message_re: Some(vec![
+                super::CompiledRegex(regex::Regex::new("失败$").unwrap()),
+                super::CompiledRegex(regex::Regex::new("^错误").unwrap()),
+            ]),
+            provider_name_re: None,
+            levels: None,
+        };
+        let event_match_first = make_event(None, None, None, Some("用户已成功登录失败"));
+        let event_match_second = make_event(None, None, None, Some("错误代码: 0x80070005"));
+        let event_no_match = make_event(None, None, None, Some("普通信息事件"));
+        assert!(filter.matches(&event_match_first));
+        assert!(filter.matches(&event_match_second));
+        assert!(!filter.matches(&event_no_match));
+    }
+
+    #[test]
+    fn test_regex_and_like_and() {
+        // message_re + message_like must both match (AND)
+        let filter = RuleFilter {
+            event_ids: None,
+            channels: None,
+            provider_like: None,
+            message_like: Some(vec!["%登录%".into()]),
+            message_re: Some(vec![super::CompiledRegex(regex::Regex::new("失败$").unwrap())]),
+            provider_name_re: None,
+            levels: None,
+        };
+        let event_ok = make_event(None, None, None, Some("登录失败"));
+        let event_no_like = make_event(None, None, None, Some("安装失败"));
+        let event_no_re = make_event(None, None, None, Some("用户已成功登录"));
+        assert!(filter.matches(&event_ok));
+        assert!(!filter.matches(&event_no_like));
+        assert!(!filter.matches(&event_no_re));
+    }
+
+    #[test]
+    fn test_invalid_regex_pattern_rejected() {
+        // YAML with invalid regex should fail to deserialize
+        let yaml = r#"
+name: "bad regex"
+table: "t"
+columns: [event_id]
+message|re: ["("]
+"#;
+        let result = rule_from_yaml(yaml);
+        assert!(result.is_err(), "expected error for invalid regex, got: {result:?}");
+        let err = result.unwrap_err();
+        assert!(err.contains("invalid regex"), "error should mention regex, got: {err}");
+    }
+
+    #[test]
+    fn test_missing_columns_rejected() {
+        let yaml = r#"
+name: "no columns"
+table: "t"
+event_ids: [1]
+"#;
+        let result = rule_from_yaml(yaml);
+        assert!(result.is_err(), "expected error for missing columns, got: {result:?}");
+        let err = result.unwrap_err();
+        assert!(err.contains("columns"), "error should mention columns, got: {err}");
+    }
+
+    #[test]
+    fn test_backward_compat_old_like_suffix() {
+        // Legacy message_like / provider_like should still be accepted
+        let yaml = r#"
+name: "legacy"
+table: "t"
+columns: [event_id]
+message_like: ["%login%"]
+provider_like: ["MSSQL%"]
+"#;
+        let rule = rule_from_yaml(yaml).unwrap();
+        assert_eq!(rule.filter.message_like, Some(vec!["%login%".into()]));
+        assert_eq!(rule.filter.provider_like, Some(vec!["MSSQL%".into()]));
+    }
+
     #[test]
     fn test_rule_from_yaml_with_provider_like() {
         let yaml = r#"
 name: "MSSQL"
 table: "mssql_events"
+columns: [event_id, message]
 channels: ["Application"]
-provider_like: ["MSSQL%"]
-message_like: ["登录", "login"]
+provider_name: ["MSSQL%"]
+message: ["登录", "login"]
 "#;
         let rule = rule_from_yaml(yaml).unwrap();
         assert_eq!(rule.filter.provider_like, Some(vec!["MSSQL%".into()]));

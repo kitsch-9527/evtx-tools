@@ -266,79 +266,94 @@ impl EventsDb {
 }
 
 // ---------------------------------------------------------------------------
+// Column helpers for scenario table operations
+// ---------------------------------------------------------------------------
+
+/// Return the SQL column type for a ParsedEvent field name.
+fn column_sql_type(col: &str) -> &'static str {
+    match col {
+        "event_record_id" | "event_id" | "level" | "process_id"
+        | "thread_id" | "sequence_number" => "INTEGER",
+        _ => "TEXT",
+    }
+}
+
+/// Append a single field value from `event` for the column named `col`.
+fn append_field_value(sql: &mut String, col: &str, event: &ParsedEvent) {
+    match col {
+        "event_record_id" => append_int_opt(sql, &event.event_record_id),
+        "event_time" => append_text_opt(sql, &event.event_time),
+        "provider_name" => append_text_opt(sql, &event.provider_name),
+        "provider_guid" => append_text_opt(sql, &event.provider_guid),
+        "event_id" => append_int_opt(sql, &event.event_id),
+        "level" => append_int_opt(sql, &event.level),
+        "severity" => append_text_opt(sql, &event.severity),
+        "task_category" => append_text_opt(sql, &event.task_category),
+        "opcode" => append_text_opt(sql, &event.opcode),
+        "keywords" => append_text_opt(sql, &event.keywords),
+        "channel" => append_text_opt(sql, &event.channel),
+        "computer" => append_text_opt(sql, &event.computer),
+        "process_id" => append_int_opt(sql, &event.process_id),
+        "thread_id" => append_int_opt(sql, &event.thread_id),
+        "user_name" => append_text_opt(sql, &event.user_name),
+        "user_sid" => append_text_opt(sql, &event.user_sid),
+        "activity_id" => append_text_opt(sql, &event.activity_id),
+        "related_activity_id" => append_text_opt(sql, &event.related_activity_id),
+        "message" => append_text_opt(sql, &event.message),
+        "level_name" => append_text_opt(sql, &event.level_name),
+        "keywords_name" => append_text_opt(sql, &event.keywords_name),
+        "event_data" => append_text_opt(sql, &event.event_data),
+        "raw_xml" => append_text_opt(sql, &event.raw_xml),
+        "file_name" => append_text_opt(sql, &event.file_name),
+        "sequence_number" => append_int_opt(sql, &event.sequence_number),
+        _ => sql.push_str("NULL"),
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Scenario table operations
 // ---------------------------------------------------------------------------
 
-/// Ensure a scenario table exists, creating it lazily if needed.
+/// Ensure a scenario table exists, creating it lazily with only the columns
+/// declared in `rule.columns`.
 ///
-/// Uses the same schema as `events` but with the rule's table name.
-/// Idempotent — safe to call multiple times.
+/// The DDL uses the column names and types derived from the `ParsedEvent`
+/// schema. Idempotent — safe to call multiple times.
 pub fn ensure_scenario_table(conn: &Connection, rule: &crate::routing::Rule) -> Result<()> {
+    let cols = rule.columns.as_ref()
+        .ok_or_else(|| format!("rule '{}' has no 'columns' field", rule.name))?;
+    if cols.is_empty() {
+        return Err(format!("rule '{}' has empty columns list", rule.name));
+    }
+
+    let col_defs: Vec<String> = cols.iter().map(|c| {
+        format!("{} {}", c, column_sql_type(c))
+    }).collect();
+
     let ddl = format!(
-        "CREATE TABLE IF NOT EXISTS {} AS SELECT * FROM events WHERE 1=0",
-        rule.table
+        "CREATE TABLE IF NOT EXISTS {} ({})",
+        rule.table,
+        col_defs.join(", ")
     );
     conn.execute_batch(&ddl)
         .map_err(|e| format!("failed to create scenario table '{}': {e}", rule.table))
 }
 
-/// Insert a single event into a scenario table.
-///
-/// Always inserts the full event row (all columns). Column filtering
-/// (via `rule.columns`) is applied at query time, not storage time.
+/// Insert a single event into a scenario table, writing only the columns
+/// declared in `rule.columns` (in their declared order).
 pub fn insert_scenario_event(conn: &Connection, rule: &crate::routing::Rule, event: &ParsedEvent) -> Result<()> {
-    // Build an INSERT with the same column order as the events table
+    let cols = rule.columns.as_ref()
+        .ok_or_else(|| format!("rule '{}' has no 'columns' field", rule.name))?;
+    if cols.is_empty() {
+        return Err(format!("rule '{}' has empty columns list", rule.name));
+    }
+
     let mut sql = String::new();
     sql.push_str(&format!("INSERT INTO {} VALUES (", rule.table));
-    append_int_opt(&mut sql, &event.event_record_id);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.event_time);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.provider_name);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.provider_guid);
-    sql.push(',');
-    append_int_opt(&mut sql, &event.event_id);
-    sql.push(',');
-    append_int_opt(&mut sql, &event.level);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.severity);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.task_category);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.opcode);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.keywords);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.channel);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.computer);
-    sql.push(',');
-    append_int_opt(&mut sql, &event.process_id);
-    sql.push(',');
-    append_int_opt(&mut sql, &event.thread_id);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.user_name);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.user_sid);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.activity_id);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.related_activity_id);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.message);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.level_name);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.keywords_name);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.event_data);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.raw_xml);
-    sql.push(',');
-    append_text_opt(&mut sql, &event.file_name);
-    sql.push(',');
-    append_int_opt(&mut sql, &event.sequence_number);
+    for (i, col) in cols.iter().enumerate() {
+        if i > 0 { sql.push(','); }
+        append_field_value(&mut sql, col, event);
+    }
     sql.push(')');
 
     conn.execute_batch(&sql)
@@ -350,85 +365,25 @@ mod scenario_tests {
     use super::*;
     use crate::routing::{Rule, RuleFilter};
 
-    #[test]
-    fn test_ensure_scenario_table_creates() {
-        let conn = Connection::open_in_memory().unwrap();
-        super::create_events_table(&conn).unwrap();
-
-        let rule = Rule {
+    fn make_test_rule(table: &str, columns: Vec<&str>) -> Rule {
+        Rule {
             name: "test".into(),
-            table: "my_scenario".into(),
-            columns: None,
+            table: table.into(),
+            columns: Some(columns.into_iter().map(|s| s.into()).collect()),
             filter: RuleFilter {
                 event_ids: Some(vec![4624]),
                 channels: None,
                 provider_like: None,
                 message_like: None,
+                levels: None,
+                provider_name_re: None,
+                message_re: None,
             },
-        };
-
-        ensure_scenario_table(&conn, &rule).unwrap();
-
-        let count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='my_scenario'",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(count, 1);
+        }
     }
 
-    #[test]
-    fn test_ensure_scenario_table_idempotent() {
-        let conn = Connection::open_in_memory().unwrap();
-        super::create_events_table(&conn).unwrap();
-
-        let rule = Rule {
-            name: "test".into(),
-            table: "my_scenario".into(),
-            columns: None,
-            filter: RuleFilter {
-                event_ids: Some(vec![4624]),
-                channels: None,
-                provider_like: None,
-                message_like: None,
-            },
-        };
-
-        ensure_scenario_table(&conn, &rule).unwrap();
-        ensure_scenario_table(&conn, &rule).unwrap(); // Should not error
-
-        let count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='my_scenario'",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(count, 1);
-    }
-
-    #[test]
-    fn test_insert_scenario_event() {
-        let conn = Connection::open_in_memory().unwrap();
-        super::create_events_table(&conn).unwrap();
-
-        let rule = Rule {
-            name: "test".into(),
-            table: "my_scenario".into(),
-            columns: None,
-            filter: RuleFilter {
-                event_ids: Some(vec![4624]),
-                channels: None,
-                provider_like: None,
-                message_like: None,
-            },
-        };
-
-        ensure_scenario_table(&conn, &rule).unwrap();
-
-        let event = ParsedEvent {
+    fn make_test_event() -> ParsedEvent {
+        ParsedEvent {
             event_record_id: Some(42),
             event_id: Some(4624),
             event_time: Some("2024-01-15T10:30:00Z".into()),
@@ -456,10 +411,90 @@ mod scenario_tests {
             keywords_name: None,
             event_data: None,
             raw_xml: None,
-        };
+        }
+    }
 
+    #[test]
+    fn test_ensure_scenario_table_creates() {
+        let conn = Connection::open_in_memory().unwrap();
+        super::create_events_table(&conn).unwrap();
+
+        let rule = make_test_rule("my_scenario", vec!["event_record_id", "event_id", "message"]);
+        ensure_scenario_table(&conn, &rule).unwrap();
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='my_scenario'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_ensure_scenario_table_idempotent() {
+        let conn = Connection::open_in_memory().unwrap();
+        super::create_events_table(&conn).unwrap();
+
+        let rule = make_test_rule("my_scenario", vec!["event_record_id", "message"]);
+        ensure_scenario_table(&conn, &rule).unwrap();
+        ensure_scenario_table(&conn, &rule).unwrap(); // Should not error
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='my_scenario'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_scenario_table_has_only_declared_columns() {
+        let conn = Connection::open_in_memory().unwrap();
+        super::create_events_table(&conn).unwrap();
+
+        let rule = make_test_rule("my_scenario", vec!["event_id", "message"]);
+        ensure_scenario_table(&conn, &rule).unwrap();
+
+        // Check column count = 2
+        let col_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('my_scenario')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(col_count, 2, "table should have exactly 2 columns");
+
+        // Check column names
+        let col_names: Vec<String> = {
+            let mut stmt = conn
+                .prepare("SELECT name FROM pragma_table_info('my_scenario') ORDER BY cid")
+                .unwrap();
+            stmt.query_map([], |row| row.get(0))
+                .unwrap()
+                .filter_map(|r| r.ok())
+                .collect()
+        };
+        assert_eq!(col_names, vec!["event_id", "message"]);
+    }
+
+    #[test]
+    fn test_insert_scenario_event_only_writes_declared_columns() {
+        let conn = Connection::open_in_memory().unwrap();
+        super::create_events_table(&conn).unwrap();
+
+        // Only event_record_id, event_id, message
+        let rule = make_test_rule("my_scenario", vec!["event_record_id", "event_id", "message"]);
+        ensure_scenario_table(&conn, &rule).unwrap();
+
+        let event = make_test_event();
         insert_scenario_event(&conn, &rule, &event).unwrap();
 
+        // Query only the declared columns
         let (eid, msg): (i64, String) = conn
             .query_row(
                 "SELECT event_id, message FROM my_scenario WHERE event_record_id = 42",
@@ -469,6 +504,25 @@ mod scenario_tests {
             .unwrap();
         assert_eq!(eid, 4624);
         assert_eq!(msg, "登录成功");
+    }
+
+    #[test]
+    fn test_insert_scenario_event_skips_undeclared_columns() {
+        let conn = Connection::open_in_memory().unwrap();
+        super::create_events_table(&conn).unwrap();
+
+        // Only event_id + message — no event_record_id column
+        let rule = make_test_rule("my_scenario", vec!["event_id", "message"]);
+        ensure_scenario_table(&conn, &rule).unwrap();
+
+        let event = make_test_event(); // has event_record_id = 42
+        insert_scenario_event(&conn, &rule, &event).unwrap();
+
+        // Table has no event_record_id; verify by querying what exists
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM my_scenario WHERE event_id = 4624 AND message = '登录成功'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 1, "event should exist in column-filtered table");
     }
 }
 

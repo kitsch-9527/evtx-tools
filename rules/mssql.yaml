@@ -10,9 +10,9 @@ columns:
   - message
 event_ids: [18456, 18452, 18451, 18450, 18453, 18454, 18455]
 channels: ["Application"]
-provider_like:
+provider_name:
   - "MSSQL%"
-message_like:
+message:
   - "登录"
   - "login"
   - "Login"

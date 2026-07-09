@@ -6,6 +6,6 @@ columns:
   - event_id
   - provider_name
   - message
-message_like:
+message:
   - "%AnyDesk%"
   - "%anydesk%"

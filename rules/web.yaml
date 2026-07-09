@@ -8,7 +8,7 @@ columns:
   - computer
   - message
 channels: ["Application"]
-provider_like:
+provider_name:
   - "ASP.NET%"
   - "IIS%"
   - "W3SVC%"

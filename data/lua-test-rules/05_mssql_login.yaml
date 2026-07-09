@@ -6,7 +6,7 @@ columns:
   - event_id
   - provider_name
   - message
-provider_like:
+provider_name:
   - "MSSQL%"
-message_like:
+message:
   - "%登录%"
