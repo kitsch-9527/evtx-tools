@@ -60,5 +60,22 @@ python scripts\06-compare.py     # 顺序对齐比对 → report.md + report.dif
 4. `evtx-tools --format both` 与 `-o <单路径>` 同写一个文件（db 与 csv 抢同一路径），疑似损坏输出，
    故 05 脚本按 `--format db` / `--format csv` **分两次跑**（与 both 意图等价，各落自家文件）。
 5. 本机 `msgdb-dump` 默认 `--lang 1033,2052` 即一次产出**双语单库**；`evtx-tools` 以 `--lang` 切换语言。
-6. 仓库无 `.git`（`fatal: not a git repository`），版本信息记入 `msgdb/build-info.txt` 与
-   `tools/build-info.txt`，不依赖 VCS。
+6. 仓库已用 jj monorepo 管理（2026-09-07 起，根 `E:\Code\evet`）；历史以 `build-info.txt`
+   快照为准（09-03/09-05 轮次无 VCS）。
+
+## 测试循环（一轮迭代怎么做）
+
+单测两层之外的闭环节奏——**取证 → 修复 → 闭环验证**，回归红线一票否决：
+
+1. **选题**：`report.diff` / `report-exemplars.md`（分组样本，每组一条）按条数挑最大 D 簇。
+2. **取证**：`wevtutil qe <通道> "/q:…" /f:xml` 看 raw 值形态；
+   `msgdb-dump/crim-probe-intype.exe <dll> <guid> <eid>` 读 CRIM 参数类型字节；
+   也可仿照 `scripts/probe-r12-na-model.py` 写全量模型验证（importlib 复用 06 的
+   `parse_baseline`/`load_new_csv`）。先实证再写规则。
+3. **修复**：TDD——先在上游仓库（msgdb-dump / evtx-tools）加失败测试，再改实现到绿。
+4. **闭环**：改 msgdb-dump → 重跑 03；改 evtx-tools → 重跑 04；然后 05 → 06。
+   对比本轮 `report.json` 与上轮：目标簇清零？新增分类 = 回归？
+5. **回归红线**：Security 26031 全绿、Setup 全绿、B/C 类不得新增——破线立即回退。
+6. **闭合**：`verdict=PASS` 即闭环；`DIFF` 则回第 1 步。定稿前更新 skill 基线三镜像。
+
+完整版（含单元测试层次与耗时表）见仓库根 `STATUS.md` §8。

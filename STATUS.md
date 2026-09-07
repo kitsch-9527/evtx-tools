@@ -85,17 +85,52 @@ Message）。
 - **零星**：WER 1001×5（基线管线吃 `?` 产物，比对级豁免候选）、SAM 16962×3（SDDL
   二进制转文本未实现）、WPD×4、SPP 1004×1（参数值本身异常）、CAPI2 4111×1。
 
-## 8. 如何复跑
+## 8. 验证与测试循环（使用 `evtx-parity-test/`）
 
-```powershell
-# 一键全链路（evtx-parity-test/ 下，01 需管理员 PowerShell）
-.\run-all.ps1
-# 或改上游后单步：03（重建消息库）→ 04（重编渲染器）→ 05（重解析）→ 06（比对）
+两层验证，改完代码两层都要过；迭代节奏以第二层为闭环口径。
+
+### 8.1 层次一：代码单元测试（秒级，改上游后立即跑）
+
+```bash
+cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ -count=1   # Go 侧（注：根目录 go build ./... 会因
+                                                                 #  历史坏探针 crim-probe-566/ 报错，属已知遗留）
+cd evtx-tools   && cargo test --workspace                       # Rust 侧（core 192 + cli 28 + 集成 3）
 ```
 
-测试：`cd msgdb-dump && go test ./...`（注：`crim-probe-566/` 为历史坏探针，
-`go build ./...` 会报错，属已知遗留；管线只 build 主包不受影响）；
-`cd evtx-tools && cargo test --workspace`。
+覆盖：v8 schema 契约（旧 v7 拒开、缺表硬错、空表特性关）、渲染规则
+（TDH 类型化、N/A parity、`%%N` 展开、LUID、值映射）、取值层（JSON Bool）。
+**任何渲染修复必须先在这里加回归测试再改实现**（本仓库全部修复均按此落地）。
+
+### 8.2 层次二：全链路闭环（`evtx-parity-test/`，分钟级）
+
+前置一次性（基线不变则永不重跑）：`01-export`（管理员，wevtutil 导出四通道）
+→ `02-baseline-parse`（evtx2text.lua 解析基线）。
+
+每轮必跑（改了哪个上游就重跑到哪一步，比对永远最后）：
+
+| 步 | 耗时 | 干什么 | 何时需要重跑 |
+|---|---|---|---|
+| `03-build-msgdb.ps1` | ~3min | go build + 重建消息库 | 改 msgdb-dump/** |
+| `04-build-evtx-tools.ps1` | ~1min | cargo build --release | 改 evtx-tools/** |
+| `05-new-parse.ps1` | ~4min | en-US/zh-CN 各解析一遍 → new-parsed/ | 03 或 04 之后 |
+| `scripts/06-compare.py` | ~1min | 顺序对齐比对 → report.md/json/diff | 每轮必跑 |
+
+一键等价：`.\run-all.ps1`（含 01/02）。机械细节见 `evtx-parity-test/README.md`。
+
+### 8.3 迭代循环（一轮 = 取证 → 修复 → 闭环验证）
+
+1. **选题**：`report.diff` / `report-exemplars.md`（分组样本，每组一条）按条数挑最大 D 簇。
+2. **取证**：wevtutil `/f:xml` 看 raw 值形态；`msgdb-dump/crim-probe-intype.exe <dll> <guid> <eid>`
+   读 CRIM 参数 InType/OutType；`python scripts/probe-r12-na-model.py` 式全量模型验证
+   （复用 06 的解析函数，改假设参数即可复用）。**先实证再写规则，不凭记忆**。
+3. **修复**：TDD——先在 8.1 层加失败测试，再改实现到绿。
+4. **闭环**：重跑 03→04→05→06，对比本轮 `report.json` 与上轮：
+   - 目标簇条数应清零（`by_channel.*.categories` 与 report.diff 分簇核对）；
+   - **回归红线：Security 26031 全绿、Setup 全绿、B/C 类不得新增**——任何一条破线立即回退；
+   - `report.json` 即下一轮的对比基线。
+5. **闭合判定**：`verdict=PASS` 即闭环完成；`DIFF` 则回到第 1 步。
+6. **定稿**：更新 `skills/parity-test-skill.md`（三镜像同步）的"勿回退事实"与基线表，
+   ADR 层面的决策先写 `docs/adr/`。
 
 ## 9. 版本控制
 
