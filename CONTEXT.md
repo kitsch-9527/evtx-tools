@@ -25,6 +25,7 @@
 | **Fallback Ladder** | Fallback Ladder | 精确 8 元组无命中时的确定性全序降格：`去 channel → 去 keywords → 去 task → 去 opcode → 去 level → 仅 (provider, event_id)`，同层内 `version DESC`，`level=0/opcode=0/task=0` 视为通配。 | “随机回退”“高 version 胜” |
 | **Dedup Key** | Dedup Key | 仅当 8 元组全等时视为冗余可去重；余则一律保留。此为 Q3=B 的复合键。 | “按 event_id 去重” |
 | **单文件消息库** | Single-File MessageDB | `msgdb-dump` 单次运行的唯一产出：一个 SQLite 文件，含 v7 的 7 张实体表 + `eventlog_sources`/`param_types` 两张出处表、无视图，`provider_message_variants` 为唯一消息表（ADR 0003/0004/0005，`schema_version=8`）。 | “dual-write”“v4 兼容库”“variants 库”“双语一对库” |
+| **豁免清单** | Exemption List | 已定性为不可修/低 ROI/基线侧信息损失的已知分歧的受控登记：每条含根因码（PARSE/SRC/BIN/RO）、根因描述与关闭条件；满足关闭条件即摘出转修复。豁免存在于比对层（归一或白名单），上游渲染保持正确输出不受影响（ADR 0006）。 | “放过”“修不动就算了”的隐性吞掉 |
 
 ## 3. 场景探针（用于锐化边界）
 
