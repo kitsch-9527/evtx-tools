@@ -1,0 +1,13 @@
+name: "Lua 登录审计"
+table: "lua_4624_4625"
+columns:
+  - event_record_id
+  - event_time
+  - event_id
+  - provider_name
+  - channel
+  - computer
+  - user_name
+  - message
+event_ids: [4624, 4625, 4648]
+channels: ["Security"]

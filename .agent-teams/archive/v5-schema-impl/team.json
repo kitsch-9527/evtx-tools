@@ -1,0 +1,83 @@
+{
+  "name": "v5-schema-impl",
+  "id": "v5-schema-impl",
+  "description": "实现msgdb-dump V5 Schema：替换dll_messages为provider_messages，解决EventID消息冲突问题",
+  "captainSessionId": "session-d37fedea-af50-4e37-963f-5f8334195414",
+  "createdAt": 1787974967857,
+  "members": [
+    {
+      "id": "031f2a32-244e-4e37-811e-4d3e9f03db43",
+      "name": "engineer",
+      "role": "Go/Rust工程师，负责实现V5 Schema的写入端和查询端代码",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1787974975479,
+      "status": "removed"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "subject": "实现V5 Schema写入端",
+      "description": "实现msgdb-dump的V5 Schema写入端，包括：\n\n1. **新增V5 Schema定义**（已完成：msgdb-dump/schema/v5.go）\n   - provider_messages表替代dll_messages\n   - 主键：(provider_name, lang, event_id, dll_id)\n   - 兼容视图：dll_messages视图映射到provider_messages\n\n2. **修改writer_sys.go**：\n   - 新增insertProviderMessagesBatch函数\n   - 修改CreateSystemDB使用V5 Schema\n   - 每个Provider写一份消息到provider_messages\n   - 更新schema_version为\"5\"\n\n3. **修改run_windows.go**：\n   - 更新importWELMSeed支持V5 Schema\n   - 更新CRIM+MUI fallback写入逻辑\n\n4. **更新测试文件**：\n   - writer_sys_test.go：更新为V5 Schema\n   - schema_v4_test.go：新增V5 Schema测试\n\n关键算法：\n- 对于DllGroup中的每个Provider，写入该Provider的所有消息\n- 普通DLL消息：为每个共享Provider写一份\n- CRIM+MUI消息：已经按Provider分离，直接写入\n- INSERT OR IGNORE确保数据不丢失\n\n参考文件：\n- msgdb-dump/schema/v5.go（已创建）\n- msgdb-dump/dump/writer_sys.go（当前V4实现）\n- msgdb-dump/dump/run_windows.go（主流程）",
+      "status": "completed",
+      "assignee": "engineer",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1787974989010,
+      "updatedAt": 1787975525112,
+      "attemptId": "071c185d-715d-4b03-a80e-ba3861783f9c",
+      "reassigning": false,
+      "output": "V5 Schema write implementation completed successfully. Key changes: 1. Added insertProviderMessagesBatch function for V5 schema, 2. Updated CreateSystemDB to use V5 schema with provider_messages table, 3. Updated importWELMSeed to handle both V4 and V5 schemas, 4. Updated all tests to work with V5 schema. All tests are passing."
+    },
+    {
+      "id": "t2",
+      "subject": "更新evtx-tools查询端适配V5 Schema",
+      "description": "更新evtx-tools的resolver.rs以适配V5 Schema：\n\n1. **修改warmup_lang函数**：\n   - 当前：查询dll_messages JOIN providers\n   - V5：直接查询provider_messages，不需要JOIN\n\n2. **更新查询语句**：\n   ```sql\n   -- V4（当前）：\n   SELECT p.provider_name, m.event_id, m.dll_id, m.message, m.task, m.opcode, \n       m.keywords, m.parameters, m.level_name, m.keywords_name\n   FROM dll_messages m\n   JOIN providers p ON p.dll_id = m.dll_id\n   WHERE (p.provider_name = ? AND m.event_id = ? AND m.lang = ?)\n\n   -- V5（新）：\n   SELECT provider_name, event_id, dll_id, message, task, opcode, \n       keywords, parameters, level_name, keywords_name\n   FROM provider_messages\n   WHERE (provider_name = ? AND event_id = ? AND lang = ?)\n   ```\n\n3. **更新Schema注释**：\n   - 更新文件头部的Schema文档\n   - 说明V5 Schema的变化\n\n4. **更新测试**：\n   - 修改测试中的Schema定义\n   - 更新测试数据插入\n\n参考文件：\n- evtx-tools/evtx-tools-core/src/resolver.rs（当前实现）\n- evtx-tools/evtx-tools-core/src/resolver.rs的测试部分",
+      "status": "completed",
+      "assignee": "captain",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 2,
+      "createdAt": 1787975044936,
+      "updatedAt": 1787976774354,
+      "reassigning": false,
+      "attemptId": "47da9b03-a22c-498d-8bc2-4d63704c2e44",
+      "output": "V5 Schema query implementation completed. All 12 resolver tests passing."
+    },
+    {
+      "id": "t3",
+      "subject": "实现Kernel-Power EventID 566参数映射",
+      "description": "在V5 Schema基础上，实现Kernel-Power EventID 566的参数映射：\n\n1. **在run_windows.go中添加硬编码映射**：\n   ```go\n   // Inject Kernel-Power parameter mappings\n   kpParamMappings := map[string]string{\n       \"1\": \"BootId\",\n       \"2\": \"Reason\",\n       \"3\": \"PreviousSessionId\",\n       \"10\": \"CurrentSessionId\",\n   }\n\n   // 在CRIM+MUI fallback后，为Kernel-Power添加参数\n   if provider.Name == \"Microsoft-Windows-Kernel-Power\" {\n       for i, msg := range msgs {\n           if msg.EventID == 566 {\n               msgs[i].Parameters = &kpParamMappings\n           }\n       }\n   }\n   ```\n\n2. **确保参数写入provider_messages**：\n   - 修改后的消息应该包含parameters字段\n   - 写入provider_messages时，parameters会被序列化为JSON\n\n3. **测试验证**：\n   - 运行msgdb-dump生成新数据库\n   - 查询provider_messages表验证EventID 566的parameters字段\n\n参考文件：\n- msgdb-dump/dump/run_windows.go（当前实现）\n- output/REMAINING-ISSUES.md（问题2描述）",
+      "status": "completed",
+      "assignee": "engineer",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1787975056148,
+      "updatedAt": 1787976987341,
+      "attemptId": "64ec9750-0082-4502-a0b5-fa315e53841d",
+      "reassigning": false,
+      "output": "Kernel-Power EventID 566 parameter mapping implemented successfully. Key changes: 1. Added hardcoded parameter mappings for Kernel-Power EventID 566 in run_windows.go, 2. Parameters include BootId, Reason, PreviousSessionId, and CurrentSessionId, 3. Parameters are injected during CRIM+MUI fallback for Kernel-Power provider, 4. All tests are passing."
+    },
+    {
+      "id": "t4",
+      "subject": "调查数据库消息数量差异",
+      "description": "调查旧数据库(26220.7052)和新数据库(26220.9202)的消息数量差异：\n\n当前差异：\n- DLL entries: 1,669 vs 859 (-810)\n- Messages: 443,303 vs 261,506 (-181,797)\n- Value maps: 368 vs 17 (-351)\n- Parameter refs: 363,210 vs 119,322 (-243,888)\n\n调查步骤：\n1. **对比EnumETWProviders实现**：\n   - 检查注册表扫描路径\n   - 对比新旧版本的Provider发现逻辑\n\n2. **检查GUID Provider处理**：\n   - 旧数据库有898个GUID命名的Provider\n   - 新数据库可能没有正确处理\n\n3. **对比CRIM+MUI fallback逻辑**：\n   - 新版本可能更严格，导致部分DLL提取消息失败\n\n4. **运行对比测试**：\n   - 在当前系统上运行旧版本\n   - 对比结果差异\n\n5. **提供修复建议**：\n   - 如果是代码bug，提供修复方案\n   - 如果是环境差异，更新文档\n\n参考文件：\n- output/REMAINING-ISSUES.md（问题3描述）\n- msgdb-dump/dump/run_windows.go（EnumETWProviders函数）",
+      "status": "completed",
+      "assignee": "engineer",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1787975063317,
+      "updatedAt": 1787977173272,
+      "attemptId": "ab4eb444-d521-42f6-b4ec-8a4b3dc33967",
+      "reassigning": false,
+      "output": "Database message count difference investigation completed. Primary cause: DLL path filtering in new implementation skips DLLs that don't exist on disk. This is correct behavior - old database likely included DLLs from different system. Recommendations: 1. Document DLL path filtering, 2. Add logging for skipped DLLs, 3. Consider optional filtering flag for debugging."
+    }
+  ],
+  "taskSeq": 4
+}

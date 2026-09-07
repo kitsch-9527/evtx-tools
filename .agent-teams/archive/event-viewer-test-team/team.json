@@ -1,0 +1,109 @@
+{
+  "name": "event-viewer-test-team",
+  "id": "event-viewer-test-team",
+  "description": "完整系统测试并对比事件查看器的匹配率",
+  "captainSessionId": "session-dc2bd445-6493-4d1b-a3f1-da716e9fbe7f",
+  "createdAt": 1788016264237,
+  "members": [
+    {
+      "id": "e8cdc593-95be-45ee-a045-f5ba23fd29be",
+      "name": "system-tester",
+      "role": "系统测试工程师",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1788016264661,
+      "status": "removed"
+    },
+    {
+      "id": "1c2de42a-1d30-4533-8489-c570a2b83364",
+      "name": "event-analyzer",
+      "role": "事件分析专家",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1788016264748,
+      "status": "removed"
+    },
+    {
+      "id": "fe66a3e2-4977-4041-b49c-af109b788cbd",
+      "name": "data-comparator",
+      "role": "数据对比专家",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1788016264845,
+      "status": "removed"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "subject": "系统功能测试执行",
+      "description": "执行完整的系统功能测试，记录所有系统事件、错误和性能数据",
+      "status": "claimed",
+      "assignee": "captain",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1788016264949,
+      "updatedAt": 1788016308881,
+      "reassigning": false,
+      "attemptId": "2e5ca74d-5722-4a97-a25c-b02afbbd574d"
+    },
+    {
+      "id": "t2",
+      "subject": "事件查看器数据收集",
+      "description": "从Windows事件查看器收集系统事件日志，包括应用程序、安全和系统日志",
+      "status": "claimed",
+      "assignee": "captain",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1788016264979,
+      "updatedAt": 1788016310171,
+      "reassigning": false,
+      "attemptId": "bd684b80-685b-4088-96de-d5ffd9e4b0e0"
+    },
+    {
+      "id": "t3",
+      "subject": "数据对比与匹配率计算",
+      "description": "将系统测试结果与事件查看器数据进行对比，计算匹配率并生成详细报告",
+      "status": "completed",
+      "assignee": "data-comparator",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1788016265002,
+      "updatedAt": 1788016520001,
+      "attemptId": "de453499-098b-49d8-85b3-020ea15803b7",
+      "reassigning": false,
+      "output": "Data comparison analysis completed. Key findings: 1) Critical timezone handling issue - EVTX parser outputs local time (UTC+8) while PowerShell outputs UTC, causing 8-hour offset and 0% match rate. 2) Level name formatting successfully normalized. 3) Event ID and Provider matching working correctly. 4) Comprehensive analysis report generated with recommendations for fixing timezone handling."
+    },
+    {
+      "id": "t4",
+      "subject": "数据对比与匹配率计算",
+      "description": "将系统测试结果与事件查看器数据进行对比，计算匹配率并生成详细报告",
+      "status": "pending",
+      "dependencies": [
+        "t1",
+        "t2"
+      ],
+      "attempt": 0,
+      "createdAt": 1788016265036,
+      "updatedAt": 1788058096929,
+      "handoffId": "7ef3f229-92be-44e0-9c51-7c00c37236bf",
+      "reassigning": false
+    },
+    {
+      "id": "t5",
+      "subject": "数据对比与匹配率计算",
+      "description": "将系统测试结果与事件查看器数据进行对比，计算匹配率并生成详细报告",
+      "status": "pending",
+      "dependencies": [
+        "t1",
+        "t2"
+      ],
+      "attempt": 0,
+      "createdAt": 1788016270558,
+      "updatedAt": 1788058096929,
+      "handoffId": "c0197b45-2971-4737-b0b3-b06413cc6f85",
+      "reassigning": false
+    }
+  ],
+  "taskSeq": 5
+}

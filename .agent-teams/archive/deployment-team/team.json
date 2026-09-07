@@ -1,0 +1,84 @@
+{
+  "name": "deployment-team",
+  "id": "deployment-team",
+  "description": "Senior DevOps engineer team to deploy Node.js service to Ubuntu server with step-by-step checklist, environment preparation, code upload, service configuration, and startup verification.",
+  "captainSessionId": "session-88cdb8d9-a5f6-476b-9ec7-4adbc3d7aa78",
+  "createdAt": 1787796103962,
+  "members": [
+    {
+      "id": "274bcbfe-5073-4934-9680-0e1d1f613d96",
+      "name": "researcher",
+      "role": "researcher",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5",
+      "reasoningEffort": "high",
+      "joinedAt": 1787796119374,
+      "status": "removed"
+    },
+    {
+      "id": "e1ae2d27-7fa7-443b-be91-98cc3bcda273",
+      "name": "engineer",
+      "role": "engineer",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5",
+      "reasoningEffort": "high",
+      "joinedAt": 1787796119466,
+      "status": "removed"
+    },
+    {
+      "id": "8993f537-c33f-4f68-82fe-8df4adc437d0",
+      "name": "reviewer",
+      "role": "reviewer",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5",
+      "reasoningEffort": "high",
+      "joinedAt": 1787796119580,
+      "status": "removed"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "subject": "Research Ubuntu server environment and Node.js requirements",
+      "description": "Gather information about typical Ubuntu server environments for Node.js deployment, including common packages, configuration files, service management (systemd), and best practices for security and performance.",
+      "status": "completed",
+      "assignee": "captain",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1787796137759,
+      "updatedAt": 1787796433561,
+      "reassigning": false,
+      "attemptId": "dbd68237-bc46-4e05-a2fb-da7f28c31ade",
+      "output": "## Ubuntu Server Environment Research for Node.js Deployment\n\n### 1. System Preparation\n- OS: Ubuntu 20.04/22.04 LTS recommended\n- Update system: sudo apt update && sudo apt upgrade -y\n- Install essential packages: sudo apt install -y curl wget git build-essential\n\n### 2. Node.js Installation\n- Recommended: NodeSource repository for latest LTS\n  - curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -\n  - sudo apt install -y nodejs\n- Verification: node --version && npm --version\n\n### 3. User and Permissions\n- Create dedicated user: sudo adduser deploy\n- Set proper directory permissions\n\n### 4. Systemd Service Management\n- Service files location: /etc/systemd/system/\n- Key directives: ExecStart, WorkingDirectory, User, Restart\n- Commands: systemctl daemon-reload, enable/start/stop/restart\n\n### 5. Security Best Practices\n- Environment variables for secrets\n- Firewall: sudo ufw allow 22,80,443/tcp && sudo ufw enable\n- HTTPS with Let's Encrypt\n\n### 6. Backup Strategy\n- Backup configs: sudo cp /etc/systemd/system/<service>.service /etc/systemd/system/<service>.service.bak\n- Database backups if applicable\n\n### 7. Common Deployment Paths\n- Application: /var/www/<app-name> or /opt/<app-name>\n- Logs: /var/log/<app-name>"
+    },
+    {
+      "id": "t2",
+      "subject": "Create step-by-step deployment checklist",
+      "description": "Develop a comprehensive deployment checklist covering: 1) Environment preparation (system updates, Node.js installation, user setup), 2) Code upload and extraction, 3) Service configuration (environment variables, systemd service file), 4) Final startup verification. Include verification commands after each step.",
+      "status": "pending",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1787796137785,
+      "updatedAt": 1787796674120,
+      "reassigning": false,
+      "handoffId": "b5b2f951-8356-44e5-99aa-e8c4781eff92"
+    },
+    {
+      "id": "t3",
+      "subject": "Review deployment checklist for accuracy and completeness",
+      "description": "Review the deployment checklist for: 1) Command correctness, 2) Proper error handling, 3) Backup procedures before configuration changes, 4) Security best practices, 5) Clear verification steps, 6) Comprehensive rollback plan.",
+      "status": "pending",
+      "dependencies": [
+        "t2"
+      ],
+      "attempt": 0,
+      "createdAt": 1787796137802,
+      "updatedAt": 1787796674120,
+      "handoffId": "535a47af-4247-49bb-b37b-a54159ad7b5f",
+      "reassigning": false
+    }
+  ],
+  "taskSeq": 3
+}

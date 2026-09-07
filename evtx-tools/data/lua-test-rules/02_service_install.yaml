@@ -1,0 +1,10 @@
+name: "Lua 服务安装"
+table: "lua_7045"
+columns:
+  - event_record_id
+  - event_time
+  - event_id
+  - provider_name
+  - message
+event_ids: [7045]
+channels: ["System"]

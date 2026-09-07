@@ -1,0 +1,88 @@
+{
+  "name": "evtx-performance-analysis",
+  "id": "evtx-performance-analysis",
+  "description": "使用 evtx_2_Sqlite.lua 脚本进行性能重新分析，验证 EVTX 解析工具的性能表现",
+  "captainSessionId": "session-b1aee1c0-cabe-4d45-8887-c420695cd762",
+  "createdAt": 1788095445661,
+  "members": [
+    {
+      "id": "20538ed5-42ac-4e49-888b-2a673e621882",
+      "name": "lua-executor",
+      "role": "Lua脚本执行员",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "reasoningEffort": "high",
+      "joinedAt": 1788095481862,
+      "status": "idle"
+    },
+    {
+      "id": "49c1bc44-4972-4d3a-9f50-2ec2e580e28d",
+      "name": "performance-analyzer",
+      "role": "性能分析员",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "reasoningEffort": "high",
+      "joinedAt": 1788095481968,
+      "status": "idle"
+    },
+    {
+      "id": "0e475460-c29d-45f2-9aaa-8195dc5038d7",
+      "name": "report-generator",
+      "role": "报告生成员",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "reasoningEffort": "high",
+      "joinedAt": 1788095482086,
+      "status": "idle"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "subject": "运行 evtx_2_Sqlite.lua 脚本",
+      "description": "使用 Lua 脚本解析 EVTX 文件并生成 SQLite 数据库，收集性能数据",
+      "status": "completed",
+      "assignee": "captain",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1788095482231,
+      "updatedAt": 1788095709766,
+      "reassigning": false,
+      "attemptId": "cb135d91-127f-4cf4-ba2c-c409d167eda6",
+      "output": "Lua 脚本执行完成，生成了 evtx.db 和 evtx_new.db 数据库文件"
+    },
+    {
+      "id": "t2",
+      "subject": "分析性能数据",
+      "description": "分析 Lua 脚本的执行性能，包括解析速度、内存使用、CPU占用等指标",
+      "status": "completed",
+      "assignee": "performance-analyzer",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1788095482269,
+      "updatedAt": 1788096108351,
+      "attemptId": "a92cc477-232a-4bbb-81f2-8836d12bbfdd",
+      "reassigning": false,
+      "output": "Performance analysis completed. Key findings: evtx-tools is 3.74x faster than Lua script, uses 3x less memory, and has 1.93x better storage efficiency. Detailed report generated at output/performance-analysis-report.md"
+    },
+    {
+      "id": "t3",
+      "subject": "生成性能分析报告",
+      "description": "生成包含性能测试结果、分析和优化建议的完整报告",
+      "status": "completed",
+      "assignee": "report-generator",
+      "dependencies": [
+        "t2"
+      ],
+      "attempt": 1,
+      "createdAt": 1788095482326,
+      "updatedAt": 1788096272071,
+      "attemptId": "5de65413-582f-41cd-a73d-a74ca3acd91a",
+      "reassigning": false,
+      "output": "已完成性能分析报告生成任务。生成了全面的性能分析最终报告，包含：\n1. 执行摘要和关键发现\n2. 测试环境与配置详情\n3. 详细性能对比结果（执行时间、内存使用、事件处理、存储效率）\n4. 性能瓶颈分析\n5. 结论与建议\n6. 附录和测试数据详情\n\n报告文件：output/evtx-performance-analysis-final-report.md"
+    }
+  ],
+  "taskSeq": 3
+}

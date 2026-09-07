@@ -1,0 +1,358 @@
+"""06-compare.py v3 — 基线解析 vs 新解析归一化比对."""
+from __future__ import annotations
+import argparse
+import csv
+import re
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+TEST_ROOT = Path(__file__).resolve().parent.parent
+BASELINE_DIR = TEST_ROOT / "baseline-parsed"
+NEW_ZH_DIR = TEST_ROOT / "new-parsed" / "zh"
+NEW_EN_DIR = TEST_ROOT / "new-parsed" / "en"
+CHANNELS = ["Application", "Setup", "Security", "System"]
+TIME_TOLERANCE = timedelta(seconds=2)
+TOP_N = 20
+WS_RE = re.compile(r"\s+")
+EVENT_SPLIT_RE = re.compile(r"Event\[\d+\]")
+# TRAIL_RE 剥 baseline 块尾的管线残留：';'（tr 压行分隔）与 ':'（sed 把消息尾 NUL 换成 ':'，
+# 如 "...Arbiter.:;;;;" 的 ':' 来自原文末尾 \x00，非消息语义——实测 raw 文本以 \x00 结尾）。
+# 曾尝试保留 ':'（加固 3），导致基线尾部多一 ':' 而全量失配（matched=0），已回退。
+TRAIL_RE = re.compile(r"[;\s]+$")
+# R7（2026-09-04）：TRAIL 不再含 ':'。sed 把消息尾 NUL 换成 ':'（形态 `XXX:;;;;`），与模板尾真冒号
+# （SCM7045 `Service Account:` + 空param，live 取证）混杂。剥离分两步：先去 sed 冒号段
+# （尾 `:` + 其后仅 ;/空白），再剥 ;/空白。模板尾冒号保留。
+def norm_text(s):
+    if not s:
+        return ""
+    s = s.replace("\r\n", "\n").replace("\r", "\n")
+    return WS_RE.sub(" ", s).strip()
+def clean_baseline_artefacts(s):
+    # R5（2026-09-04）：基线管线 artefact 手术刀清洗。iconv 对 UTF-16 残留/非法字节输出 '?' 替换符
+    # （System EID 12 时间串 "?2026?-?08?-?20T21:…"，live479 条），但参数值里的 '?' 是 wevtapi
+    # 真实渲染（live 取证：EID16 \??\ 前缀、SPP1003 [(?)(?)]、WER 中文 Response ?? 均原样存在），
+    # 全局删 '?' 会吃掉语义。只删时间串形态 "?YYYY?-?MM?-?DDT"，其余一律保留。
+    s = re.sub(r"\?(\d{4})\?-\?(\d{2})\?-\?(\d{2}T)", r"\1-\2-\3", s)
+    return s
+
+
+def norm_msg_time_frac(s):
+    # 时间小数位豁免（2026-09-04 决定不修）：基线管线保留 9 位小数（.500000000Z），
+    # 新解析 chrono %6f 截到 6 位（.500000Z）。语义相等，比对时统一截到 6 位。
+    return re.sub(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6})\d*(Z?)", r"\1\2", s)
+
+
+def parse_baseline(path):
+    raw = path.read_text(encoding="utf-8", errors="replace").replace("\x00", "")
+    raw = clean_baseline_artefacts(raw)
+    starts = [m.start() for m in EVENT_SPLIT_RE.finditer(raw)]
+    if not starts:
+        return []
+    events = []
+    for i, st in enumerate(starts):
+        ed = starts[i + 1] if i + 1 < len(starts) else len(raw)
+        blk = raw[st:ed]
+        eid = re.search(r"Event ID:\s*(\d+)", blk)
+        prov = re.search(r"Source:\s*(.*?)\s*;;", blk)
+        logn = re.search(r"Log Name:\s*(.*?)\s*;;", blk)
+        date = re.search(r"Date:\s*(\S+)", blk)
+        m = re.search(r"Description:\s*(.*)$", blk, re.DOTALL)
+        desc = m.group(1) if m else ""
+        # R5（2026-09-04）：分号三段论——前导 ;; 是字段分隔残留（Description: 后换行被 tr 压成 ;，
+        # 全文件 3925/3925 块均有），块尾 ;;;; 是压行残留，两者剥除；消息中间分号是参数值本身
+        # （live 取证 SPP8230/8198 参数值分号分隔），一律保留。比较时双向容忍见 canon_msg。
+        desc = re.sub(r"^[;\s]+", "", desc.strip())
+        desc = re.sub(r":(?=[;\s]*$)", "", desc)
+        desc = TRAIL_RE.sub("", desc)
+        draw = date.group(1).strip() if date else ""
+        draw = TRAIL_RE.sub("", draw)
+        events.append({
+            "event_id": eid.group(1) if eid else "",
+            "provider": norm_text(prov.group(1) if prov else ""),
+            "channel": norm_text(logn.group(1) if logn else ""),
+            "date_utc": draw,
+            "message": norm_text(desc),
+        })
+    return events
+def parse_baseline_time(s):
+    # 基线 Date 看似 UTC（带 Z）实为本地时间：wevtutil /f:text 渲染本地时间但保留 Z 后缀
+    # （与 raw XML SystemTime 相差 +8h，Setup#0/EventRecordID=1 实测证实），故按本地 naive 解析。
+    # 小数秒被截断补零（.6720013→.6720000），统一补齐 6 位后与新解析（本地微秒）直接比。
+    if not s:
+        return None
+    t = s.strip()
+    if t.endswith("Z"):
+        t = t[:-1]
+    m = re.match(r"(.*\.)(\d+)$", t)
+    if m:
+        t = m.group(1) + (m.group(2) + "000000")[:6]
+    for fmt in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(t, fmt)
+        except ValueError:
+            continue
+    return None
+def parse_local(s):
+    if not s:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(s.strip(), fmt)
+        except ValueError:
+            continue
+    return None
+def load_new_csv(path):
+    with path.open(encoding="utf-8-sig", newline="") as f:
+        all_rows = list(csv.DictReader(f))
+        # 加固 1：表头重复行是上游 bug（write_events 每 batch 重写 BOM+头），此处过滤并计数；
+        # event_id 为空的合法行理论上不应存在，若出现会计入 dropped_empty 并在报告中可见。
+        rows = []
+        dropped_header = 0
+        dropped_empty = 0
+        for r in all_rows:
+            eid = (r.get("event_id") or "").strip()
+            if eid.isdigit():
+                rows.append(r)
+            elif eid in ("event_id", ""):
+                if eid == "":
+                    dropped_empty += 1
+                else:
+                    dropped_header += 1
+            else:
+                dropped_empty += 1
+        load_new_csv.last_dropped = (dropped_header, dropped_empty)
+    def seq(r):
+        try:
+            return int(r.get("sequence_number") or 0)
+        except ValueError:
+            return 0
+    rows.sort(key=seq)
+    out = []
+    for r in rows:
+        out.append({
+            "event_id": (r.get("event_id") or "").strip(),
+            "provider": norm_text(r.get("provider_name")),
+            "channel": norm_text(r.get("channel")),
+            "event_time_local": (r.get("event_time") or "").strip(),
+            "message": norm_text(r.get("message")),
+        })
+    return out
+def canon_msg(s):
+    # R6（2026-09-04）：管线对称化。基线管线 tr 把消息内换行压成 ';'，与参数值真分号混杂
+    # （live 取证：SPP8230 新解析分号与 wevtapi live 一致，基线侧分号已被管线改写，信息丢失）。
+    # 比较时双向 '；'→' '（仅比较，不改上游渲染），换行差异与参数分号同时对齐。
+    # hex 大小写 / GUID 花括号 / '?' 仍严格，上游必须完全一致。
+    return WS_RE.sub(" ", s.replace(";", " ")).strip()
+
+
+def classify_msg_diff(bm, zm):
+    if "cannot be found" in zm:
+        return "C-无模板fallback"
+    # B 类阈值来源——实测裸参数行最长约 120 字（如 System 6009 的 "10.00.;;26220;;;;…"），
+    # 200 为安全边际；超过 200 且含 ;; 的长消息走严格比较，不误判。
+    if ";;" in zm and len(zm) < 200:
+        return "B-裸参数未渲染"
+    if canon_msg(bm) == canon_msg(zm):
+        return "A-渲染格式一致"
+    return "D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）"
+
+
+def cmp_pair(b, z):
+    problems = []
+    if b["event_id"] != z["event_id"]:
+        problems.append("EventID 基线=" + b["event_id"] + " 新=" + z["event_id"])
+    if b["provider"] != z["provider"]:
+        problems.append("Provider 基线=" + b["provider"] + " 新=" + z["provider"])
+    if b.get("channel") and z.get("channel") and b["channel"] != z["channel"]:
+        problems.append("Channel 基线=" + b["channel"] + " 新=" + z["channel"])
+    bt, zt = parse_baseline_time(b["date_utc"]), parse_local(z["event_time_local"])
+    if bt is not None and zt is not None:
+        if abs(bt - zt) > TIME_TOLERANCE:
+            problems.append("时间 基线=" + str(bt) + " 新=" + str(zt))
+    elif (bt is None) != (zt is None):
+        problems.append("时间一方缺失 基线=" + b["date_utc"] + " 新=" + z["event_time_local"])
+    bm_cmp = norm_msg_time_frac(b["message"])
+    zm_cmp = norm_msg_time_frac(z["message"])
+    if bm_cmp != zm_cmp:
+        # 严格口径：空白归一 + 时间小数位豁免后完全相等才算一致。
+        cls = classify_msg_diff(bm_cmp, zm_cmp)
+        if cls == "A-渲染格式一致":
+            pass
+        else:
+            problems.append(cls + "（见明细）")
+    return problems
+def compare_channel(channel):
+    base_file = BASELINE_DIR / (channel + ".evtx.txt")
+    zh_file = NEW_ZH_DIR / (channel + ".csv")
+    en_file = NEW_EN_DIR / (channel + ".csv")
+    res = {"channel": channel, "status": "ok"}
+    if not base_file.exists():
+        res["status"] = "缺少基线文件" + base_file.name + "（先跑02）"
+        return res
+    if not en_file.exists():
+        res["status"] = "缺少新解析en " + str(en_file) + "（先跑05）"
+        return res
+    base = parse_baseline(base_file)
+    en = load_new_csv(en_file)
+    zh = load_new_csv(zh_file) if zh_file.exists() else []
+    res["baseline_count"] = len(base)
+    res["new_en_count"] = len(en)
+    res["new_zh_count"] = len(zh)
+    res["zh_empty_msg"] = sum(1 for r in zh if not r["message"])
+    res["en_empty_msg"] = sum(1 for r in en if not r["message"])
+    n = max(len(base), len(en))
+    matched = 0
+    diffs = []
+    for i in range(n):
+        b = base[i] if i < len(base) else None
+        z = en[i] if i < len(en) else None
+        if b is None or z is None:
+            diffs.append({"index": i, "kind": "缺失", "baseline": b, "new": z})
+            continue
+        problems = cmp_pair(b, z)
+        if problems:
+            diffs.append({"index": i, "kind": "; ".join(problems), "baseline": b, "new": z})
+        else:
+            matched += 1
+    res["compared"] = n
+    res["matched"] = matched
+    res["diff_count"] = len(diffs)
+    res["diffs"] = diffs
+    zn = max(len(base), len(zh))
+    zid = 0
+    for i in range(min(len(base), len(zh))):
+        if base[i]["event_id"] == zh[i]["event_id"]:
+            zid += 1
+    res["zh_compared"] = zn
+    res["zh_eventid_agree"] = zid
+    return res
+def main():
+    ap = argparse.ArgumentParser(description="基线解析 vs 新解析顺序对齐比对（主en-US，zh覆盖率）")
+    ap.add_argument("--channels", nargs="*", default=CHANNELS)
+    args = ap.parse_args()
+    results = [compare_channel(c) for c in args.channels]
+    total_compared = sum(r.get("compared", 0) for r in results)
+    total_matched = sum(r.get("matched", 0) for r in results)
+    total_diff = sum(r.get("diff_count", 0) for r in results)
+    blocked = [r for r in results if r["status"] != "ok"]
+    passed = not blocked and total_diff == 0 and total_compared > 0
+    lines = []
+    a = lines.append
+    a("# 对比报告（基线解析 vs 新解析）")
+    a("")
+    a("- 生成时间（本地）：" + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    a("- 主比对：中文wevtutil文本基线 vs new-parsed/en（同语言，严格五字段）")
+    a("- 口径：EventID / Provider / Channel / TimeCreated（两边均为本地时间，直接比，容差2s）/ Message（空白归一）")
+    a("- 对齐：同一文件出现顺序逐条对齐（基线Event[N]顺序对应新解析sequence_number顺序）")
+    a("- 对照：new-parsed/zh 只计覆盖率（条数/EventID顺序一致率/空消息率），不逐条比Message")
+    a("")
+    a("## 结论")
+    a("")
+    if blocked:
+        a("- 未完成：" + "; ".join(r["channel"] + ": " + r["status"] for r in blocked))
+    elif total_compared == 0:
+        a("- 未完成：无可比对事件")
+    elif passed:
+        a("- 通过：主链（基线vs en）共比对 " + str(total_compared) + " 条，全部一致")
+    else:
+        a("- 未通过：主链（基线vs en）共比对 " + str(total_compared) + " 条，一致 " + str(total_matched) + " 条，差异 " + str(total_diff) + " 条")
+    a("")
+    a("## 分通道统计（主：基线 vs en）")
+    a("")
+    a("| 通道 | 基线数 | 新解析(en) | 比对数 | 一致 | 差异 | en空消息 | 状态 |")
+    a("|---|---|---|---|---|---|---|---|")
+    for r in results:
+        a("| " + r["channel"] + " | " + str(r.get("baseline_count", "-")) + " | " + str(r.get("new_en_count", "-")) + " | " + str(r.get("compared", "-")) + " | " + str(r.get("matched", "-")) + " | " + str(r.get("diff_count", "-")) + " | " + str(r.get("en_empty_msg", "-")) + " | " + r["status"] + " |")
+    a("")
+    a("## 中文覆盖率对照（基线 vs zh，不比Message）")
+    a("")
+    a("| 通道 | 新解析(zh) | zh空消息 | EventID顺序一致/比对 |")
+    a("|---|---|---|---|")
+    for r in results:
+        a("| " + r["channel"] + " | " + str(r.get("new_zh_count", "-")) + " | " + str(r.get("zh_empty_msg", "-")) + " | " + str(r.get("zh_eventid_agree", "-")) + "/" + str(r.get("zh_compared", "-")) + " |")
+    a("")
+    a("## 已知事项（比对中发现，非结论）")
+    a("")
+    a("- 新解析 CSV 内每 batch 夹带一行 BOM+表头重复（evtx-tools write_events 每批都写头），比对时已按 event_id 非数字过滤；建议上游修 storage/csv.rs 或 cmd_parse.rs。")
+    a("- 基线 Date 看似UTC（带Z）实为本地时间：wevtutil /f:text 渲染本地时间但保留Z后缀（与raw XML SystemTime差+8h，Setup#0/EventRecordID=1实测）；evtx-tools convert_timestamp_local输出与raw UTC+8一致，无上游bug。基线小数秒被截断补零（.6720013→.6720000），容差覆盖。")
+    a("")
+    shown = 0
+    for r in results:
+        if shown >= TOP_N:
+            break
+        for d in r.get("diffs", []):
+            if shown >= TOP_N:
+                break
+            shown += 1
+            a("## 差异样例 " + str(shown) + "（" + r["channel"] + " #" + str(d["index"]) + "：" + d["kind"] + "）")
+            a("")
+            b, z = d["baseline"], d["new"]
+            if b is not None:
+                a("- 基线 EventID=" + b["event_id"] + " Provider=" + b["provider"] + " Date=" + b["date_utc"])
+                a("- 基线 Message（前300字）：" + b["message"][:300])
+            else:
+                a("- 基线：缺失（新解析多出）")
+            if z is not None:
+                a("- 新解析en EventID=" + z["event_id"] + " Provider=" + z["provider"] + " Time=" + z["event_time_local"])
+                a("- 新解析en Message（前300字）：" + z["message"][:300])
+            else:
+                a("- 新解析en：缺失（基线多出）")
+            a("")
+    if total_diff > shown:
+        a("还有 " + str(total_diff - shown) + " 条差异未展示，见 report.diff。")
+        a("")
+    (TEST_ROOT / "report.md").write_text("\n".join(lines), encoding="utf-8")
+    dl = []
+    for r in results:
+        for d in r.get("diffs", []):
+            b, z = d["baseline"], d["new"]
+            dl.append("[" + r["channel"] + " #" + str(d["index"]) + "] " + d["kind"])
+            dl.append("  baseline: EventID=" + (b["event_id"] if b else "-") + " Provider=" + (b["provider"] if b else "-"))
+            dl.append("    Date=" + (b["date_utc"] if b else "-"))
+            dl.append("    Msg=" + (b["message"][:500] if b else "-"))
+            dl.append("  new-en:   EventID=" + (z["event_id"] if z else "-") + " Provider=" + (z["provider"] if z else "-"))
+            dl.append("    Time=" + (z["event_time_local"] if z else "-"))
+            dl.append("    Msg=" + (z["message"][:500] if z else "-"))
+            dl.append("")
+    (TEST_ROOT / "report.diff").write_text("\n".join(dl), encoding="utf-8")
+    # 循环闭合输入口：机器可读汇总（下轮迭代对比用；exit code 保持人类结论语义不变）。
+    import json as _json
+
+    by_channel = {}
+    for r in results:
+        cats: dict = {}
+        for d in r.get("diffs", []):
+            head = d["kind"].split("；")[0].split(";")[0][:24]
+            cats[head] = cats.get(head, 0) + 1
+        by_channel[r["channel"]] = {
+            "baseline": r.get("baseline_count"),
+            "new_en": r.get("new_en_count"),
+            "new_zh": r.get("new_zh_count"),
+            "compared": r.get("compared"),
+            "matched": r.get("matched"),
+            "diff": r.get("diff_count"),
+            "en_empty_msg": r.get("en_empty_msg"),
+            "zh_empty_msg": r.get("zh_empty_msg"),
+            "categories": cats,
+            "status": r["status"],
+        }
+    summary = {
+        "generated_local": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "compared": total_compared,
+        "matched": total_matched,
+        "diff": total_diff,
+        "verdict": ("BLOCKED" if blocked else ("PASS" if passed else "DIFF")),
+        "by_channel": by_channel,
+    }
+    (TEST_ROOT / "report.json").write_text(_json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    print("compared=" + str(total_compared) + " matched=" + str(total_matched) + " diff=" + str(total_diff))
+    if passed:
+        print("PASS")
+        return 0
+    if blocked:
+        print("BLOCKED")
+        return 2
+    print("DONE-WITH-DIFF")
+    return 1
+if __name__ == "__main__":
+    sys.exit(main())

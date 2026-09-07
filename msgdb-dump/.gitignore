@@ -1,0 +1,14 @@
+# Compiled binaries
+*.exe
+*.test
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Jujutsu VCS internal data
+.jj/
+
+# Generated databases
+*.db
+

@@ -1,0 +1,14 @@
+name: "进程执行"
+table: "process_events"
+columns:
+  - event_record_id
+  - event_time
+  - event_id
+  - provider_name
+  - channel
+  - user_name
+  - computer
+  - message
+  - event_data
+event_ids: [4688, 1, 10, 11, 17, 18]
+channels: ["Security", "Microsoft-Windows-Sysmon/Operational"]

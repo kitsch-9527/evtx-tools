@@ -1,0 +1,7 @@
+# 本机产物：大、可再生，不进版本库
+*.evtx
+*.db
+tools/*.exe
+msgdb/*.db
+__pycache__/
+.venv/

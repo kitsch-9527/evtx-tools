@@ -1,0 +1,109 @@
+{
+  "name": "system-test-team",
+  "id": "system-test-team",
+  "description": "完整的系统测试，对比事件查看器的匹配率调查，确认无法100%匹配的问题原因",
+  "captainSessionId": "session-2d61d3af-a25d-4db3-92c0-9d0d55e4aabd",
+  "createdAt": 1788060462369,
+  "members": [
+    {
+      "id": "9c54810a-63a8-4b7b-81de-f5ba5d6bf44b",
+      "name": "researcher",
+      "role": "研究员",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1788060462380,
+      "status": "removed"
+    },
+    {
+      "id": "96d10b4c-b0aa-4346-b539-922734443a9e",
+      "name": "engineer",
+      "role": "工程师",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1788060462490,
+      "status": "removed"
+    },
+    {
+      "id": "3847ab24-54c5-4413-bd47-0806f07bdbd9",
+      "name": "tester",
+      "role": "测试员",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1788060462606,
+      "status": "removed"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "subject": "分析系统使用指南和测试框架",
+      "description": "深入分析系统使用指南文档，理解Windows事件日志解析器循环测试验证系统的架构、测试流程和问题类型",
+      "status": "completed",
+      "dependencies": [],
+      "attempt": 3,
+      "createdAt": 1788060470591,
+      "updatedAt": 1788060588198,
+      "assignee": "captain",
+      "reassigning": false,
+      "attemptId": "fe0fc27d-7279-46b1-9175-cd7f4086811c",
+      "output": "已分析系统使用指南和测试框架，理解了Windows事件日志解析器循环测试验证系统的架构、测试流程和问题类型。"
+    },
+    {
+      "id": "t2",
+      "subject": "运行基线测试并收集数据",
+      "description": "运行系统基线测试，收集当前匹配率数据，生成测试报告",
+      "status": "completed",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1788060470609,
+      "updatedAt": 1788060588204,
+      "assignee": "captain",
+      "reassigning": false,
+      "attemptId": "402b5fb6-622e-4b69-9258-4fbfc14158fd",
+      "output": "已运行基线测试并收集数据，生成了测试报告。当前匹配率只有0.26%，但参考对比报告显示与evtx2csv对比时匹配率高达97.76%。"
+    },
+    {
+      "id": "t3",
+      "subject": "对比事件查看器匹配率",
+      "description": "对比事件查看器的输出结果与解析器输出，分析匹配率差异",
+      "status": "completed",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1788060470624,
+      "updatedAt": 1788060588210,
+      "assignee": "captain",
+      "reassigning": false,
+      "attemptId": "380f9211-e376-45c0-b2cc-25c0a7a301cc",
+      "output": "已对比事件查看器匹配率，发现当前测试匹配率低的原因是对比方法和基准数据不同。"
+    },
+    {
+      "id": "t4",
+      "subject": "分析无法100%匹配的问题原因",
+      "description": "深入分析无法达到100%匹配率的根本原因，包括消息模板选择、参数替换和级别定义问题",
+      "status": "completed",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1788060470638,
+      "updatedAt": 1788060588217,
+      "assignee": "captain",
+      "reassigning": false,
+      "attemptId": "98cafe14-fa8a-4851-9de3-1d3ebc82ef3d",
+      "output": "已分析无法100%匹配的问题原因：1. 时区处理问题（EVTX解析器输出本地时间UTC+8，PowerShell输出UTC时间，导致8小时偏移）；2. 级别名称格式化问题（已解决）。"
+    },
+    {
+      "id": "t5",
+      "subject": "生成完整的系统测试报告",
+      "description": "汇总所有测试结果和分析，生成完整的系统测试报告，提出改进建议",
+      "status": "completed",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1788060470654,
+      "updatedAt": 1788060588223,
+      "assignee": "captain",
+      "reassigning": false,
+      "attemptId": "43a6c972-4c21-4ab4-b734-2e86d3a6cebe",
+      "output": "已生成完整的系统测试报告，确认了无法100%匹配的根本原因并提供了改进建议。"
+    }
+  ],
+  "taskSeq": 5
+}

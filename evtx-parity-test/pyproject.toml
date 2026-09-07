@@ -1,0 +1,9 @@
+[project]
+name = "evtx-parity-compare"
+version = "0.1.0"
+description = "Baseline-vs-new EVTX parse comparison (stdlib-only; uv-ready)"
+requires-python = ">=3.12"
+dependencies = []
+
+# NOTE(Q11): 比对脚本刻意只用标准库，`uv run` / `python` 均可直接跑。
+# 本机尚未安装 uv（2026-09-03 核实），待安装后直接 `uv run scripts/06-compare.py` 即可，无需改代码。

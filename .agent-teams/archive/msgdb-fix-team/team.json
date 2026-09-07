@@ -1,0 +1,64 @@
+{
+  "name": "msgdb-fix-team",
+  "id": "msgdb-fix-team",
+  "description": "修复msgdb-dump问题，生成新数据库并用evtx-tools验证",
+  "captainSessionId": "session-0a375207-c2c5-4c41-ac0d-8a2586a6c7b0",
+  "createdAt": 1787919817053,
+  "members": [
+    {
+      "id": "e58fd4ce-d475-4541-a04e-f43c5f233c60",
+      "name": "engineer",
+      "role": "engineer",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "reasoningEffort": "high",
+      "joinedAt": 1787919817069,
+      "status": "removed"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "subject": "运行新msgdb-dump生成数据库",
+      "description": "运行msgdb-dump-new.exe生成修复后的数据库到output/msgdb-fixed目录",
+      "status": "completed",
+      "assignee": "engineer",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1787919828190,
+      "updatedAt": 1787919898892,
+      "attemptId": "e4dde8c8-498e-484f-bcf7-e25420ca7665",
+      "reassigning": false,
+      "output": "Successfully ran msgdb-dump-new.exe to generate fixed database. Output: output\\msgdb-fixed\\hotech-msg-Windows_10_Education-25H2-26220.9202.db (238,063 messages across 2 languages)"
+    },
+    {
+      "id": "t2",
+      "subject": "验证修复结果",
+      "description": "对比新旧数据库，验证关键修复是否生效：1) Kernel-General EID 12消息正确 2) Kernel-Power值映射 3) 参数映射",
+      "status": "completed",
+      "assignee": "engineer",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1787919944403,
+      "updatedAt": 1787920054323,
+      "attemptId": "55c6c859-7da2-402d-899d-7e3868419525",
+      "reassigning": false,
+      "output": "Verification complete. Key findings: 1) Kernel-Power DLL (microsoft-windows-kernel-power-events.dll) has 0 messages in new database. 2) New database has 882 fewer providers and 22,775 fewer messages than old database. 3) Kernel-General EventID 12 messages not found. 4) No value maps in either database. Detailed comparison report sent to captain."
+    },
+    {
+      "id": "t3",
+      "subject": "调查数据减少原因",
+      "description": "新数据库比旧数据库少了882个provider和22775条消息。需要调查原因：1) Kernel-Power DLL为何0消息 2) 为何provider数量减少 3) build number差异是否影响",
+      "status": "completed",
+      "assignee": "engineer",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1787920052334,
+      "updatedAt": 1787920103084,
+      "attemptId": "3e404a22-c6b9-40bd-a1cd-c2e477ef7802",
+      "reassigning": false,
+      "output": "Investigation complete. Root cause identified: New msgdb-dump-new.exe has critical regression - 898 GUID providers missing, many DLLs have 0 messages (including Kernel-Power with 112 messages lost). Only 36 DLLs overlap between old and new databases. Build number difference (26220.7052 vs 26220.9202) may be a factor."
+    }
+  ],
+  "taskSeq": 3
+}

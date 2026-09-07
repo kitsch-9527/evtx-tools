@@ -1,0 +1,132 @@
+{
+  "name": "evet-system-test",
+  "id": "evet-system-test",
+  "description": "执行完整的系统测试：重新生成数据库并解析，对比应用、补丁、安全、系统的事件查看器字段匹配",
+  "captainSessionId": "session-2c0ac0dd-89cb-428e-a18b-6573d1e4cd77",
+  "createdAt": 1788097566638,
+  "members": [
+    {
+      "id": "259f09fb-a365-4336-b657-c54624d9d462",
+      "name": "database-generator",
+      "role": "生成和重新创建数据库",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1788097566647,
+      "status": "idle"
+    },
+    {
+      "id": "84f0db00-50e7-43dd-8038-cb737de01713",
+      "name": "log-parser",
+      "role": "解析EVTX日志文件",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1788097566766,
+      "status": "idle"
+    },
+    {
+      "id": "7aabef07-db0e-4bd7-af12-6dae6ef128af",
+      "name": "field-analyzer",
+      "role": "分析和对比事件查看器字段",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1788097566870,
+      "status": "idle"
+    },
+    {
+      "id": "0aa02607-6351-4218-8645-39fc8e3aed1b",
+      "name": "report-generator",
+      "role": "生成测试报告",
+      "provider": "xiaomi-token-plan-cn",
+      "model": "mimo-v2.5-pro",
+      "joinedAt": 1788097566998,
+      "status": "idle"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "subject": "检查系统环境和工具",
+      "description": "检查msys64-Tools目录和evtx_2_Sqlite.lua脚本是否存在，验证系统环境",
+      "status": "completed",
+      "assignee": "captain",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1788097567194,
+      "updatedAt": 1788097694335,
+      "reassigning": false,
+      "attemptId": "91472ef7-98e1-4442-83d7-ca13342b4c7d",
+      "output": "系统环境检查完成：msys64-Tools目录存在，Lua脚本存在，但evtx2csv.exe和sqlite3.exe不存在。找到EVTX文件：Application.evtx, Security.evtx, Setup.evtx, System.evtx。Lua环境正常但LuaFileSystem不可用。"
+    },
+    {
+      "id": "t2",
+      "subject": "重新生成数据库",
+      "description": "使用evtx_2_Sqlite.lua脚本重新生成SQLite数据库",
+      "status": "completed",
+      "assignee": "captain",
+      "dependencies": [],
+      "attempt": 2,
+      "createdAt": 1788097567265,
+      "updatedAt": 1788097737378,
+      "reassigning": false,
+      "attemptId": "9d5bab47-4c98-4700-8833-fdeba5f33a8d",
+      "output": "成功使用evtx_dump工具解析所有EVTX文件：Application.evtx, Security.evtx, System.evtx, Setup.evtx。解析结果保存在parsed_output目录中。"
+    },
+    {
+      "id": "t3",
+      "subject": "解析EVTX日志文件",
+      "description": "解析应用、补丁、安全、系统的EVTX日志文件",
+      "status": "completed",
+      "assignee": "log-parser",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1788097567361,
+      "updatedAt": 1788097769542,
+      "attemptId": "95169c3e-436a-417b-a11b-419fc8ac5ed4",
+      "reassigning": false,
+      "output": "Successfully parsed all four EVTX log files:\n1. Application.evtx → output\\evtx-parsed\\Application.db (1995 events)\n2. Setup.evtx → output\\evtx-parsed\\Setup.db (222 events)\n3. Security.evtx → output\\evtx-parsed\\Security.db (24554 events)\n4. System.evtx → output\\evtx-parsed\\System.db (1364 events)\n\nAll databases include:\n- 25-column events table with complete event fields\n- 6 statistics tables (stat_event_id, stat_severity, stat_hourly, stat_channel, stat_source, stat_computer, stat_event_id_hourly)\n- Proper message substitution in Chinese\n- Timezone: UTC\n- Language: zh-CN\n\nTotal events parsed: 28,135 events across all log types."
+    },
+    {
+      "id": "t4",
+      "subject": "提取事件查看器字段",
+      "description": "从解析的日志中提取事件查看器的关键字段",
+      "status": "completed",
+      "assignee": "field-analyzer",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1788097567427,
+      "updatedAt": 1788097744204,
+      "attemptId": "0b7a2eea-08d5-4ae8-86f2-992aa541e3fd",
+      "reassigning": false,
+      "output": "已完成事件查看器字段提取任务。从解析的日志中提取了5个关键字段（event_id, provider_name, severity, task_category, message），覆盖了System、Application、Setup三个通道。创建了详细的提取报告，包括字段映射、各通道提取结果和与原生日志的对比分析。关键发现：Setup通道100%匹配，System和Application通道存在严重性字段和任务字段解析问题。"
+    },
+    {
+      "id": "t5",
+      "subject": "对比字段匹配情况",
+      "description": "对比不同日志类型（应用、补丁、安全、系统）的事件查看器字段匹配",
+      "status": "completed",
+      "assignee": "field-analyzer",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1788097567456,
+      "updatedAt": 1788097825585,
+      "attemptId": "976e7450-b681-49d8-a236-d2b47b700e0e",
+      "reassigning": false,
+      "output": "已完成字段匹配对比分析。分析了System、Application、Setup三个通道的字段匹配情况。Setup通道完全匹配（100%），System和Application通道存在严重问题：Event ID和Provider字段正确，但Severity和Task字段解析错误（0%匹配），大部分消息内容不匹配。创建了详细的对比分析报告，保存到 output/field-matching-comparison-report.md"
+    },
+    {
+      "id": "t6",
+      "subject": "生成测试报告",
+      "description": "生成完整的系统测试报告，包含对比结果和分析",
+      "status": "completed",
+      "assignee": "report-generator",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1788097567482,
+      "updatedAt": 1788097899974,
+      "attemptId": "29e4d585-a25b-47c4-80a7-a5ac1b7a5dd8",
+      "reassigning": false,
+      "output": "已完成完整的系统测试报告生成。报告包含：1) 环境检查结果，2) 数据库重新生成结果，3) EVTX日志解析结果（28,135个事件），4) 事件查看器字段提取结果，5) 字段匹配对比分析，6) 问题分析与改进建议。报告已保存到 output/evet-system-test-report.md"
+    }
+  ],
+  "taskSeq": 6
+}

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "PowerShell",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Agent",
+      "Workflow"
+    ],
+    "always_allow": [
+      "Bash(*(cargo build|cargo test|cargo check|cargo run|cargo add)*)",
+      "Bash(*(cd *)*)"
+    ]
+  }
+}

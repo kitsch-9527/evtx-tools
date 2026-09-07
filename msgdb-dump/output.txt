@@ -1,0 +1,9 @@
+﻿[info] output directory: E:\Code\evet\msgdb-dump
+[info] languages (LCID→code): 1033→en-US, 2052→zh-CN
+[info] scanning registry for ETW providers...
+[info] found 1313 total providers
+[info] filtering by 1 pattern(s): [ESENT]
+[info] matched 1 providers
+[info] unique DLLs: 1
+[info] extracting messages from 1 unique DLLs...
+[info] PE extraction empty for 'esent.dll', trying Windows API fallback...
