@@ -386,6 +386,12 @@ func RunDump(args *DumpArgs) error {
 		return fmt.Errorf("no provider variant groups could be built")
 	}
 	variantGroups = mergeDuplicateProvidersVariants(variantGroups)
+	// Fresh build: remove any previous DB first. CREATE TABLE IF NOT EXISTS
+	// would otherwise keep a stale layout (2026-09-08: param_name column
+	// silently missing because the old file survived).
+	if err := os.Remove(sysDBPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove old system db: %w", err)
+	}
 	if err := CreateSystemDB(sysDBPath, variantGroups, osInfo, langCodes); err != nil {
 		return fmt.Errorf("failed to create system DB: %w", err)
 	}
@@ -456,6 +462,7 @@ func RunDump(args *DumpArgs) error {
 	}
 
 	// 13b. Write param_value_maps linking event parameters to their maps
+	// (param_name carried for template-scoped verification at render time).
 	if len(allParamValueMaps) > 0 {
 		if err := writeParamValueMaps(sysDBPath, allParamValueMaps); err != nil {
 			return fmt.Errorf("failed to write param value maps: %w", err)
@@ -463,7 +470,7 @@ func RunDump(args *DumpArgs) error {
 	}
 
 	// 13c. Write param_types (R10 / ADR 0005): TDH InType/OutType per
-	// (provider, event_id, param_index) for typed rendering.
+	// (provider, event_id, param_index, param_name) for typed rendering.
 	if len(allParamTypes) > 0 {
 		if err := writeParamTypes(sysDBPath, allParamTypes); err != nil {
 			return fmt.Errorf("failed to write param types: %w", err)
@@ -772,8 +779,8 @@ func writeParamTypes(dbPath string, refs []ParamTypeRef) error {
 	written := 0
 	for _, ref := range refs {
 		if _, err := db.Exec(
-			"INSERT OR IGNORE INTO param_types(provider_name, event_id, param_index, in_type, out_type) VALUES(?,?,?,?,?)",
-			ref.ProviderName, ref.EventID, ref.ParamIndex, ref.InType, ref.OutType,
+			"INSERT OR IGNORE INTO param_types(provider_name, event_id, param_index, param_name, in_type, out_type) VALUES(?,?,?,?,?,?)",
+			ref.ProviderName, ref.EventID, ref.ParamIndex, ref.ParamName, ref.InType, ref.OutType,
 		); err != nil {
 			fmt.Printf("[warn] param_type eid=%d idx=%s: %v\n", ref.EventID, ref.ParamIndex, err)
 			continue
@@ -823,8 +830,8 @@ func writeParamValueMaps(dbPath string, refs []ParamMapRef) error {
 			bitmap = 1
 		}
 		if _, err := db.Exec(
-			"INSERT OR IGNORE INTO param_value_maps(provider_name, event_id, param_index, map_name, is_bitmap) VALUES(?,?,?,?,?)",
-			ref.ProviderName, ref.EventID, ref.ParamIndex, ref.MapName, bitmap,
+			"INSERT OR IGNORE INTO param_value_maps(provider_name, event_id, param_index, param_name, map_name, is_bitmap) VALUES(?,?,?,?,?,?)",
+			ref.ProviderName, ref.EventID, ref.ParamIndex, ref.ParamName, ref.MapName, bitmap,
 		); err != nil {
 			fmt.Printf("[warn] param_value_map eid=%d idx=%s: %v\n", ref.EventID, ref.ParamIndex, err)
 			continue

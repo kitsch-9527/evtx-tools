@@ -61,9 +61,10 @@ pub struct MessageDb {
     /// reports everything registered and the N/A-parity path stays off.
     registry_sources: HashSet<String>,
     /// Per-parameter TDH InType/OutType hints (R10 / ADR 0005):
-    /// (provider, event_id) → param_index → "in:out" hex pair ("14:12").
-    /// Optional table — absence reads as "no type information".
-    param_types_cache: HashMap<(String, u32), HashMap<String, String>>,
+    /// (provider, event_id) → param_index → (in:out hex pair, param_name).
+    /// The param_name makes the hint template-scoped: variants whose param at
+    /// that index has a different name must not inherit it.
+    param_types_cache: HashMap<(String, u32), HashMap<String, (String, String)>>,
 }
 
 impl MessageDb {
@@ -104,24 +105,25 @@ impl MessageDb {
     pub fn load_param_types(&mut self) -> Result<()> {
         let mut stmt = self
             .conn
-            .prepare("SELECT provider_name, event_id, param_index, in_type, out_type FROM param_types")
+            .prepare("SELECT provider_name, event_id, param_index, param_name, in_type, out_type FROM param_types")
             .map_err(|e| format!("messages db lacks param_types (want schema_version 8, re-run msgdb-dump, ADR 0005): {e}"))?;
         let rows = stmt
             .query_map([], |row| {
                 let provider: String = row.get(0)?;
                 let eid: i64 = row.get(1)?;
                 let idx: String = row.get(2)?;
-                let intype: i64 = row.get(3)?;
-                let outtype: i64 = row.get(4)?;
-                Ok((provider, eid as u32, idx, intype as u8, outtype as u8))
+                let pname: String = row.get(3)?;
+                let intype: i64 = row.get(4)?;
+                let outtype: i64 = row.get(5)?;
+                Ok((provider, eid as u32, idx, pname, intype as u8, outtype as u8))
             })
             .map_err(|e| format!("failed to query param_types: {e}"))?;
         for row in rows {
-            let Ok((provider, eid, idx, intype, outtype)) = row else { continue };
+            let Ok((provider, eid, idx, pname, intype, outtype)) = row else { continue };
             self.param_types_cache
                 .entry((provider, eid))
                 .or_default()
-                .insert(idx, format!("{intype:02x}:{outtype:02x}"));
+                .insert(idx, (format!("{intype:02x}:{outtype:02x}"), pname));
         }
         Ok(())
     }
@@ -342,7 +344,10 @@ impl MessageDb {
     }
 
     /// Attach param_types hints to every warmed variant row of each
-    /// (provider, event_id) cohort (R10 / ADR 0005).
+    /// (provider, event_id) cohort (R10 / ADR 0005). A hint is template-
+    /// scoped: if the collected param_name disagrees with the variant's own
+    /// name at that index (same event, different template variant), the hint
+    /// is skipped — KGA 1 index 3 is "Reason" in v3 but "TimeDeltaInMs" in v4.
     fn attach_param_types(&mut self, providers: &[(&str, u32)]) -> Result<()> {
         for (provider, event_id) in providers {
             let Some(types) = self.param_types_cache.get(&((*provider).to_string(), *event_id))
@@ -351,7 +356,18 @@ impl MessageDb {
             };
             for (k, v) in self.variant_cache.iter_mut() {
                 if k.provider_name == *provider && k.event_id == *event_id {
-                    v.param_types = types.clone();
+                    let mut matched = HashMap::new();
+                    for (idx, (spec, pname)) in types {
+                        let name_ok = match v.parameters.as_ref().and_then(|pm| pm.get(idx)) {
+                            // empty collected name = legacy/unknown → trust
+                            Some(actual) => pname.is_empty() || actual == pname,
+                            None => true, // no parameters JSON — trust the hint
+                        };
+                        if name_ok {
+                            matched.insert(idx.clone(), spec.clone());
+                        }
+                    }
+                    v.param_types = matched;
                 }
             }
         }
@@ -381,7 +397,7 @@ impl MessageDb {
         }
 
         let query = format!(
-            "SELECT provider_name, event_id, param_index, map_name, is_bitmap              FROM param_value_maps WHERE ({})",
+            "SELECT provider_name, event_id, param_index, param_name, map_name, is_bitmap              FROM param_value_maps WHERE ({})",
             conditions.join(" OR ")
         );
         let mut stmt = self.conn.prepare(&query)
@@ -393,19 +409,39 @@ impl MessageDb {
             let provider: String = row.get(0)?;
             let event_id: i64 = row.get(1)?;
             let param_index: String = row.get(2)?;
-            let map_name: String = row.get(3)?;
-            let is_bitmap: i64 = row.get(4)?;
-            Ok((provider, event_id as u32, param_index, map_name, is_bitmap != 0))
+            let param_name: String = row.get(3)?;
+            let map_name: String = row.get(4)?;
+            let is_bitmap: i64 = row.get(5)?;
+            Ok((
+                provider,
+                event_id as u32,
+                param_index,
+                param_name,
+                map_name,
+                is_bitmap != 0,
+            ))
         })
         .map_err(|e| format!("param_value_maps query failed: {e}"))?;
 
         for row in rows {
-            let Ok((provider, event_id, param_index, map_name, is_bitmap)) = row else {
+            let Ok((provider, event_id, param_index, param_name, map_name, is_bitmap)) = row else {
                 continue;
             };
             // Attach to every variant row of the (provider, event_id) cohort.
+            // The link is template-scoped (batch 1, 2026-09-08): skip when the
+            // variant's own name at this index disagrees with the collected
+            // param_name — KGA 1 index 3 is "Reason" in v3 but
+            // "TimeDeltaInMs" in v4; a v3 link must not map the v4 delta.
             for (k, v) in self.variant_cache.iter_mut() {
                 if k.provider_name == provider && k.event_id == event_id {
+                    let name_ok = match v.parameters.as_ref().and_then(|pm| pm.get(&param_index)) {
+                        // empty collected name = legacy/unknown → trust
+                        Some(actual) => param_name.is_empty() || actual == &param_name,
+                        None => true, // no parameters JSON — trust the link
+                    };
+                    if !name_ok {
+                        continue;
+                    }
                     v.param_map_refs.insert(param_index.clone(), map_name.clone());
                     if is_bitmap {
                         v.param_bitmap_refs.insert(param_index.clone());
@@ -538,6 +574,7 @@ mod tests {
                 provider_name TEXT NOT NULL,
                 event_id      INTEGER NOT NULL,
                 param_index   TEXT NOT NULL,
+                param_name    TEXT NOT NULL DEFAULT '',
                 map_name      TEXT NOT NULL,
                 is_bitmap     INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (provider_name, event_id, param_index)
@@ -550,6 +587,7 @@ mod tests {
                 provider_name TEXT NOT NULL,
                 event_id      INTEGER NOT NULL,
                 param_index   TEXT NOT NULL,
+                param_name    TEXT NOT NULL DEFAULT '',
                 in_type       INTEGER NOT NULL,
                 out_type      INTEGER NOT NULL,
                 PRIMARY KEY (provider_name, event_id, param_index)
@@ -605,7 +643,7 @@ mod tests {
         )
         .unwrap();
         conn.execute(
-            "INSERT INTO param_value_maps(provider_name, event_id, param_index, map_name, is_bitmap) VALUES('Test-Provider', 4624, '1', 'LogonType', 0)",
+            "INSERT INTO param_value_maps(provider_name, event_id, param_index, param_name, map_name, is_bitmap) VALUES('Test-Provider', 4624, '1', 'TargetUserName', 'LogonType', 0)",
             [],
         )
         .unwrap();

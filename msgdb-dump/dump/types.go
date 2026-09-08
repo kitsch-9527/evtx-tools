@@ -116,6 +116,7 @@ type ParamMapRef struct {
 	ProviderName string
 	EventID      uint32
 	ParamIndex   string // "1", "2", ... matching the parameters JSON keys
+	ParamName    string // TTBL param name at this index (template-scoped)
 	MapName      string
 	IsBitmap     bool
 }
@@ -127,6 +128,7 @@ type ParamTypeRef struct {
 	ProviderName string
 	EventID      uint32
 	ParamIndex   string // "1", "2", ... matching the parameters JSON keys
+	ParamName    string // TTBL param name at this index (template-scoped)
 	InType       uint8
 	OutType      uint8
 }

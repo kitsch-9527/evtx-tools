@@ -66,6 +66,18 @@
    只挂主分支会漏掉 CRIM+MUI/provider 中心路径的 WU/Kernel-Boot/Wininit 等大簇（实测教训）。
 9. **R18**：evtx crate 对 manifest 布尔参数输出 JSON 原生 `true/false`，取值层必须
    `Value::Bool → "true"/"false"`（Kernel-Boot 20「was .」根因）。
+10. **R19（2026-09-08，批次 1）**：CRIM VMAP 条目字符串引用是 **0xDn 字符串表家族**
+    （0xD2/0xD1/0xD0/0xDC…，按完整 message ID 键），resolves 须按 `(ref>>24)&0xF0==0xD0`
+    泛化——只认 0xD200 会漏掉 Ntfs(0xD1)/KPP(0xD0)/System-Events(0xDC) 的全部条目
+    （value_maps 8540→29718）。表可能只在 MUI 中（KPP 主 DLL 0 条、MUI 36 条）。
+11. **R20（2026-09-08，批次 2）**：①param_types/param_value_maps 是 (provider,eid,index)
+    键，但同事件不同 variant 模板的同名 index 可能是**不同参数**（KGA 1 v3 index3=Reason
+    vs v4 index3=TimeDeltaInMs）——链接/类型带 param_name 落库，读端按 variant 自身参数名
+    校验后挂载（空名=未知=信任）；②bool (13,*) 需接管臂（否则被 enum/value-map 层改写成
+    Disabled/Enabled）；③(8,8) 无 map 链接时接管（否则 Layer-1 hex 启发式再 hex 化）；
+    ④format_for_display Step 2.5（9 位小数剥 000）已移除——它与 (17,2) 纳秒补位冲突，
+    小数位差异由 06 norm_msg_time_frac 在比对层归一；⑤03 重建前必须删旧 DB 文件
+    （CREATE TABLE IF NOT EXISTS 会保留旧表结构，param_name 列曾静默缺失）。
 
 ## 已知上游缺口（首轮闭环发现；ADR 0003 单文件迁移已修 #1）
 

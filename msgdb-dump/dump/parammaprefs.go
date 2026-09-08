@@ -45,6 +45,7 @@ func collectParamMapRefs(pd *crim.ProviderData, providerName string, events []cr
 				ProviderName: providerName,
 				EventID:      uint32(ev.EventID),
 				ParamIndex:   fmt.Sprintf("%d", p.Index),
+				ParamName:    p.Name,
 				MapName:      key,
 				IsBitmap:     info.IsBitmap,
 			})
@@ -78,6 +79,7 @@ func collectParamTypes(pd *crim.ProviderData, providerName string, events []crim
 				ProviderName: providerName,
 				EventID:      uint32(ev.EventID),
 				ParamIndex:   fmt.Sprintf("%d", p.Index),
+				ParamName:    p.Name,
 				InType:       p.InType,
 				OutType:      p.OutType,
 			})

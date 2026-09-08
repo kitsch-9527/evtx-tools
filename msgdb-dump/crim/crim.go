@@ -66,6 +66,7 @@ func ParseCRIMHeader(data []byte) (*CRIMHeader, error) {
 //	+36:4 unknown_count (skip)
 //	+40:4 unknown_offset (skip)
 //	+44:4 flags (skip)
+//
 // VariantKey is the 8-tuple identity for a Message Variant (CONTEXT.md: Variant Identity).
 // Two EventEntry records with the same Key are the same Variant (redundant WEVT duplication);
 // otherwise they are distinct Variants that must both be retained (e.g. TxR vs AppContainer for EID=11).
@@ -111,14 +112,14 @@ func DeduplicateVariants(entries []EventEntry) []EventEntry {
 }
 
 type EventEntry struct {
-	EventID     uint16
-	Version     uint8
-	Channel     uint8
-	Level       uint8
-	Opcode      uint8
-	Task        uint16
-	Keywords    uint64
-	MessageID   uint32
+	EventID        uint16
+	Version        uint8
+	Channel        uint8
+	Level          uint8
+	Opcode         uint8
+	Task           uint16
+	Keywords       uint64
+	MessageID      uint32
 	TemplateOffset *uint32
 	OpcodeOffset   *uint32
 	LevelOffset    *uint32
@@ -177,7 +178,6 @@ func ParseEVNTBlock(data []byte, pos int) []EventEntry {
 	}
 	return events
 }
-
 
 // readCRIMString reads a CRIM-sized UTF-16LE string at offset.
 func readCRIMString(data []byte, offset int) string {
@@ -354,25 +354,27 @@ func ParseVMAPBlock(data []byte, pos int) (string, map[uint32]string) {
 	return mapName, entries
 }
 
-// resolveVMAPString resolves an encoded string offset (0xD200xxxx format) using
-// a string table. The encoded offset contains:
-// - High 16 bits (0xD200): string table type identifier
-// - Low 16 bits: string table index
+// resolveVMAPString resolves an encoded string offset using a string table.
+// The encoded offset is a full RT_MESSAGETABLE message ID from the 0xDn
+// string-table families: high byte 0xD0 / 0xD1 / 0xD2 identifies the table
+// (e.g. 0xD1000001 = Ntfs "VolumeCorruptionActionState" entry 0, 0xD0000007 =
+// Kernel-Processor-Power "MapIdleImplementation"), low bits = entry index.
+// The string table is keyed by the full message ID (see pe.ExtractAllFromPE).
 //
 // Returns the resolved string or an empty string if resolution fails.
 func resolveVMAPString(encodedOffset uint32, stringTable map[uint32]string) string {
 	if stringTable == nil {
 		return ""
 	}
-	// Check if this is an encoded string offset
-	highBits := (encodedOffset >> 16) & 0xFFFF
-	if highBits != 0xD200 {
+	// Only 0xDn string-table families are string references; anything else is
+	// a plain CRIM string offset handled by the caller.
+	switch high := encodedOffset >> 24; high {
+	case 0xD0, 0xD1, 0xD2:
+	default:
 		return ""
 	}
-	// Extract the string table index
-	stringIndex := encodedOffset & 0xFFFF
-	// Look up in the string table
-	if str, ok := stringTable[stringIndex]; ok {
+	// Look up by the full encoded ID (table family + index).
+	if str, ok := stringTable[encodedOffset]; ok {
 		return str
 	}
 	return ""
@@ -389,8 +391,21 @@ func resolveVMAPString(encodedOffset uint32, stringTable map[uint32]string) stri
 //	+16:4 entryCount
 //	+20:  entries, each 8 bytes: (u32 value, u32 string reference)
 //
-// The per-entry string reference is a 0xD2-encoded index into the provider's
-// RT_MESSAGETABLE string table (high 16 bits 0xD200, low 16 bits = index).
+// ParseMAPSVMAPBlock parses a VMAP sub-block inside a MAPS block.
+//
+// MAPS VMAP sub-block layout (relative to the CRIM blob start):
+//
+//	+0:4  "VMAP" signature
+//	+4:4  block size
+//	+8:4  map name string offset (alloc-prefixed UTF-16, e.g. "Pop:MapSleepReason")
+//	+12:4 unknown (usually 0)
+//	+16:4 entryCount
+//	+20:  entries, each 8 bytes: (u32 value, u32 string reference)
+//
+// The per-entry string reference is a 0xDn-encoded full message ID into the
+// provider's RT_MESSAGETABLE string-table families (high byte 0xD0/0xD1/0xD2,
+// e.g. 0xD1000001 = Ntfs VolumeCorruptionActionState value 0; 0xD200xxxx =
+// Kernel-Power string tables).
 func ParseMAPSVMAPBlock(data []byte, pos int, stringTable map[uint32]string) (string, map[uint32]string) {
 	if pos+20 > len(data) || string(data[pos:pos+4]) != "VMAP" {
 		return "", nil
@@ -415,12 +430,15 @@ func ParseMAPSVMAPBlock(data []byte, pos int, stringTable map[uint32]string) (st
 		val := binary.LittleEndian.Uint32(data[entryOff : entryOff+4])
 		ref := binary.LittleEndian.Uint32(data[entryOff+4 : entryOff+8])
 		name := ""
-		// 0xD2-encoded reference: high 16 bits == 0xD200 → index into stringTable
-		if ref>>16 == 0xD200 {
+		// 0xDn-encoded reference: high byte 0xD0/0xD1/0xD2 → string table ID
+		switch h := ref >> 24; h {
+		case 0xD0, 0xD1, 0xD2:
 			name = resolveVMAPString(ref, stringTable)
-		} else if ref > 0 {
-			// Fallback: treat as a direct CRIM string offset
-			name = readCRIMString(data, int(ref))
+		default:
+			if ref > 0 {
+				// Fallback: treat as a direct CRIM string offset
+				name = readCRIMString(data, int(ref))
+			}
 		}
 		if name != "" {
 			entries[val] = name
@@ -456,7 +474,7 @@ func ParseMAPSBMAPBlock(data []byte, pos int, stringTable map[uint32]string) (st
 		bitPos := uint64(binary.LittleEndian.Uint32(data[entryOff : entryOff+4]))
 		ref := binary.LittleEndian.Uint32(data[entryOff+4 : entryOff+8])
 		name := ""
-		if ref>>16 == 0xD200 {
+		if ref>>24&0xF0 == 0xD0 {
 			name = resolveVMAPString(ref, stringTable)
 		} else if ref > 0 {
 			name = readCRIMString(data, int(ref))

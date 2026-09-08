@@ -89,43 +89,11 @@ pub fn format_for_display(message: &str) -> String {
     }
     result = guid_result;
 
-    // Step 2.5: Normalize timestamp fractional tail zeros before Z (9-digit FILETIME vs 6-digit)
-    // Fix Q3 tail: only strip trailing "000" groups down to 6-digit micro precision.
-    // 500000Z stays 500000Z (not 5Z), 500000000Z -> 500000Z, 662809800Z -> 662809Z only when true trailing 000.
-    {
-        let mut tmp = String::with_capacity(result.len());
-        let mut i = 0;
-        while i < result.len() {
-            let mut j = i;
-            while j < result.len() && result.as_bytes()[j].is_ascii_digit() { j += 1; }
-            let is_frac = i > 0 && result.as_bytes()[i.saturating_sub(1)] == b'.' && j > i;
-            let is_tz = j < result.len() && (result.as_bytes()[j] == b'Z' || result.as_bytes()[j] == b'+');
-            if is_frac && is_tz {
-                let mut frac = result[i..j].to_string();
-                // Only strip trailing "000" groups when length > 6 (9 -> 6 truncation).
-                // Keeps 500000Z intact; 500000000Z (9, ends 000) -> 500000Z; 136260900Z (9, ends 900) stays 136260900Z.
-                while frac.len() > 6 && frac.ends_with("000") {
-                    frac.truncate(frac.len() - 3);
-                }
-                // Also handle the case where input is 6-digit with trailing zeros like 500000 (keep as is).
-                // Do NOT strip individual zeros — that caused 500000Z -> 5Z.
-                if frac.is_empty() { tmp.push('0'); } else { tmp.push_str(&frac); }
-                // For 9-digit fractions not ending 000, truncate to 6 digits (ns -> us) to match Event Viewer 6-digit display.
-                // But only if frac still 9 digits after above stripping: keep first 6 digits.
-                // Actually if frac is 9 and not stripped, we should truncate last 3 digits to match viewer 6-digit convention.
-                // The above while keeps 500000000 -> 500000 (correct). For 136260900 (9, not 000) -> stays 136260900, but viewer shows 6? Lua shows 9.
-                // To avoid breaking Lua comparison, keep 9 as is when not 000 — loose comparison handles it.
-                // So no forced truncation here.
-                tmp.push(result[j..j+1].to_string().chars().next().unwrap());
-                i = j + 1;
-                continue;
-            }
-            let (_, ch) = result[i..].char_indices().next().unwrap();
-            tmp.push(ch);
-            i += ch.len_utf8();
-        }
-        result = tmp;
-    }
+    // Step 2.5 (REMOVED 2026-09-08): the old 9-digit→6-digit fractional-zero
+    // stripping fought R10's (17,2) FILETIME nanosecond padding (KGA 1/25
+    // baselines render full 9-digit with trailing zeros, wevtapi keeps them).
+    // Fractional-digit differences are neutralized at the comparison layer
+    // (06-compare.py norm_msg_time_frac truncates both sides to 6 digits).
 
     // Step 3: Normalize hex values and convert large decimals.
     // Iterate using char_indices() for safe UTF-8 handling.

@@ -1,6 +1,6 @@
 # 对比报告（基线解析 vs 新解析）
 
-- 生成时间（本地）：2026-09-07 14:54:12
+- 生成时间（本地）：2026-09-08 11:08:28
 - 主比对：中文wevtutil文本基线 vs new-parsed/en（同语言，严格五字段）
 - 口径：EventID / Provider / Channel / TimeCreated（两边均为本地时间，直接比，容差2s）/ Message（空白归一）
 - 对齐：同一文件出现顺序逐条对齐（基线Event[N]顺序对应新解析sequence_number顺序）
@@ -8,7 +8,7 @@
 
 ## 结论
 
-- 未通过：主链（基线vs en）共比对 32801 条，一致 31870 条，差异 931 条
+- 未通过：主链（基线vs en）共比对 32801 条，一致 31989 条，差异 812 条
 
 ## 分通道统计（主：基线 vs en）
 
@@ -17,7 +17,7 @@
 | Application | 3925 | 3925 | 3925 | 3833 | 92 | 0 | ok |
 | Setup | 222 | 222 | 222 | 222 | 0 | 0 | ok |
 | Security | 26031 | 26031 | 26031 | 26031 | 0 | 0 | ok |
-| System | 2623 | 2623 | 2623 | 1784 | 839 | 0 | ok |
+| System | 2623 | 2623 | 2623 | 1903 | 720 | 0 | ok |
 
 ## 中文覆盖率对照（基线 vs zh，不比Message）
 
@@ -173,4 +173,4 @@
 - 新解析en EventID=1001 Provider=Windows Error Reporting Time=2026-08-21 05:09:43.213902
 - 新解析en Message（前300字）：Fault bucket 2221876170411248103, type 4 Event Name: APPCRASH Response: 不可用 Cab Id: 0 Problem signature: P1: RstMwService.exe P2: 17.8.0.1065 P3: 5dee8560 P4: RstMwService.exe P5: 17.8.0.1065 P6: 5dee8560 P7: c0000005 P8: 0000000000066aa5 P9: P10: Attached files: \\?\C:\ProgramData\Microsoft\Windows
 
-还有 911 条差异未展示，见 report.diff。
+还有 792 条差异未展示，见 report.diff。

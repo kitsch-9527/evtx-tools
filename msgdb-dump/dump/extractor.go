@@ -735,6 +735,7 @@ func extractMUICRIMFromBlobs(dllPath string, crimBlobs [][]byte, providerName st
 							ProviderName: providerName,
 							EventID:      eid,
 							ParamIndex:   fmt.Sprintf("%d", param.Index),
+							ParamName:    param.Name,
 							MapName:      key,
 							IsBitmap:     info.IsBitmap,
 						})

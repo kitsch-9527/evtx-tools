@@ -276,6 +276,7 @@ fn channel_to_u8(channel: Option<&str>) -> u8 {
 fn apply_param_types(
     mut params: Vec<String>,
     types: &HashMap<String, String>,
+    param_map_refs: &HashMap<String, String>,
     db: &Arc<Mutex<MessageDb>>,
     _provider: &str,
 ) -> (Vec<String>, HashSet<String>) {
@@ -287,9 +288,15 @@ fn apply_param_types(
         guard.lookup_win32_error(code)
     };
     let mut owned: HashSet<String> = HashSet::new();
+    let trace = std::env::var("EVTX_TRACE_TYPED").is_ok();
     for (i, value) in params.iter_mut().enumerate() {
         let idx = (i + 1).to_string();
         let Some(spec) = types.get(&idx) else { continue };
+        let parsed = parse_type_spec(spec);
+        if trace {
+            eprintln!("[typed] idx={idx} spec={spec:?} parsed={parsed:?} val={value:?}");
+        }
+        let Some((intype, outtype)) = parsed else { continue };
         let Some((intype, outtype)) = parse_type_spec(spec) else { continue };
         let (new_value, takes_over) = match (intype, outtype) {
             (0x14, 0x12) | (0x08, 0x12) | (0x15, 0x13) => {
@@ -300,11 +307,26 @@ fn apply_param_types(
             }
             (0x07, 0x20) | (0x14, 0x20) => (format_hresult(value, &hresult_lookup), true),
             (0x11, 0x02) => (format_datetime_ns(value), true),
+            // GUID (15,14) — wevtapi renders lowercase with braces (KGA 11
+            // TmId/RmId, DriverFrameworks CLSID; raw event value is already
+            // braced-lowercase). Owned: later GUID-normalizing layers would
+            // uppercase and un-brace it.
+            (0x0F, 0x0E) => {
+                let t = value.trim().trim_matches(|c| c == '{' || c == '}');
+                (format!("{{{}}}", t.to_ascii_lowercase()), true)
+            }
+            // BOOLEAN (13,*) — raw "true"/"false" passes through; TDH ignores
+            // maps for booleans, so the field must be taken over from the
+            // enum/value-map layers (Wininit/LsaSrv "Disabled"-vs-"false").
+            (0x0D, _) => (value.clone(), true),
             (0x08, 0x08) => {
                 // wevtapi renders plain UINT32 decimal even when the stored
                 // string is hex (Time-Service 35 TimeSourceRefId). Value maps
-                // still apply afterwards, so this field is not "owned".
-                (parse_num(value).map(|v| v.to_string()).unwrap_or_else(|| value.clone()), false)
+                // still apply afterwards when linked, so ownership depends on
+                // the map link: without one the Layer-1 hex heuristic would
+                // otherwise re-hexify the decimal (2026-09-08 probe).
+                let has_map = param_map_refs.get(&idx).is_some();
+                (parse_num(value).map(|v| v.to_string()).unwrap_or_else(|| value.clone()), !has_map)
             }
             _ => (value.clone(), false),
         };
@@ -312,6 +334,9 @@ fn apply_param_types(
             owned.insert(idx);
         }
         *value = new_value;
+    }
+    if trace && !owned.is_empty() {
+        eprintln!("[typed] owned={owned:?}");
     }
     (params, owned)
 }
@@ -561,8 +586,21 @@ fn process_parallel_batch(
             // R10: typed rendering first. Fields with a TDH (InType, OutType)
             // pair take over from the heuristic layers below (TDH only applies
             // value maps to plain integer InTypes, never to hex/bool/hresult).
-            let (params, typed_fields) =
-                apply_param_types(params, &row.row.param_types, &db, prov);
+            let (params, typed_fields) = apply_param_types(
+                params,
+                &row.row.param_types,
+                &row.row.param_map_refs,
+                &db,
+                prov,
+            );
+            // typed_fields are param INDICES ("5") — convert to FIELD NAMES via
+            // the parameters map; the downstream layers key by field name.
+            // (2026-09-08 fix: unioning indices with names silently no-oped.)
+            let param_names = row.row.parameters.clone().unwrap_or_default();
+            let typed_fields: std::collections::HashSet<String> = typed_fields
+                .iter()
+                .filter_map(|idx| param_names.get(idx).cloned())
+                .collect();
             // Apply Layer 1 enum resolution (standard type conventions).
             // R11：有真 map 的字段跳过布尔启发式（row.value_maps key 即字段名），让路 Layer 2。
             let skip: std::collections::HashSet<String> =
@@ -1446,7 +1484,7 @@ mod r10_typed_tests {
              INSERT INTO providers(provider_name, guid, channel, dll_id) VALUES('T-Provider', '{T}', 'System', 1);
              INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, message_identifier, dll_id, message, parameters)
                VALUES('T-Provider', '{T}', 'en-US', 100, 100, 1, 'Error %1 done.', '{\"1\":\"errorCode\"}');
-             INSERT INTO param_types VALUES('T-Provider', 100, '1', 20, 18);",
+             INSERT INTO param_types VALUES('T-Provider', 100, '1', 'errorCode', 20, 18);",
         )
         .unwrap();
         drop(conn);
@@ -1554,7 +1592,10 @@ mod r10_typed_tests {
         let types = HashMap::from([("1".to_string(), "0a:13".to_string())]);
         let (out, owned) = apply_param_types(
             vec!["2".to_string()],
-            &types, msg_db.as_ref().unwrap(), "T",
+            &types,
+            &HashMap::new(),
+            msg_db.as_ref().unwrap(),
+            "T",
         );
         assert_eq!(out[0], "0x2");
         assert!(owned.contains("1"));
@@ -1563,7 +1604,10 @@ mod r10_typed_tests {
         let types = HashMap::from([("1".to_string(), "11:02".to_string())]);
         let (out, _) = apply_param_types(
             vec!["2026-08-21T21:31:25.532381Z".to_string()],
-            &types, msg_db.as_ref().unwrap(), "T",
+            &types,
+            &HashMap::new(),
+            msg_db.as_ref().unwrap(),
+            "T",
         );
         assert_eq!(out[0], "2026-08-21T21:31:25.532381000Z");
 
@@ -1571,10 +1615,27 @@ mod r10_typed_tests {
         let types = HashMap::from([("1".to_string(), "08:08".to_string())]);
         let (out, owned) = apply_param_types(
             vec!["0xb772e734".to_string()],
-            &types, msg_db.as_ref().unwrap(), "T",
+            &types,
+            &HashMap::new(),
+            msg_db.as_ref().unwrap(),
+            "T",
         );
         assert_eq!(out[0], "3077760820");
-        assert!(!owned.contains("1"));
+        // (8,8) with NO map link takes over (blocks the Layer-1 hex heuristic
+        // that re-hexified Time-Service 35 TimeSourceRefId, 2026-09-08).
+        assert!(owned.contains("1"));
+
+        // (0f,0e) GUID → lowercase with braces, idempotent on braced input.
+        let types = HashMap::from([("1".to_string(), "0f:0e".to_string())]);
+        let (out, owned) = apply_param_types(
+            vec!["{EA01CA89-9EF4-11F1-A4EF-244BFE8EB88E}".to_string()],
+            &types,
+            &HashMap::new(),
+            msg_db.as_ref().unwrap(),
+            "T",
+        );
+        assert_eq!(out[0], "{ea01ca89-9ef4-11f1-a4ef-244bfe8eb88e}");
+        assert!(owned.contains("1"));
 
         let _ = std::fs::remove_file(&db_path);
     }
@@ -1645,6 +1706,7 @@ mod r12_na_tests {
                 provider_name TEXT NOT NULL,
                 event_id INTEGER NOT NULL,
                 param_index TEXT NOT NULL,
+                param_name TEXT NOT NULL DEFAULT '',
                 map_name TEXT NOT NULL,
                 is_bitmap INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (provider_name, event_id, param_index)
@@ -1657,6 +1719,7 @@ mod r12_na_tests {
                 provider_name TEXT NOT NULL,
                 event_id INTEGER NOT NULL,
                 param_index TEXT NOT NULL,
+                param_name TEXT NOT NULL DEFAULT '',
                 in_type INTEGER NOT NULL,
                 out_type INTEGER NOT NULL,
                 PRIMARY KEY (provider_name, event_id, param_index)
@@ -1799,5 +1862,64 @@ mod r12_na_tests {
             "unknown registry state must disable N/A parity"
         );
         let _ = std::fs::remove_file(&tmp);
+    }
+}
+
+#[cfg(test)]
+mod debug_live_db {
+    use super::*;
+    use evtx_tools_core::VariantKey;
+
+    const LIVE_DB: &str = "E:/Code/evet/evtx-parity-test/msgdb/hotech-msg-Windows_10_Education-25H2-26220.9223.db";
+
+    #[test]
+    #[ignore]
+    fn debug_kga25_param_types_attach() {
+        let mut db = MessageDb::open(LIVE_DB).unwrap();
+        db.load_param_types().unwrap();
+        let key = VariantKey {
+            provider_name: "Microsoft-Windows-Kernel-General".into(),
+            event_id: 25,
+            version: 0, level: 0, opcode: 0, task: 0, keywords: 0, channel: 0,
+            message_id: 0,
+        };
+        db.warmup(std::slice::from_ref(&key), "en-US").unwrap();
+        let row = db.resolve_variant(&key).expect("KGA 25 must resolve");
+        println!("param_types: {:?}", row.param_types);
+        println!("param_map_refs: {:?}", row.param_map_refs);
+        // Full param-pipeline trace with the real event_data JSON.
+        let ed = r#"{"SystemTime":"2026-08-20T21:02:09.500000Z","LoaderTime":"2026-08-20T21:02:08.000000Z","InternalBootFlags":2,"HalRtcErrorCode":0,"RealTimeIsUniversal":false,"IsSoftBoot":false,"Success":true,"Phase":0}"#;
+        let ev: Value = serde_json::from_str(ed).unwrap();
+        let params = extract_subst_params(&None, Some(&ev), &row.parameters);
+        println!("extracted: {:?}", params);
+        let db_arc: Option<Arc<Mutex<MessageDb>>> = Some(Arc::new(Mutex::new(
+            MessageDb::open(LIVE_DB).unwrap(),
+        )));
+        let db_arc = db_arc.map(|m| {
+            let g = m.lock().unwrap();
+            // reopen a fresh MessageDb clone is not available; reuse outer via raw pointer trick is unsafe —
+            // instead re-open and load in the new instance
+            drop(g);
+            m
+        });
+        let db_for_types = db_arc.clone();
+        let _ = db_for_types;
+        // run apply_param_types against a fresh db handle loaded with param refs
+        let mut db2 = MessageDb::open(LIVE_DB).unwrap();
+        db2.load_param_refs().unwrap();
+        db2.load_param_types().unwrap();
+        db2.warmup(std::slice::from_ref(&key), "en-US").unwrap();
+        let row2 = db2.resolve_variant(&key).unwrap().clone();
+        drop(db_arc);
+        let arc2 = Arc::new(Mutex::new(db2));
+        let (typed, owned) = apply_param_types(
+            params.clone(),
+            &row2.param_types,
+            &row2.param_map_refs,
+            &arc2,
+            "Microsoft-Windows-Kernel-General",
+        );
+        println!("typed: {:?}", typed);
+        println!("owned: {:?}", owned);
     }
 }

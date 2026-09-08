@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS param_value_maps (
     provider_name TEXT NOT NULL,
     event_id      INTEGER NOT NULL,
     param_index   TEXT NOT NULL,
+    param_name    TEXT NOT NULL DEFAULT '',
     map_name      TEXT NOT NULL,
     is_bitmap     INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (provider_name, event_id, param_index)
@@ -91,6 +92,7 @@ CREATE TABLE IF NOT EXISTS param_types (
     provider_name TEXT NOT NULL,
     event_id      INTEGER NOT NULL,
     param_index   TEXT NOT NULL,
+    param_name    TEXT NOT NULL DEFAULT '',
     in_type       INTEGER NOT NULL,
     out_type      INTEGER NOT NULL,
     PRIMARY KEY (provider_name, event_id, param_index)

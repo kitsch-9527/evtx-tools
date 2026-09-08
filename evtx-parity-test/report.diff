@@ -750,14 +750,6 @@
     Time=2026-08-21 05:03:37.205251
     Msg=;EA07080004001400150003002500CC000000000000000000;;
 
-[System #3] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=25 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-21T05:02:10.1470000Z
-    Msg=The system time was initialized to 2026-08-20T21:02:09.500000000Z. ;;;;Loader time: 2026-08-20T21:02:08.000000000Z;;Internal boot flags: 0x2;;HAL RTC error code: 0x0;;RTC time is in UTC: false;;Soft boot: false;;Success: true;;Phase: 0
-  new-en:   EventID=25 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-21 05:02:10.147334
-    Msg=The system time was initialized to 2026-08-20T21:02:09.500000Z. Loader time: 2026-08-20T21:02:08.000000Z Internal boot flags: 0x2 HAL RTC error code: 0x0 RTC time is in UTC: false Soft boot: Disabled Success: true Phase: 0
-
 [System #4] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=153 Provider=Microsoft-Windows-Kernel-Boot
     Date=2026-08-21T05:02:10.1470000Z
@@ -765,118 +757,6 @@
   new-en:   EventID=153 Provider=Microsoft-Windows-Kernel-Boot
     Time=2026-08-21 05:02:10.147775
     Msg=Virtualization-based security (policies: 0) is Disabled.
-
-[System #12] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=20 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-21T05:02:10.1560000Z
-    Msg=The leap second configuration has been updated.;;Reason: Leap second data initialized from registry during boot;;Leap seconds enabled: true;;New leap second count: 0;;Old leap second count: 0
-  new-en:   EventID=20 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-21 05:02:10.156741
-    Msg=The leap second configuration has been updated. Reason: 0 Leap seconds enabled: Enabled New leap second count: 0 Old leap second count: 0
-
-[System #17] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:12.2920000Z
-    Msg=Volume C: (\Device\HarddiskVolume4) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:12.292166
-    Msg=Volume C: (\Device\HarddiskVolume4) Disabled
-
-[System #23] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0460000Z
-    Msg=Processor 0 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 25;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.046787
-    Msg=Processor 0 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 25 Minimum throttle percentage: 3
-
-[System #24] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0540000Z
-    Msg=Processor 2 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.054519
-    Msg=Processor 2 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #25] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0550000Z
-    Msg=Processor 4 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.055190
-    Msg=Processor 4 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #26] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0550000Z
-    Msg=Processor 6 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.055846
-    Msg=Processor 6 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #27] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0560000Z
-    Msg=Processor 8 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.056507
-    Msg=Processor 8 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #28] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0570000Z
-    Msg=Processor 10 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.057186
-    Msg=Processor 10 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #29] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0570000Z
-    Msg=Processor 1 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.057847
-    Msg=Processor 1 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #30] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0580000Z
-    Msg=Processor 3 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.058504
-    Msg=Processor 3 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #31] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0590000Z
-    Msg=Processor 5 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.059179
-    Msg=Processor 5 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #32] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0590000Z
-    Msg=Processor 7 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.059838
-    Msg=Processor 7 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #33] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0600000Z
-    Msg=Processor 9 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.060486
-    Msg=Processor 9 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #34] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:02:13.0610000Z
-    Msg=Processor 11 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:02:13.061729
-    Msg=Processor 11 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
 
 [System #35] B-裸参数未渲染（见明细）
   baseline: EventID=2 Provider=MEIx64
@@ -886,70 +766,6 @@
     Time=2026-08-21 05:02:13.095502
     Msg=;00000000010000000000000002000740000000000000000000000000000000000000000000000000;;
 
-[System #36] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:13.8180000Z
-    Msg=Volume D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:13.818907
-    Msg=Volume D: (\Device\HarddiskVolume7) Disabled
-
-[System #37] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:14.4290000Z
-    Msg=Volume F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:14.429749
-    Msg=Volume F: (\Device\HarddiskVolume6) Disabled
-
-[System #38] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:15.0580000Z
-    Msg=Volume E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:15.058621
-    Msg=Volume E: (\Device\HarddiskVolume1) Disabled
-
-[System #39] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:15.2430000Z
-    Msg=Volume \\?\Volume{903de723-f029-45cf-a8ab-3d4195bc9b92} (\Device\HarddiskVolume5) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:15.243994
-    Msg=Volume \\?\Volume{903de723-f029-45cf-a8ab-3d4195bc9b92} (\Device\HarddiskVolume5) Disabled
-
-[System #42] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=19 Provider=Microsoft-Windows-Wininit
-    Date=2026-08-21T05:02:23.7110000Z
-    Msg=Virtualization Based Security new timer creation status;;;;HRESULT: The operation completed successfully.;;New latch timer needed: false;;New latch timer waiting for system update completion: false;;Previous latch timer exists but disabled by registry: false;;Policy file exists: false
-  new-en:   EventID=19 Provider=Microsoft-Windows-Wininit
-    Time=2026-08-21 05:02:23.711957
-    Msg=Virtualization Based Security new timer creation status HRESULT: The operation completed successfully. New latch timer needed: false New latch timer waiting for system update completion: false Previous latch timer exists but disabled by registry: Disabled Policy file exists: false
-
-[System #45] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=23 Provider=Microsoft-Windows-Wininit
-    Date=2026-08-21T05:02:23.7120000Z
-    Msg=Boot App Anti-Rollback: Initialize Completed with status:;;HRESULT: The operation completed successfully.;;New timer needed: false;;New timer waiting for system update completion: false;;Previous latch timer exists but disabled by registry: false
-  new-en:   EventID=23 Provider=Microsoft-Windows-Wininit
-    Time=2026-08-21 05:02:23.712403
-    Msg=Boot App Anti-Rollback: Initialize Completed with status: HRESULT: The operation completed successfully. New timer needed: false New timer waiting for system update completion: false Previous latch timer exists but disabled by registry: Disabled
-
-[System #46] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=14 Provider=Microsoft-Windows-Wininit
-    Date=2026-08-21T05:02:23.8090000Z
-    Msg=Credential Guard configuration:;;;;Registry Configuration: 0x2;;Test Configuration: 0;;Auto Enablement: 1
-  new-en:   EventID=14 Provider=Microsoft-Windows-Wininit
-    Time=2026-08-21 05:02:23.809352
-    Msg=Credential Guard configuration: Registry Configuration: 0x2 Test Configuration: Disabled Auto Enablement: Enabled
-
-[System #49] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=6156 Provider=LsaSrv
-    Date=2026-08-21T05:02:23.8610000Z
-    Msg=Credential Guard auto enablement status.;;;;Hardware Requirements for Virtualization Based Security: 1;;Domain Joined: 0;;Azure AD Joined: 0;; Licensed for Credential Guard: 1;;Domain Controller: 0
-  new-en:   EventID=6156 Provider=LsaSrv
-    Time=2026-08-21 05:02:23.861054
-    Msg=Credential Guard auto enablement status. Hardware Requirements for Virtualization Based Security: 1 Domain Joined: 0 Azure AD Joined: 0 Licensed for Credential Guard: Enabled Domain Controller: 0
-
 [System #51] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=16962 Provider=Microsoft-Windows-Directory-Services-SAM
     Date=2026-08-21T05:02:24.0240000Z
@@ -957,14 +773,6 @@
   new-en:   EventID=16962 Provider=Microsoft-Windows-Directory-Services-SAM
     Time=2026-08-21 05:02:24.024560
     Msg=Remote calls to the SAM database are being restricted using the default security descriptor: . For more information please see http://go.microsoft.com/fwlink/?LinkId=787651.
-
-[System #60] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:59.4100000Z
-    Msg=Volume \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume8) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:59.410638
-    Msg=Volume \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume8) Disabled
 
 [System #132] B-裸参数未渲染（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
@@ -1014,14 +822,6 @@
     Time=2026-08-21 05:06:12.691588
     Msg=;;;;;;;;23;;60;;-480 中国标准时间;;;31002E003100000030000000570069006E0064006F0077007300200031003000200045006400750063006100740069006F006E000000310030002E0030002E003200360032003200300020004200750069006C0064002000320036003200320030002000200000004D0075006C0074006900700072006F0063006500730073006F007200200046007200650065000000320036003100300030002E00670065005F00720065006C0065006100730065005F0066006C0074002E003200360030003700310036002D00310037003000300000003600610038003700360063003000350000004E006F00740020
 
-[System #244] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=25 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-21T05:05:49.9210000Z
-    Msg=The system time was initialized to 2026-08-20T21:05:49.500000000Z. ;;;;Loader time: 2026-08-20T21:05:48.000000000Z;;Internal boot flags: 0x2;;HAL RTC error code: 0x0;;RTC time is in UTC: false;;Soft boot: false;;Success: true;;Phase: 0
-  new-en:   EventID=25 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-21 05:05:49.921671
-    Msg=The system time was initialized to 2026-08-20T21:05:49.500000Z. Loader time: 2026-08-20T21:05:48.000000Z Internal boot flags: 0x2 HAL RTC error code: 0x0 RTC time is in UTC: false Soft boot: Disabled Success: true Phase: 0
-
 [System #245] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=153 Provider=Microsoft-Windows-Kernel-Boot
     Date=2026-08-21T05:05:49.9220000Z
@@ -1029,22 +829,6 @@
   new-en:   EventID=153 Provider=Microsoft-Windows-Kernel-Boot
     Time=2026-08-21 05:05:49.922031
     Msg=Virtualization-based security (policies: 0) is Disabled.
-
-[System #253] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=20 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-21T05:05:49.9260000Z
-    Msg=The leap second configuration has been updated.;;Reason: Leap second data initialized from registry during boot;;Leap seconds enabled: true;;New leap second count: 0;;Old leap second count: 0
-  new-en:   EventID=20 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-21 05:05:49.926019
-    Msg=The leap second configuration has been updated. Reason: 0 Leap seconds enabled: Enabled New leap second count: 0 Old leap second count: 0
-
-[System #258] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:05:51.5160000Z
-    Msg=Volume C: (\Device\HarddiskVolume4) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:05:51.516051
-    Msg=Volume C: (\Device\HarddiskVolume4) Disabled
 
 [System #273] B-裸参数未渲染（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
@@ -1054,102 +838,6 @@
     Time=2026-08-21 05:05:54.868527
     Msg=;00000000010000000000000024000840240008400000000000000000000000000000000000000000;;
 
-[System #274] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5050000Z
-    Msg=Processor 0 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 25;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.505004
-    Msg=Processor 0 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 25 Minimum throttle percentage: 3
-
-[System #275] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5120000Z
-    Msg=Processor 2 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.512542
-    Msg=Processor 2 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #276] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5130000Z
-    Msg=Processor 4 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.513210
-    Msg=Processor 4 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #277] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5240000Z
-    Msg=Processor 6 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.524967
-    Msg=Processor 6 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #278] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5250000Z
-    Msg=Processor 8 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.525650
-    Msg=Processor 8 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #279] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5330000Z
-    Msg=Processor 10 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.533833
-    Msg=Processor 10 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #280] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5340000Z
-    Msg=Processor 1 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.534511
-    Msg=Processor 1 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #281] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5350000Z
-    Msg=Processor 3 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.535175
-    Msg=Processor 3 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #282] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5350000Z
-    Msg=Processor 5 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.535852
-    Msg=Processor 5 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #283] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5360000Z
-    Msg=Processor 7 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.536641
-    Msg=Processor 7 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #284] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5370000Z
-    Msg=Processor 9 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.537356
-    Msg=Processor 9 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #285] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T05:05:55.5390000Z
-    Msg=Processor 11 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 05:05:55.539843
-    Msg=Processor 11 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
 [System #286] B-裸参数未渲染（见明细）
   baseline: EventID=2 Provider=MEIx64
     Date=2026-08-21T05:05:55.7770000Z
@@ -1158,38 +846,6 @@
     Time=2026-08-21 05:05:55.777427
     Msg=;00000000010000000000000002000740000000000000000000000000000000000000000000000000;;
 
-[System #287] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:05:56.5490000Z
-    Msg=Volume D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:05:56.549342
-    Msg=Volume D: (\Device\HarddiskVolume7) Disabled
-
-[System #288] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:05:57.1470000Z
-    Msg=Volume F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:05:57.147966
-    Msg=Volume F: (\Device\HarddiskVolume6) Disabled
-
-[System #289] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:05:57.7450000Z
-    Msg=Volume E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:05:57.745148
-    Msg=Volume E: (\Device\HarddiskVolume1) Disabled
-
-[System #290] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:05:57.8980000Z
-    Msg=Volume \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:05:57.898299
-    Msg=Volume \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) Disabled
-
 [System #292] B-裸参数未渲染（见明细）
   baseline: EventID=32 Provider=e1dexpress
     Date=2026-08-21T05:05:58.6570000Z
@@ -1197,38 +853,6 @@
   new-en:   EventID=32 Provider=e1dexpress
     Time=2026-08-21 05:05:58.657466
     Msg=;;Intel(R) Ethernet Connection (12) I219-V;;;0000040002003000000000002000046000000000000000000000000000000000000000000000000020000460;;
-
-[System #294] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=19 Provider=Microsoft-Windows-Wininit
-    Date=2026-08-21T05:06:07.1780000Z
-    Msg=Virtualization Based Security new timer creation status;;;;HRESULT: The operation completed successfully.;;New latch timer needed: false;;New latch timer waiting for system update completion: false;;Previous latch timer exists but disabled by registry: false;;Policy file exists: false
-  new-en:   EventID=19 Provider=Microsoft-Windows-Wininit
-    Time=2026-08-21 05:06:07.178379
-    Msg=Virtualization Based Security new timer creation status HRESULT: The operation completed successfully. New latch timer needed: false New latch timer waiting for system update completion: false Previous latch timer exists but disabled by registry: Disabled Policy file exists: false
-
-[System #297] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=23 Provider=Microsoft-Windows-Wininit
-    Date=2026-08-21T05:06:07.1790000Z
-    Msg=Boot App Anti-Rollback: Initialize Completed with status:;;HRESULT: The operation completed successfully.;;New timer needed: false;;New timer waiting for system update completion: false;;Previous latch timer exists but disabled by registry: false
-  new-en:   EventID=23 Provider=Microsoft-Windows-Wininit
-    Time=2026-08-21 05:06:07.179093
-    Msg=Boot App Anti-Rollback: Initialize Completed with status: HRESULT: The operation completed successfully. New timer needed: false New timer waiting for system update completion: false Previous latch timer exists but disabled by registry: Disabled
-
-[System #298] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=14 Provider=Microsoft-Windows-Wininit
-    Date=2026-08-21T05:06:07.3030000Z
-    Msg=Credential Guard configuration:;;;;Registry Configuration: 0x2;;Test Configuration: 0;;Auto Enablement: 1
-  new-en:   EventID=14 Provider=Microsoft-Windows-Wininit
-    Time=2026-08-21 05:06:07.303133
-    Msg=Credential Guard configuration: Registry Configuration: 0x2 Test Configuration: Disabled Auto Enablement: Enabled
-
-[System #301] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=6156 Provider=LsaSrv
-    Date=2026-08-21T05:06:07.3480000Z
-    Msg=Credential Guard auto enablement status.;;;;Hardware Requirements for Virtualization Based Security: 1;;Domain Joined: 0;;Azure AD Joined: 0;; Licensed for Credential Guard: 1;;Domain Controller: 0
-  new-en:   EventID=6156 Provider=LsaSrv
-    Time=2026-08-21 05:06:07.348190
-    Msg=Credential Guard auto enablement status. Hardware Requirements for Virtualization Based Security: 1 Domain Joined: 0 Azure AD Joined: 0 Licensed for Credential Guard: Enabled Domain Controller: 0
 
 [System #303] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=16962 Provider=Microsoft-Windows-Directory-Services-SAM
@@ -1302,22 +926,6 @@
     Time=2026-08-21 05:19:39.313329
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #446] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:35:07.0920000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy1) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:35:07.092943
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy1) Disabled
-
-[System #449] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:35:17.5170000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy2) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:35:17.517383
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy2) Disabled
-
 [System #466] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon
     Date=2026-08-21T09:18:58.5300000Z
@@ -1357,14 +965,6 @@
   new-en:   EventID=0 Provider=hcmon
     Time=2026-08-21 09:19:01.391802
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
-
-[System #481] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=25 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-21T09:30:45.0280000Z
-    Msg=The system time was initialized to 2026-08-21T01:30:44.500000000Z. ;;;;Loader time: 2026-08-21T01:30:43.000000000Z;;Internal boot flags: 0x2;;HAL RTC error code: 0x0;;RTC time is in UTC: false;;Soft boot: false;;Success: true;;Phase: 0
-  new-en:   EventID=25 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-21 09:30:45.028832
-    Msg=The system time was initialized to 2026-08-21T01:30:44.500000Z. Loader time: 2026-08-21T01:30:43.000000Z Internal boot flags: 0x2 HAL RTC error code: 0x0 RTC time is in UTC: false Soft boot: Disabled Success: true Phase: 0
 
 [System #482] B-裸参数未渲染（见明细）
   baseline: EventID=6008 Provider=EventLog
@@ -1406,22 +1006,6 @@
     Time=2026-08-21 09:30:45.029275
     Msg=Virtualization-based security (policies: 0) is Disabled.
 
-[System #494] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=20 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-21T09:30:45.0330000Z
-    Msg=The leap second configuration has been updated.;;Reason: Leap second data initialized from registry during boot;;Leap seconds enabled: true;;New leap second count: 0;;Old leap second count: 0
-  new-en:   EventID=20 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-21 09:30:45.033853
-    Msg=The leap second configuration has been updated. Reason: 0 Leap seconds enabled: Enabled New leap second count: 0 Old leap second count: 0
-
-[System #500] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T09:30:46.7140000Z
-    Msg=Volume C: (\Device\HarddiskVolume4) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 09:30:46.714435
-    Msg=Volume C: (\Device\HarddiskVolume4) Disabled
-
 [System #516] B-裸参数未渲染（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
     Date=2026-08-21T09:30:50.1560000Z
@@ -1429,102 +1013,6 @@
   new-en:   EventID=36 Provider=VMnetAdapter
     Time=2026-08-21 09:30:50.156278
     Msg=;00000000010000000000000024000840240008400000000000000000000000000000000000000000;;
-
-[System #517] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8150000Z
-    Msg=Processor 0 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 25;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.815844
-    Msg=Processor 0 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 25 Minimum throttle percentage: 3
-
-[System #518] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8230000Z
-    Msg=Processor 2 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.823451
-    Msg=Processor 2 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #519] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8240000Z
-    Msg=Processor 4 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.824132
-    Msg=Processor 4 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #520] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8240000Z
-    Msg=Processor 6 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.824963
-    Msg=Processor 6 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #521] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8250000Z
-    Msg=Processor 8 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.825742
-    Msg=Processor 8 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #522] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8260000Z
-    Msg=Processor 10 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.826429
-    Msg=Processor 10 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #523] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8270000Z
-    Msg=Processor 1 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.827136
-    Msg=Processor 1 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #524] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8270000Z
-    Msg=Processor 3 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.827801
-    Msg=Processor 3 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #525] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8280000Z
-    Msg=Processor 5 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.828452
-    Msg=Processor 5 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #526] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8290000Z
-    Msg=Processor 7 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.829250
-    Msg=Processor 7 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #527] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8300000Z
-    Msg=Processor 9 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.830020
-    Msg=Processor 9 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
-
-[System #528] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Date=2026-08-21T09:30:50.8310000Z
-    Msg=Processor 11 in group 0 exposes the following power management capabilities:;;;;Idle state type: ACPI Idle (C) States (3 state(s));;;;Performance state type: ACPI Collaborative Processor Performance Control;;Nominal Frequency (MHz): 3096;;Maximum performance percentage: 145;;Minimum performance percentage: 35;;Minimum throttle percentage: 3
-  new-en:   EventID=55 Provider=Microsoft-Windows-Kernel-Processor-Power
-    Time=2026-08-21 09:30:50.831338
-    Msg=Processor 11 in group 0 exposes the following power management capabilities: Idle state type: 1 (3 state(s)) Performance state type: 3 Nominal Frequency (MHz): 3096 Maximum performance percentage: 145 Minimum performance percentage: 35 Minimum throttle percentage: 3
 
 [System #529] B-裸参数未渲染（见明细）
   baseline: EventID=2 Provider=MEIx64
@@ -1534,38 +1022,6 @@
     Time=2026-08-21 09:30:51.075751
     Msg=;00000000010000000000000002000740000000000000000000000000000000000000000000000000;;
 
-[System #530] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T09:30:51.8670000Z
-    Msg=Volume D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 09:30:51.867007
-    Msg=Volume D: (\Device\HarddiskVolume7) Disabled
-
-[System #531] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T09:30:52.5000000Z
-    Msg=Volume F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 09:30:52.500031
-    Msg=Volume F: (\Device\HarddiskVolume6) Disabled
-
-[System #532] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T09:30:53.1700000Z
-    Msg=Volume E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 09:30:53.170089
-    Msg=Volume E: (\Device\HarddiskVolume1) Disabled
-
-[System #533] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T09:30:53.3310000Z
-    Msg=Volume \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 09:30:53.331661
-    Msg=Volume \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) Disabled
-
 [System #535] B-裸参数未渲染（见明细）
   baseline: EventID=32 Provider=e1dexpress
     Date=2026-08-21T09:30:53.9610000Z
@@ -1574,22 +1030,6 @@
     Time=2026-08-21 09:30:53.961913
     Msg=;;Intel(R) Ethernet Connection (12) I219-V;;;0000040002003000000000002000046000000000000000000000000000000000000000000000000020000460;;
 
-[System #537] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=19 Provider=Microsoft-Windows-Wininit
-    Date=2026-08-21T09:31:02.9640000Z
-    Msg=Virtualization Based Security new timer creation status;;;;HRESULT: The operation completed successfully.;;New latch timer needed: false;;New latch timer waiting for system update completion: false;;Previous latch timer exists but disabled by registry: false;;Policy file exists: false
-  new-en:   EventID=19 Provider=Microsoft-Windows-Wininit
-    Time=2026-08-21 09:31:02.964790
-    Msg=Virtualization Based Security new timer creation status HRESULT: The operation completed successfully. New latch timer needed: false New latch timer waiting for system update completion: false Previous latch timer exists but disabled by registry: Disabled Policy file exists: false
-
-[System #540] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=23 Provider=Microsoft-Windows-Wininit
-    Date=2026-08-21T09:31:02.9650000Z
-    Msg=Boot App Anti-Rollback: Initialize Completed with status:;;HRESULT: The operation completed successfully.;;New timer needed: false;;New timer waiting for system update completion: false;;Previous latch timer exists but disabled by registry: false
-  new-en:   EventID=23 Provider=Microsoft-Windows-Wininit
-    Time=2026-08-21 09:31:02.965676
-    Msg=Boot App Anti-Rollback: Initialize Completed with status: HRESULT: The operation completed successfully. New timer needed: false New timer waiting for system update completion: false Previous latch timer exists but disabled by registry: Disabled
-
 [System #541] B-裸参数未渲染（见明细）
   baseline: EventID=267 Provider=Win32k
     Date=2026-08-21T09:31:03.1040000Z
@@ -1597,22 +1037,6 @@
   new-en:   EventID=267 Provider=Win32k
     Time=2026-08-21 09:31:03.104665
     Msg=;0000000001000000000000000B010040000000000000000000000000000000000000000000000000;;
-
-[System #542] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=14 Provider=Microsoft-Windows-Wininit
-    Date=2026-08-21T09:31:07.2230000Z
-    Msg=Credential Guard configuration:;;;;Registry Configuration: 0x2;;Test Configuration: 0;;Auto Enablement: 1
-  new-en:   EventID=14 Provider=Microsoft-Windows-Wininit
-    Time=2026-08-21 09:31:07.223280
-    Msg=Credential Guard configuration: Registry Configuration: 0x2 Test Configuration: Disabled Auto Enablement: Enabled
-
-[System #545] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=6156 Provider=LsaSrv
-    Date=2026-08-21T09:31:07.2630000Z
-    Msg=Credential Guard auto enablement status.;;;;Hardware Requirements for Virtualization Based Security: 1;;Domain Joined: 0;;Azure AD Joined: 0;; Licensed for Credential Guard: 1;;Domain Controller: 0
-  new-en:   EventID=6156 Provider=LsaSrv
-    Time=2026-08-21 09:31:07.263111
-    Msg=Credential Guard auto enablement status. Hardware Requirements for Virtualization Based Security: 1 Domain Joined: 0 Azure AD Joined: 0 Licensed for Credential Guard: Enabled Domain Controller: 0
 
 [System #547] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=16962 Provider=Microsoft-Windows-Directory-Services-SAM
@@ -1701,14 +1125,6 @@
   new-en:   EventID=24579 Provider=Microsoft-Windows-WPDClassInstaller
     Time=2026-08-21 14:00:42.088354
     Msg=Autoplay registration was skipped for device .
-
-[System #641] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=10001 Provider=Microsoft-Windows-DriverFrameworks-UserMode
-    Date=2026-08-21T14:00:41.8810000Z
-    Msg=The UMDF service WpdFs (CLSID {112de495-ac4c-46f8-b663-6a4266c53313}) was installed. It requires framework version 2.35.0 or higher.
-  new-en:   EventID=10001 Provider=Microsoft-Windows-DriverFrameworks-UserMode
-    Time=2026-08-21 14:00:41.881816
-    Msg=The UMDF service WpdFs (CLSID 112DE495-AC4C-46F8-B663-6A4266C53313) was installed. It requires framework version 2.35.0 or higher.
 
 [System #645] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon
@@ -2078,14 +1494,6 @@
     Time=2026-08-22 05:31:25.532021
     Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->52.231.114.183:123) with reference id 0xb772e734. Current local stratum number is 5.
 
-[System #714] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-22T05:31:25.5330000Z
-    Msg=The system time has changed to 2026-08-21T21:31:25.532381200Z from 2026-08-21T21:31:25.531995100Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 31464).;;;;RTC time: 2026-08-22T05:31:25.532381200Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-22 05:31:25.533742
-    Msg=The system time has changed to 2026-08-21T21:31:25.532381Z from 2026-08-21T21:31:25.531995Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 31464). RTC time: 2026-08-22T05:31:25.532381Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
 [System #725] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6013 Provider=EventLog
     Date=2026-08-22T12:00:00.5390000Z
@@ -2094,22 +1502,6 @@
     Time=2026-08-22 12:00:00.539904
     Msg=;;;;;;;;95356;;60;;-480 中国标准时间;;;31002E003100000030000000570069006E0064006F0077007300200031003000200045006400750063006100740069006F006E000000310030002E0030002E003200360032003200300020004200750069006C0064002000320036003200320030002000200000004D0075006C0074006900700072006F0063006500730073006F007200200046007200650065000000320036003100300030002E00670065005F00720065006C0065006100730065005F0066006C0074002E003200360030003700310036002D00310037003000300000003600610038003700360063006600380000004E006F00740
 
-[System #748] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-22T22:42:16.9250000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy3) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-22 22:42:16.925223
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy3) Disabled
-
-[System #774] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-23T10:04:12.8940000Z
-    Msg=The system time has changed to 2026-08-23T02:04:12.892706500Z from 2026-08-23T02:04:14.384014400Z.;;Time Delta: -1491 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 34632).;;;;RTC time: 2026-08-23T10:04:12.892706500Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-23 10:04:12.894110
-    Msg=The system time has changed to 2026-08-23T02:04:12.892706Z from 2026-08-23T02:04:14.384014Z. Time Delta: -1491 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 34632). RTC time: 2026-08-23T10:04:12.892706Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
 [System #775] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
     Date=2026-08-23T10:04:12.8960000Z
@@ -2117,22 +1509,6 @@
   new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
     Time=2026-08-23 10:04:12.896680
     Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->52.231.114.183:123) with reference id 0xb772e734. Current local stratum number is 5.
-
-[System #777] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-23T10:04:12.8980000Z
-    Msg=The system time has changed to 2026-08-23T02:04:12.897059500Z from 2026-08-23T02:04:12.896092600Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 34632).;;;;RTC time: 2026-08-23T10:04:12.897059500Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-23 10:04:12.898786
-    Msg=The system time has changed to 2026-08-23T02:04:12.897059Z from 2026-08-23T02:04:12.896092Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 34632). RTC time: 2026-08-23T10:04:12.897059Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
-[System #779] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-23T10:04:12.9000000Z
-    Msg=The system time has changed to 2026-08-23T02:04:12.899106600Z from 2026-08-23T02:04:12.898599100Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 34632).;;;;RTC time: 2026-08-23T10:04:12.899106600Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-23 10:04:12.900473
-    Msg=The system time has changed to 2026-08-23T02:04:12.899106Z from 2026-08-23T02:04:12.898599Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 34632). RTC time: 2026-08-23T10:04:12.899106Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
 
 [System #780] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6013 Provider=EventLog
@@ -2214,38 +1590,6 @@
     Time=2026-08-24 12:00:00.920797
     Msg=;;;;;;;;268157;;60;;-480 中国标准时间;;;31002E003100000030000000570069006E0064006F0077007300200031003000200045006400750063006100740069006F006E000000310030002E0030002E003200360032003200300020004200750069006C0064002000320036003200320030002000200000004D0075006C0074006900700072006F0063006500730073006F007200200046007200650065000000320036003100300030002E00670065005F00720065006C0065006100730065005F0066006C0074002E003200360030003700310036002D00310037003000300000003600610038003700360063006600380000004E006F0074
 
-[System #860] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-24T12:27:27.5310000Z
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy3\WINDOWS\System32\config\SYSTEM (TM: {ea01ca89-9ef4-11f1-a4ef-244bfe8eb88e}, RM: {ea01ca88-9ef4-11f1-a4ef-244bfe8eb88e}) finished with result=0xC00000A2 (Internal code=7).
-  new-en:   EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-24 12:27:27.531382
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy3\WINDOWS\System32\config\SYSTEM (TM: EA01CA89-9EF4-11F1-A4EF-244BFE8EB88E, RM: EA01CA88-9EF4-11F1-A4EF-244BFE8EB88E) finished with result=0xC00000A2 (Internal code=7).
-
-[System #861] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-24T12:27:27.6690000Z
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy3\WINDOWS\System32\config\DRIVERS (TM: {ea01ca8c-9ef4-11f1-a4ef-244bfe8eb88e}, RM: {ea01ca8b-9ef4-11f1-a4ef-244bfe8eb88e}) finished with result=0xC00000A2 (Internal code=7).
-  new-en:   EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-24 12:27:27.669940
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy3\WINDOWS\System32\config\DRIVERS (TM: EA01CA8C-9EF4-11F1-A4EF-244BFE8EB88E, RM: EA01CA8B-9EF4-11F1-A4EF-244BFE8EB88E) finished with result=0xC00000A2 (Internal code=7).
-
-[System #862] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-24T12:27:28.8100000Z
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy3\WINDOWS\System32\config\SOFTWARE (TM: {ea01ca8f-9ef4-11f1-a4ef-244bfe8eb88e}, RM: {ea01ca8e-9ef4-11f1-a4ef-244bfe8eb88e}) finished with result=0xC00000A2 (Internal code=7).
-  new-en:   EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-24 12:27:28.810372
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy3\WINDOWS\System32\config\SOFTWARE (TM: EA01CA8F-9EF4-11F1-A4EF-244BFE8EB88E, RM: EA01CA8E-9EF4-11F1-A4EF-244BFE8EB88E) finished with result=0xC00000A2 (Internal code=7).
-
-[System #885] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-24T16:24:33.9160000Z
-    Msg=The system time has changed to 2026-08-24T08:24:33.915155000Z from 2026-08-24T08:24:35.156356000Z.;;Time Delta: -1241 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 45672).;;;;RTC time: 2026-08-24T16:24:33.915155000Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-24 16:24:33.916558
-    Msg=The system time has changed to 2026-08-24T08:24:33.915155Z from 2026-08-24T08:24:35.156356Z. Time Delta: -1241 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 45672). RTC time: 2026-08-24T16:24:33.915155Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
 [System #886] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
     Date=2026-08-24T16:24:33.9180000Z
@@ -2253,22 +1597,6 @@
   new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
     Time=2026-08-24 16:24:33.918449
     Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.131:123) with reference id 0x830112c6. Current local stratum number is 5.
-
-[System #888] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-24T16:24:33.9200000Z
-    Msg=The system time has changed to 2026-08-24T08:24:33.918787900Z from 2026-08-24T08:24:33.917822200Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 45672).;;;;RTC time: 2026-08-24T16:24:33.918787900Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-24 16:24:33.920393
-    Msg=The system time has changed to 2026-08-24T08:24:33.918787Z from 2026-08-24T08:24:33.917822Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 45672). RTC time: 2026-08-24T16:24:33.918787Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
-[System #890] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-24T16:24:33.9220000Z
-    Msg=The system time has changed to 2026-08-24T08:24:33.920800700Z from 2026-08-24T08:24:33.919311000Z.;;Time Delta: 1 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 45672).;;;;RTC time: 2026-08-24T16:24:33.920800700Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-24 16:24:33.922318
-    Msg=The system time has changed to 2026-08-24T08:24:33.920800Z from 2026-08-24T08:24:33.919311Z. Time Delta: 1 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 45672). RTC time: 2026-08-24T16:24:33.920800Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
 
 [System #895] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=24577 Provider=Microsoft-Windows-WPDClassInstaller
@@ -2285,14 +1613,6 @@
   new-en:   EventID=24579 Provider=Microsoft-Windows-WPDClassInstaller
     Time=2026-08-24 16:35:38.010706
     Msg=Autoplay registration was skipped for device .
-
-[System #898] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=10002 Provider=Microsoft-Windows-DriverFrameworks-UserMode
-    Date=2026-08-24T16:35:37.7430000Z
-    Msg=The UMDF service WpdFs (CLSID {112de495-ac4c-46f8-b663-6a4266c53313}) was upgraded. It requires framework version 2.35.0 or higher.
-  new-en:   EventID=10002 Provider=Microsoft-Windows-DriverFrameworks-UserMode
-    Time=2026-08-24 16:35:37.743316
-    Msg=The UMDF service WpdFs (CLSID 112DE495-AC4C-46F8-B663-6A4266C53313) was upgraded. It requires framework version 2.35.0 or higher.
 
 [System #901] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon
@@ -2454,14 +1774,6 @@
     Time=2026-08-25 10:04:29.135779
     Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.131:123) with reference id 0x830112c6. Current local stratum number is 5.
 
-[System #998] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-25T10:04:29.1370000Z
-    Msg=The system time has changed to 2026-08-25T02:04:29.136268400Z from 2026-08-25T02:04:29.136260900Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 9248).;;;;RTC time: 2026-08-25T10:04:29.136268400Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-25 10:04:29.137720
-    Msg=The system time has changed to 2026-08-25T02:04:29.136268Z from 2026-08-25T02:04:29.136260Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 9248). RTC time: 2026-08-25T10:04:29.136268Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
 [System #1002] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6013 Provider=EventLog
     Date=2026-08-25T12:00:00.1530000Z
@@ -2493,70 +1805,6 @@
   new-en:   EventID=0 Provider=hcmon
     Time=2026-08-25 18:30:58.033234
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
-
-[System #1038] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-25T19:10:11.2590000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy4) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-25 19:10:11.259648
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy4) Disabled
-
-[System #1044] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-25T19:10:30.8890000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy5) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-25 19:10:30.889254
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy5) Disabled
-
-[System #1066] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-26T05:32:57.8510000Z
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy4\WINDOWS\System32\config\SYSTEM (TM: {77d84395-a067-11f1-a4ef-244bfe8eb88e}, RM: {77d84394-a067-11f1-a4ef-244bfe8eb88e}) finished with result=0xC00000A2 (Internal code=7).
-  new-en:   EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-26 05:32:57.851513
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy4\WINDOWS\System32\config\SYSTEM (TM: 77D84395-A067-11F1-A4EF-244BFE8EB88E, RM: 77D84394-A067-11F1-A4EF-244BFE8EB88E) finished with result=0xC00000A2 (Internal code=7).
-
-[System #1067] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-26T05:32:57.9790000Z
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy4\WINDOWS\System32\config\DRIVERS (TM: {77d84398-a067-11f1-a4ef-244bfe8eb88e}, RM: {77d84397-a067-11f1-a4ef-244bfe8eb88e}) finished with result=0xC00000A2 (Internal code=7).
-  new-en:   EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-26 05:32:57.979174
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy4\WINDOWS\System32\config\DRIVERS (TM: 77D84398-A067-11F1-A4EF-244BFE8EB88E, RM: 77D84397-A067-11F1-A4EF-244BFE8EB88E) finished with result=0xC00000A2 (Internal code=7).
-
-[System #1068] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-26T05:32:58.9460000Z
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy4\WINDOWS\System32\config\SOFTWARE (TM: {77d8439b-a067-11f1-a4ef-244bfe8eb88e}, RM: {77d8439a-a067-11f1-a4ef-244bfe8eb88e}) finished with result=0xC00000A2 (Internal code=7).
-  new-en:   EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-26 05:32:58.946510
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy4\WINDOWS\System32\config\SOFTWARE (TM: 77D8439B-A067-11F1-A4EF-244BFE8EB88E, RM: 77D8439A-A067-11F1-A4EF-244BFE8EB88E) finished with result=0xC00000A2 (Internal code=7).
-
-[System #1069] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-26T05:33:05.7690000Z
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy5\WINDOWS\System32\config\SYSTEM (TM: {77d843bf-a067-11f1-a4ef-244bfe8eb88e}, RM: {77d843be-a067-11f1-a4ef-244bfe8eb88e}) finished with result=0xC00000A2 (Internal code=7).
-  new-en:   EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-26 05:33:05.769600
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy5\WINDOWS\System32\config\SYSTEM (TM: 77D843BF-A067-11F1-A4EF-244BFE8EB88E, RM: 77D843BE-A067-11F1-A4EF-244BFE8EB88E) finished with result=0xC00000A2 (Internal code=7).
-
-[System #1070] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-26T05:33:05.9060000Z
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy5\WINDOWS\System32\config\DRIVERS (TM: {77d843c2-a067-11f1-a4ef-244bfe8eb88e}, RM: {77d843c1-a067-11f1-a4ef-244bfe8eb88e}) finished with result=0xC00000A2 (Internal code=7).
-  new-en:   EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-26 05:33:05.906513
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy5\WINDOWS\System32\config\DRIVERS (TM: 77D843C2-A067-11F1-A4EF-244BFE8EB88E, RM: 77D843C1-A067-11F1-A4EF-244BFE8EB88E) finished with result=0xC00000A2 (Internal code=7).
-
-[System #1071] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-26T05:33:06.8400000Z
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy5\WINDOWS\System32\config\SOFTWARE (TM: {77d843c5-a067-11f1-a4ef-244bfe8eb88e}, RM: {77d843c4-a067-11f1-a4ef-244bfe8eb88e}) finished with result=0xC00000A2 (Internal code=7).
-  new-en:   EventID=11 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-26 05:33:06.840447
-    Msg=TxR init phase for hive \??\GLOBALROOT\Device\HarddiskVolumeShadowCopy5\WINDOWS\System32\config\SOFTWARE (TM: 77D843C5-A067-11F1-A4EF-244BFE8EB88E, RM: 77D843C4-A067-11F1-A4EF-244BFE8EB88E) finished with result=0xC00000A2 (Internal code=7).
 
 [System #1076] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon
@@ -2590,14 +1838,6 @@
     Time=2026-08-26 09:25:51.489200
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #1089] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-26T10:04:12.6750000Z
-    Msg=The system time has changed to 2026-08-26T02:04:12.673595700Z from 2026-08-26T02:04:14.440822900Z.;;Time Delta: -1767 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 33780).;;;;RTC time: 2026-08-26T10:04:12.673595700Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-26 10:04:12.675009
-    Msg=The system time has changed to 2026-08-26T02:04:12.673595Z from 2026-08-26T02:04:14.440822Z. Time Delta: -1767 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 33780). RTC time: 2026-08-26T10:04:12.673595Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
 [System #1090] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
     Date=2026-08-26T10:04:12.6760000Z
@@ -2605,22 +1845,6 @@
   new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
     Time=2026-08-26 10:04:12.676838
     Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.131:123) with reference id 0x830112c6. Current local stratum number is 5.
-
-[System #1092] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-26T10:04:12.6780000Z
-    Msg=The system time has changed to 2026-08-26T02:04:12.677093100Z from 2026-08-26T02:04:12.676965300Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 33780).;;;;RTC time: 2026-08-26T10:04:12.677093100Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-26 10:04:12.678584
-    Msg=The system time has changed to 2026-08-26T02:04:12.677093Z from 2026-08-26T02:04:12.676965Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 33780). RTC time: 2026-08-26T10:04:12.677093Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
-[System #1094] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-26T10:04:12.6800000Z
-    Msg=The system time has changed to 2026-08-26T02:04:12.678851800Z from 2026-08-26T02:04:12.678445900Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 33780).;;;;RTC time: 2026-08-26T10:04:12.678851800Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-26 10:04:12.680279
-    Msg=The system time has changed to 2026-08-26T02:04:12.678851Z from 2026-08-26T02:04:12.678445Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 33780). RTC time: 2026-08-26T10:04:12.678851Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
 
 [System #1095] B-裸参数未渲染（见明细）
   baseline: EventID=157 Provider=disk
@@ -2662,14 +1886,6 @@
     Time=2026-08-26 18:31:31.856966
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #1280] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-26T20:34:45.1460000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy6) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-26 20:34:45.146548
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy6) Disabled
-
 [System #1337] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon
     Date=2026-08-27T09:20:57.1500000Z
@@ -2710,14 +1926,6 @@
     Time=2026-08-27 12:00:00.688316
     Msg=;;;;;;;;527360;;60;;-480 中国标准时间;;;31002E003100000030000000570069006E0064006F0077007300200031003000200045006400750063006100740069006F006E000000310030002E0030002E003200360032003200300020004200750069006C0064002000320036003200320030002000200000004D0075006C0074006900700072006F0063006500730073006F007200200046007200650065000000320036003100300030002E00670065005F00720065006C0065006100730065005F0066006C0074002E003200360030003700310036002D00310037003000300000003600610038003700360063006600380000004E006F0074
 
-[System #1377] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-27T15:54:35.8940000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy7) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-27 15:54:35.894724
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy7) Disabled
-
 [System #1384] B-裸参数未渲染（见明细）
   baseline: EventID=4311 Provider=NetBT
     Date=2026-08-27T17:14:57.2820000Z
@@ -2733,30 +1941,6 @@
   new-en:   EventID=4311 Provider=NetBT
     Time=2026-08-27 17:14:57.282142
     Msg=;000000000100320000000000D710004011010000250200C003000000000000000000000000000000;;
-
-[System #1388] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-27T17:19:37.7690000Z
-    Msg=The system time has changed to 2026-08-27T09:19:37.768559300Z from 2026-08-27T09:19:39.023094900Z.;;Time Delta: -1254 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 14356).;;;;RTC time: 2026-08-27T17:19:37.768559300Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-27 17:19:37.769938
-    Msg=The system time has changed to 2026-08-27T09:19:37.768559Z from 2026-08-27T09:19:39.023094Z. Time Delta: -1254 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 14356). RTC time: 2026-08-27T17:19:37.768559Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
-[System #1391] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-27T17:19:37.7730000Z
-    Msg=The system time has changed to 2026-08-27T09:19:37.771806400Z from 2026-08-27T09:19:37.771439400Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 14356).;;;;RTC time: 2026-08-27T17:19:37.771806400Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-27 17:19:37.773336
-    Msg=The system time has changed to 2026-08-27T09:19:37.771806Z from 2026-08-27T09:19:37.771439Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 14356). RTC time: 2026-08-27T17:19:37.771806Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
-[System #1393] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-27T17:19:37.7750000Z
-    Msg=The system time has changed to 2026-08-27T09:19:37.773692700Z from 2026-08-27T09:19:37.773465400Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 14356).;;;;RTC time: 2026-08-27T17:19:37.773692700Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-27 17:19:37.775134
-    Msg=The system time has changed to 2026-08-27T09:19:37.773692Z from 2026-08-27T09:19:37.773465Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 14356). RTC time: 2026-08-27T17:19:37.773692Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
 
 [System #1394] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon
@@ -2846,14 +2030,6 @@
     Time=2026-08-28 09:30:56.315593
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #1461] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-28T10:05:25.6370000Z
-    Msg=The system time has changed to 2026-08-28T02:05:25.635615400Z from 2026-08-28T02:05:25.635663200Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 14736).;;;;RTC time: 2026-08-28T10:05:25.635615400Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-28 10:05:25.637195
-    Msg=The system time has changed to 2026-08-28T02:05:25.635615Z from 2026-08-28T02:05:25.635663Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 14736). RTC time: 2026-08-28T10:05:25.635615Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
 [System #1462] C-无模板fallback（见明细）
   baseline: EventID=1 Provider=Microsoft-Windows-Configuration-Change-Monitor
     Date=2026-08-28T10:09:56.1930000Z
@@ -2894,29 +2070,13 @@
     Time=2026-08-28 14:03:03.339252
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #1496] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-29T05:31:19.0870000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy8) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-29 05:31:19.087157
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy8) Disabled
-
-[System #1499] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-29T05:31:40.7920000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy9) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-29 05:31:40.792219
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy9) Disabled
-
 [System #1502] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=140 Provider=Microsoft-Windows-Ntfs
     Date=2026-08-29T05:31:50.7470000Z
     Msg=The system failed to flush data to the transaction log. Corruption may occur in VolumeId: 系统, DeviceName: \Device\HarddiskVolumeShadowCopy9.;;;; Failure status: A device which does not exist was specified.;;;; Device GUID: {00000000-0000-0000-0000-000000000000};; Device manufacturer: ;; Device model: ;; Device revision: ;; Device serial number: ;; Bus type: <unknown>;;;; Adapter serial number:
   new-en:   EventID=140 Provider=Microsoft-Windows-Ntfs
     Time=2026-08-29 05:31:50.747352
-    Msg=The system failed to flush data to the transaction log. Corruption may occur in VolumeId: 系统, DeviceName: \Device\HarddiskVolumeShadowCopy9. Failure status: 0xc000000e Device GUID: {00000000-0000-0000-0000-000000000000} Device manufacturer: Device model: Device revision: Device serial number: Bus type: 0 Adapter serial number:
+    Msg=The system failed to flush data to the transaction log. Corruption may occur in VolumeId: 系统, DeviceName: \Device\HarddiskVolumeShadowCopy9. Failure status: 0xc000000e Device GUID: {00000000-0000-0000-0000-000000000000} Device manufacturer: Device model: Device revision: Device serial number: Bus type: <unknown> Adapter serial number:
 
 [System #1503] B-裸参数未渲染（见明细）
   baseline: EventID=50 Provider=Ntfs
@@ -7038,30 +6198,6 @@
     Time=2026-08-29 05:31:50.766729
     Msg=;;\Device\HarddiskVolumeShadowCopy9\$Mft;;;04000400020030000000000032000480000000000E0000C0000000000000000000000000000000000E0000C0;;
 
-[System #2170] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-29T10:04:54.8580000Z
-    Msg=The system time has changed to 2026-08-29T02:04:54.857499100Z from 2026-08-29T02:04:56.583134000Z.;;Time Delta: -1725 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 53180).;;;;RTC time: 2026-08-29T10:04:54.857499100Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-29 10:04:54.858877
-    Msg=The system time has changed to 2026-08-29T02:04:54.857499Z from 2026-08-29T02:04:56.583134Z. Time Delta: -1725 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 53180). RTC time: 2026-08-29T10:04:54.857499Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
-[System #2173] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-29T10:04:54.8620000Z
-    Msg=The system time has changed to 2026-08-29T02:04:54.861089300Z from 2026-08-29T02:04:54.860661800Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 53180).;;;;RTC time: 2026-08-29T10:04:54.861089300Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-29 10:04:54.862688
-    Msg=The system time has changed to 2026-08-29T02:04:54.861089Z from 2026-08-29T02:04:54.860661Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 53180). RTC time: 2026-08-29T10:04:54.861089Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
-[System #2175] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-29T10:04:54.8640000Z
-    Msg=The system time has changed to 2026-08-29T02:04:54.862987500Z from 2026-08-29T02:04:54.862103600Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 53180).;;;;RTC time: 2026-08-29T10:04:54.862987500Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-29 10:04:54.864338
-    Msg=The system time has changed to 2026-08-29T02:04:54.862987Z from 2026-08-29T02:04:54.862103Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 53180). RTC time: 2026-08-29T10:04:54.862987Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
 [System #2182] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6013 Provider=EventLog
     Date=2026-08-29T12:00:00.8650000Z
@@ -7069,14 +6205,6 @@
   new-en:   EventID=6013 Provider=EventLog
     Time=2026-08-29 12:00:00.865809
     Msg=;;;;;;;;700163;;60;;-480 中国标准时间;;;31002E003100000030000000570069006E0064006F0077007300200031003000200045006400750063006100740069006F006E000000310030002E0030002E003200360032003200300020004200750069006C0064002000320036003200320030002000200000004D0075006C0074006900700072006F0063006500730073006F007200200046007200650065000000320036003100300030002E00670065005F00720065006C0065006100730065005F0066006C0074002E003200360030003700310036002D00310037003000300000003600610038003700360063006600380000004E006F0074
-
-[System #2214] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-30T10:05:26.1250000Z
-    Msg=The system time has changed to 2026-08-30T02:05:26.124139400Z from 2026-08-30T02:05:26.123911500Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 52268).;;;;RTC time: 2026-08-30T10:05:26.124139400Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-30 10:05:26.125635
-    Msg=The system time has changed to 2026-08-30T02:05:26.124139Z from 2026-08-30T02:05:26.123911Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 52268). RTC time: 2026-08-30T10:05:26.124139Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
 
 [System #2223] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6013 Provider=EventLog
@@ -7126,30 +6254,6 @@
     Time=2026-08-31 09:19:01.276669
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #2271] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-31T10:04:11.5290000Z
-    Msg=The system time has changed to 2026-08-31T02:04:11.527846500Z from 2026-08-31T02:04:13.446259600Z.;;Time Delta: -1918 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 10616).;;;;RTC time: 2026-08-31T10:04:11.527846500Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-31 10:04:11.529262
-    Msg=The system time has changed to 2026-08-31T02:04:11.527846Z from 2026-08-31T02:04:13.446259Z. Time Delta: -1918 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 10616). RTC time: 2026-08-31T10:04:11.527846Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
-[System #2274] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-31T10:04:11.5320000Z
-    Msg=The system time has changed to 2026-08-31T02:04:11.531124500Z from 2026-08-31T02:04:11.530228200Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 10616).;;;;RTC time: 2026-08-31T10:04:11.531124500Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-31 10:04:11.532937
-    Msg=The system time has changed to 2026-08-31T02:04:11.531124Z from 2026-08-31T02:04:11.530228Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 10616). RTC time: 2026-08-31T10:04:11.531124Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
-[System #2276] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-08-31T10:04:11.5350000Z
-    Msg=The system time has changed to 2026-08-31T02:04:11.533312800Z from 2026-08-31T02:04:11.532526200Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 10616).;;;;RTC time: 2026-08-31T10:04:11.533312800Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-08-31 10:04:11.535036
-    Msg=The system time has changed to 2026-08-31T02:04:11.533312Z from 2026-08-31T02:04:11.532526Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 10616). RTC time: 2026-08-31T10:04:11.533312Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
 [System #2281] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6013 Provider=EventLog
     Date=2026-08-31T12:00:00.5460000Z
@@ -7181,14 +6285,6 @@
   new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
     Time=2026-09-01 05:32:21.726284
     Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.0.187:123) with reference id 0xbb0012c6. Current local stratum number is 5.
-
-[System #2324] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-09-01T05:32:21.7280000Z
-    Msg=The system time has changed to 2026-08-31T21:32:21.726625000Z from 2026-08-31T21:32:21.726095600Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 5104).;;;;RTC time: 2026-09-01T05:32:21.726625000Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-09-01 05:32:21.728003
-    Msg=The system time has changed to 2026-08-31T21:32:21.726625Z from 2026-08-31T21:32:21.726095Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 5104). RTC time: 2026-09-01T05:32:21.726625Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
 
 [System #2336] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon
@@ -7262,30 +6358,6 @@
     Time=2026-09-01 18:30:34.436694
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #2443] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-02T05:53:30.3670000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy10) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-02 05:53:30.367766
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy10) Disabled
-
-[System #2448] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-02T05:53:44.2680000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy11) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-02 05:53:44.268611
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy11) Disabled
-
-[System #2455] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-02T05:54:00.2840000Z
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy12) is healthy. No action is needed.
-  new-en:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-02 05:54:00.284314
-    Msg=Volume 系统 (\Device\HarddiskVolumeShadowCopy12) Disabled
-
 [System #2490] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon
     Date=2026-09-02T09:15:30.0090000Z
@@ -7350,14 +6422,6 @@
     Time=2026-09-02 18:31:27.351778
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #2557] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-09-02T23:44:19.4190000Z
-    Msg=The system time has changed to 2026-09-02T15:44:19.417960600Z from 2026-09-02T15:44:22.037286900Z.;;Time Delta: -2619 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 51540).;;;;RTC time: 2026-09-02T23:44:19.417960600Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-09-02 23:44:19.419379
-    Msg=The system time has changed to 2026-09-02T15:44:19.417960Z from 2026-09-02T15:44:22.037286Z. Time Delta: -2619 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 51540). RTC time: 2026-09-02T23:44:19.417960Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
 [System #2558] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
     Date=2026-09-02T23:44:19.4210000Z
@@ -7365,22 +6429,6 @@
   new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
     Time=2026-09-02 23:44:19.421014
     Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.233:123) with reference id 0xe90112c6. Current local stratum number is 5.
-
-[System #2560] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-09-02T23:44:19.4230000Z
-    Msg=The system time has changed to 2026-09-02T15:44:19.421438500Z from 2026-09-02T15:44:19.421364800Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 51540).;;;;RTC time: 2026-09-02T23:44:19.421438500Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-09-02 23:44:19.423274
-    Msg=The system time has changed to 2026-09-02T15:44:19.421438Z from 2026-09-02T15:44:19.421364Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 51540). RTC time: 2026-09-02T23:44:19.421438Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
-
-[System #2562] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Date=2026-09-02T23:44:19.4250000Z
-    Msg=The system time has changed to 2026-09-02T15:44:19.423620700Z from 2026-09-02T15:44:19.422799000Z.;;Time Delta: 0 ms;;;;Change Reason: An application or system component changed the time.;;Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 51540).;;;;RTC time: 2026-09-02T23:44:19.423620700Z;;Current time zone bias: -480;;RTC time is in UTC: false;;System time was based on RTC time: false
-  new-en:   EventID=1 Provider=Microsoft-Windows-Kernel-General
-    Time=2026-09-02 23:44:19.425038
-    Msg=The system time has changed to 2026-09-02T15:44:19.423620Z from 2026-09-02T15:44:19.422799Z. Time Delta: 0 ms Change Reason: 1. Process: '\Device\HarddiskVolume4\Windows\System32\svchost.exe' (PID 51540). RTC time: 2026-09-02T23:44:19.423620Z Current time zone bias: -480 RTC time is in UTC: false System time was based on RTC time: false
 
 [System #2580] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon

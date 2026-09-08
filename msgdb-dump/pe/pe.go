@@ -19,11 +19,11 @@ import (
 
 // CombinedPEData is the result of extracting all data from a PE file in one pass.
 type CombinedPEData struct {
-	Messages   map[uint32]string // event_id → message template (with %N placeholders)
-	Version    string            // PE version string like "10.0.22621.1"
-	CrimBlobs  [][]byte          // raw WEVT_TEMPLATE CRIM blob bytes
-	RTStrings  map[uint32]string // RT_STRING resources (string ID → string value)
-	D2Strings  map[uint32]string // RT_MESSAGETABLE entries with ID 0xD200xxxx (index → display string)
+	Messages  map[uint32]string // event_id → message template (with %N placeholders)
+	Version   string            // PE version string like "10.0.22621.1"
+	CrimBlobs [][]byte          // raw WEVT_TEMPLATE CRIM blob bytes
+	RTStrings map[uint32]string // RT_STRING resources (string ID → string value)
+	D2Strings map[uint32]string // RT_MESSAGETABLE entries with ID 0xD200xxxx (index → display string)
 }
 
 // resolveRVA converts an RVA to a file offset using PE section headers from
@@ -96,21 +96,25 @@ func ExtractAllFromPE(dllPath string) (*CombinedPEData, error) {
 	}
 
 	// Extract RT_MESSAGETABLE (type ID = 11)
-	// Message table entries with IDs 0xD2000001..0xD2000142 are the 0xD2
-	// string table referenced by CRIM VMAP entry string offsets (high 16 bits
-	// 0xD200 + low 16-bit index). They must NOT be treated as event messages.
+	// Message table entries with IDs in the 0xDn000000 families are CRIM
+	// string tables referenced by VMAP entry string offsets (ref = 0xDn00xxxx,
+	// low bits = index). Observed families: 0xD2 (Kernel-Power et al.), 0xD1
+	// (Ntfs VolumeCorruptionActionState), 0xD0 (Kernel-Processor-Power),
+	// 0xDC (System-Events EnableDisableReasonMap). They must NOT be treated
+	// as event messages. Keyed by the full message ID so same-index entries
+	// across families never collide.
 	msgEntries, err := GetResourceByTypeID(peData, rsrcOffset, rsrcSize, sections, 11)
 	if err == nil {
 		for _, dataEntries := range msgEntries {
 			for _, de := range dataEntries {
 				msgs := ParseMessageTable(de.Data)
 				for eid, msg := range msgs {
-					// 0xD2-encoded string table entries: high 16 bits == 0xD200
-					if eid>>16 == 0xD200 {
+					// 0xDn-encoded string table entries: high nibble 0xD
+					if h := eid >> 24; h&0xF0 == 0xD0 {
 						if result.D2Strings == nil {
 							result.D2Strings = make(map[uint32]string)
 						}
-						result.D2Strings[eid&0xFFFF] = strings.TrimRight(msg, "\r\n\x00 ")
+						result.D2Strings[eid] = strings.TrimRight(msg, "\r\n\x00 ")
 						continue
 					}
 					// Last write wins on duplicates
