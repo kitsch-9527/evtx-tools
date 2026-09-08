@@ -24,7 +24,9 @@
 
 对每个未完成阶段 X，执行：
 
-1. **派发**：用 Agent 工具（subagent_type: general-purpose）派发子代理，
+1. **派发**：用 Agent 工具派发子代理（subagent_type: general-purpose，
+   **model 指定为 glm-5.3-flash**——若工具无 model 参数则在子代理提示词首行
+   写明"模型：glm-5.3-flash"并保持继承），
    提示词 = 执行计划 §X 小节全文 + §5 模板固定头部，明确：
    - 必读文件（§3 表格"必读"列）与禁读清单（handoff 全文、report.diff 全文、
      DB 文件、docs/ 其他文件）；
