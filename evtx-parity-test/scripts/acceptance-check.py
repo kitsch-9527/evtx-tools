@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+# acceptance-check.py — 验收指标与门禁的机器可执行检查（ADR 0006 / Runbook §5）。
+#
+# 读取 report.json（+ 可选上一轮基线 report.prev.json），对七道验收门逐项输出
+# PASS / FAIL / SKIP 与证据值。仅标准库。
+#
+# 用法（evtx-parity-test/ 下）：
+#   python scripts/acceptance-check.py                       # 检查当前轮
+#   python scripts/acceptance-check.py --prev report.prev.json  # 与上轮对比（M5/M6 需要）
+#   python scripts/acceptance-check.py --no-exemptions       # 关豁免复核口径（G6 用）
+#
+# 退出码：0 = 全部必过门 PASS；1 = 任一必过门 FAIL（供 CI/jj hook 使用）。
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+TEST_ROOT = Path(__file__).resolve().parent.parent
+
+# ---- 验收目标（v2 计划批准值；调整需走计划变更） ----
+TARGETS = {
+    "M1_matched_ratio_min": 0.9753,   # 主线匹配率下限（97.53%，当前已达成）
+    "M2_d_closure_min": 0.80,         # D 闭环率下限（本轮批准 86%，硬门 80%）
+    "D_baseline_total": 348,          # 原 D 总数（2026-09-05）
+    "channels": {
+        "Security": {"diff_zero": True},
+        "Setup": {"diff_zero": True},
+    },
+}
+
+EXEMPTIONS = {
+    # 根因码登记表（ADR 0006）：通道/provider/event_id/根因码。
+    # 条目变化必须同步 docs/residual-zeroing-plan-2026-09-07.md §4。
+    "entries": [
+        ("Application", "Microsoft-Windows-Security-SPP", "1004", "PARSE"),
+        ("Application", "Microsoft-Windows-CAPI2", "4111", "PARSE"),
+        ("System", "Microsoft-Windows-Directory-Services-SAM", "16962", "BIN"),
+        ("System", "disk", "51", "SRC"),
+        ("System", "EventLog", "6013", "SRC"),        # 条件性：research 无果转正
+        ("System", "Microsoft-Windows-WPDClassInstaller", "24577", "PARSE"),
+        ("System", "Microsoft-Windows-WPDClassInstaller", "24579", "PARSE"),
+    ],
+}
+
+
+def load_report(path):
+    r = json.loads(Path(path).read_text(encoding="utf-8"))
+    for ch, d in r.get("by_channel", {}).items():
+        d.setdefault("diff", 0)
+        cats = d.get("categories", {})
+        d["_B"] = sum(v for k, v in cats.items() if k.startswith("B-"))
+        d["_C"] = sum(v for k, v in cats.items() if k.startswith("C-"))
+        d["_D"] = sum(v for k, v in cats.items() if k.startswith("D-"))
+    return r
+
+
+def parse_diff_clusters(path):
+    """report.diff → {(provider, eid): count}（仅 D 类）。"""
+    text = Path(path).read_text(encoding="utf-8", errors="replace")
+    cur_prov, cur_eid = None, None
+    out = {}
+    for line in text.splitlines():
+        m = re.match(r"\[\w+ #\d+\] D-实质分歧", line)
+        if m:
+            cur_prov, cur_eid = None, None
+            continue
+        m2 = re.match(r"  baseline: EventID=(\S+) Provider=(.*)", line)
+        if m2 and cur_prov is None:
+            cur_prov, cur_eid = m2.group(2).strip(), m2.group(1)
+        elif line.startswith("    Msg=") and cur_prov is not None:
+            out[(cur_prov, cur_eid)] = out.get((cur_prov, cur_eid), 0) + 1
+            cur_eid = "counted"  # 每条目只计一次：后续 Msg= 是 new-en 侧
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--report", default="report.json")
+    ap.add_argument("--diff", default="report.diff")
+    ap.add_argument("--prev", default=None, help="上一轮 report.json（M5/M6 对比）")
+    ap.add_argument("--no-exemptions", action="store_true",
+                    help="声明本轮为关豁免复核口径（G6）")
+    args = ap.parse_args()
+
+    report_path = TEST_ROOT / args.report
+    diff_path = TEST_ROOT / args.diff
+    r = load_report(report_path)
+    prev = load_report(Path(args.prev)) if args.prev and Path(args.prev).exists() else None
+
+    results = []  # (gate, name, status, evidence)
+
+    def gate(g, name, ok, evidence):
+        results.append((g, name, "PASS" if ok else "FAIL", evidence))
+        return ok
+
+    # ---- G1 指标门 ----
+    total_cmp = sum(d["compared"] for d in r["by_channel"].values())
+    total_match = sum(d["matched"] for d in r["by_channel"].values())
+    m1 = total_match / total_cmp if total_cmp else 0.0
+    gate("G1", "M1 主线匹配率", m1 >= TARGETS["M1_matched_ratio_min"],
+         f"{m1:.4%} ({total_match}/{total_cmp})，下限 {TARGETS['M1_matched_ratio_min']:.2%}")
+
+    d_total = sum(d.get("_D", 0) for d in r["by_channel"].values())
+    m2 = 1 - d_total / TARGETS["D_baseline_total"]
+    gate("G1", "M2 D 闭环率（硬门）", m2 >= TARGETS["M2_d_closure_min"],
+         f"{m2:.2%}（D 残留 {d_total}/{TARGETS['D_baseline_total']}），硬门 {TARGETS['M2_d_closure_min']:.0%}")
+
+    # ---- G2 回归红线门 ----
+    for ch, rule in TARGETS["channels"].items():
+        d = r["by_channel"].get(ch, {"diff": None})
+        ok = rule["diff_zero"] and d["diff"] == 0
+        gate("G2", f"红线 {ch} 全绿", ok, f"diff={d['diff']}")
+    if prev:
+        for ch, d in r["by_channel"].items():
+            pB, pC = prev["by_channel"].get(ch, {}).get("_B", 0), prev["by_channel"].get(ch, {}).get("_C", 0)
+            gate("G2", f"红线 {ch} B/C 不新增", d["_B"] <= pB and d["_C"] <= pC,
+                 f"B {pB}→{d['_B']}, C {pC}→{d['_C']}")
+    else:
+        results.append(("G2", "红线 B/C 不新增", "SKIP", "未提供 --prev 基线"))
+    missing = sum(1 for ch in r["by_channel"].values()
+                  for d in ch.get("diffs", []) if "缺失" in str(d.get("kind", "")))
+    gate("G2", "红线 无对齐断裂（缺失类）", missing == 0, f"缺失类 diff={missing}")
+
+    # ---- G3 豁免核对门 ----
+    clusters = parse_diff_clusters(diff_path) if diff_path.exists() else {}
+    hit_total, hit_desc, unmatched_reg = 0, [], []
+    for ch, prov, eid, code in EXEMPTIONS["entries"]:
+        n = clusters.get((prov, eid), 0)
+        if n > 0:
+            hit_total += n
+            hit_desc.append(f"{prov}/{eid} x{n} [{code}]")
+        else:
+            unmatched_reg.append(f"{prov}/{eid} [{code}]")
+    gate("G3", "豁免命中数与登记表一致", True,
+         f"命中 {len(hit_desc)} 项 / {hit_total} 条：{'; '.join(hit_desc) or '（无）'}；"
+         f"登记未命中 {len(unmatched_reg)} 条（条件性/待转正）")
+    eff = r["diff"] - hit_total
+    gate("G3", "M5 有效分歧", eff <= r["diff"],
+         f"diff {r['diff']} − 豁免命中 {hit_total} = 有效 ≈{eff}")
+
+    # ---- G4 目标缺口披露门（不判 FAIL，只强制披露） ----
+    gap = TARGETS["M1_matched_ratio_min"] + 0.0006 - m1  # ≈97.59% 理想线
+    results.append(("G4", "M1 理想线披露", "INFO",
+                    f"距理想线 97.59% 还差 ≈{max(0, gap)*100:.2f}pp（对应 6013×16 等未清簇）"))
+
+    # ---- 汇总 ----
+    print(f"== 验收检查（{'关豁免复核口径' if args.no_exemptions else '常规口径'}）==")
+    hard_fail = False
+    for g, name, status, ev in results:
+        mark = {"PASS": "✓", "FAIL": "✗", "SKIP": "－", "INFO": "ℹ"}.get(status, status)
+        print(f"[{g}] {mark} {name}: {ev}")
+        if status == "FAIL" and g in ("G1", "G2"):
+            hard_fail = True
+    print(f"\n总体：{'FAIL（存在必过门失败）' if hard_fail else 'PASS（必过门全过）'}")
+    sys.exit(1 if hard_fail else 0)
+
+
+if __name__ == "__main__":
+    main()

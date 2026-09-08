@@ -2,6 +2,7 @@
 
 > 版本：2026-09-08。所有命令、耗时、验证点均为本会话实证值。
 > 配套：`STATUS.md`（现状总览）、`docs/residual-zeroing-plan-2026-09-07.md`（批次计划）、
+> `docs/six-hour-execution-plan.md`（六小时子代理分阶段执行计划）、`docs/acceptance-criteria.md`（验收规格）、
 > `skills/parity-test-skill.md`（勿回退事实 #1-#11）、`docs/adr/0001-0006`。
 
 ---
