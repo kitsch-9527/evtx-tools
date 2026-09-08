@@ -12,6 +12,7 @@ func TestResolveVMAPStringFamilies(t *testing.T) {
 		0xD2000042: "Power Action Sleep",
 		0xD1000001: "is healthy.  No action is needed.",
 		0xD0000007: "ACPI Idle (C) States",
+		0xDC000001: "disabled",
 	}
 	cases := []struct {
 		ref  uint32
@@ -20,6 +21,7 @@ func TestResolveVMAPStringFamilies(t *testing.T) {
 		{0xD2000042, "Power Action Sleep"},
 		{0xD1000001, "is healthy.  No action is needed."},
 		{0xD0000007, "ACPI Idle (C) States"},
+		{0xDC000001, "disabled"},
 		{0xD00000FF, ""},  // family ok, index missing
 		{0x0001_0203, ""}, // not a 0xDn ref
 		{0xC0000001, ""},  // not a 0xDn ref

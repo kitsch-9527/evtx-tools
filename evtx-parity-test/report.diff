@@ -150,14 +150,6 @@
     Time=2026-08-21 05:09:28.484614
     Msg=Received Post Shell Event 1 ;;
 
-[Application #360] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1001 Provider=Windows Error Reporting
-    Date=2026-08-21T05:09:43.2130000Z
-    Msg=Fault bucket 2221876170411248103, type 4;;Event Name: APPCRASH;;Response: 不可用;;Cab Id: 0;;;;Problem signature:;;P1: RstMwService.exe;;P2: 17.8.0.1065;;P3: 5dee8560;;P4: RstMwService.exe;;P5: 17.8.0.1065;;P6: 5dee8560;;P7: c0000005;;P8: 0000000000066aa5;;P9: ;;P10: ;;;;Attached files:;;\\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.7a52f61d-00e5-4367-84b4-dfd0ae6f08a3.tmp.WERInternalMetadata.xml;;;;These files may be available here:;;\\?\C:\ProgramData\Microsoft\Windows\WER\ReportArchive\AppCr
-  new-en:   EventID=1001 Provider=Windows Error Reporting
-    Time=2026-08-21 05:09:43.213902
-    Msg=Fault bucket 2221876170411248103, type 4 Event Name: APPCRASH Response: 不可用 Cab Id: 0 Problem signature: P1: RstMwService.exe P2: 17.8.0.1065 P3: 5dee8560 P4: RstMwService.exe P5: 17.8.0.1065 P6: 5dee8560 P7: c0000005 P8: 0000000000066aa5 P9: P10: Attached files: \\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.7a52f61d-00e5-4367-84b4-dfd0ae6f08a3.tmp.WERInternalMetadata.xml These files may be available here: \\?\C:\ProgramData\Microsoft\Windows\WER\ReportArchive\AppCrash_RstMwService.exe_75a3a
-
 [Application #463] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=igfxCUIService2.0.0.0
     Date=2026-08-21T09:31:08.4810000Z
@@ -294,14 +286,6 @@
     Time=2026-08-22 12:54:55.853195
     Msg=Service stopped;;
 
-[Application #924] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1001 Provider=Windows Error Reporting
-    Date=2026-08-23T00:48:00.2910000Z
-    Msg=Fault bucket , type 0;;Event Name: WindowsWcpOtherFailure3;;Response: 不可用;;Cab Id: 0;;;;Problem signature:;;P1: 10.0.26100.9202:1;;P2: wcp\componentstore\storelayout.cpp;;P3: ComponentStore::CRawStoreLayout::OpenComponentFile;;P4: 2265;;P5: 800f0983;;P6: 0x11ce1eb1;;P7: ;;P8: ;;P9: ;;P10: ;;;;Attached files:;;\\?\C:\Windows\Logs\CBS\CBS.log;;\\?\C:\Windows\Logs\CBS\CbsPersist_20260822153811.log;;\\?\C:\Windows\Logs\CBS\CbsPersist_20260822144204.log;;\\?\C:\Windows\Logs\CBS\container.etl;;\\?\C:\
-  new-en:   EventID=1001 Provider=Windows Error Reporting
-    Time=2026-08-23 00:48:00.291425
-    Msg=Fault bucket , type 0 Event Name: WindowsWcpOtherFailure3 Response: 不可用 Cab Id: 0 Problem signature: P1: 10.0.26100.9202:1 P2: wcp\componentstore\storelayout.cpp P3: ComponentStore::CRawStoreLayout::OpenComponentFile P4: 2265 P5: 800f0983 P6: 0x11ce1eb1 P7: P8: P9: P10: Attached files: \\?\C:\Windows\Logs\CBS\CBS.log \\?\C:\Windows\Logs\CBS\CbsPersist_20260822153811.log \\?\C:\Windows\Logs\CBS\CbsPersist_20260822144204.log \\?\C:\Windows\Logs\CBS\container.etl \\?\C:\WINDOWS\servicing\Sessions\S
-
 [Application #1021] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=asus
     Date=2026-08-23T12:54:56.2980000Z
@@ -309,14 +293,6 @@
   new-en:   EventID=0 Provider=asus
     Time=2026-08-23 12:54:56.298752
     Msg=Service stopped;;
-
-[Application #1080] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1001 Provider=Windows Error Reporting
-    Date=2026-08-23T18:47:29.1130000Z
-    Msg=Fault bucket , type 0;;Event Name: WindowsWcpOtherFailure3;;Response: 不可用;;Cab Id: 0;;;;Problem signature:;;P1: 10.0.26100.9223:1;;P2: wcp\componentstore\storelayout.cpp;;P3: ComponentStore::CRawStoreLayout::OpenComponentFile;;P4: 2265;;P5: 800f0983;;P6: 0x11ce1eb1;;P7: ;;P8: ;;P9: ;;P10: ;;;;Attached files:;;\\?\C:\Windows\Logs\CBS\CBS.log;;\\?\C:\Windows\Logs\CBS\CbsPersist_20260822153811.log;;\\?\C:\Windows\Logs\CBS\CbsPersist_20260822144204.log;;\\?\C:\Windows\Logs\CBS\container.etl;;\\?\C:\
-  new-en:   EventID=1001 Provider=Windows Error Reporting
-    Time=2026-08-23 18:47:29.113205
-    Msg=Fault bucket , type 0 Event Name: WindowsWcpOtherFailure3 Response: 不可用 Cab Id: 0 Problem signature: P1: 10.0.26100.9223:1 P2: wcp\componentstore\storelayout.cpp P3: ComponentStore::CRawStoreLayout::OpenComponentFile P4: 2265 P5: 800f0983 P6: 0x11ce1eb1 P7: P8: P9: P10: Attached files: \\?\C:\Windows\Logs\CBS\CBS.log \\?\C:\Windows\Logs\CBS\CbsPersist_20260822153811.log \\?\C:\Windows\Logs\CBS\CbsPersist_20260822144204.log \\?\C:\Windows\Logs\CBS\container.etl \\?\C:\WINDOWS\servicing\Sessions\S
 
 [Application #1258] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=asus
@@ -750,14 +726,6 @@
     Time=2026-08-21 05:03:37.205251
     Msg=;EA07080004001400150003002500CC000000000000000000;;
 
-[System #4] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=153 Provider=Microsoft-Windows-Kernel-Boot
-    Date=2026-08-21T05:02:10.1470000Z
-    Msg=Virtualization-based security (policies: 0) is disabled.
-  new-en:   EventID=153 Provider=Microsoft-Windows-Kernel-Boot
-    Time=2026-08-21 05:02:10.147775
-    Msg=Virtualization-based security (policies: 0) is Disabled.
-
 [System #35] B-裸参数未渲染（见明细）
   baseline: EventID=2 Provider=MEIx64
     Date=2026-08-21T05:02:13.0950000Z
@@ -821,14 +789,6 @@
   new-en:   EventID=6013 Provider=EventLog
     Time=2026-08-21 05:06:12.691588
     Msg=;;;;;;;;23;;60;;-480 中国标准时间;;;31002E003100000030000000570069006E0064006F0077007300200031003000200045006400750063006100740069006F006E000000310030002E0030002E003200360032003200300020004200750069006C0064002000320036003200320030002000200000004D0075006C0074006900700072006F0063006500730073006F007200200046007200650065000000320036003100300030002E00670065005F00720065006C0065006100730065005F0066006C0074002E003200360030003700310036002D00310037003000300000003600610038003700360063003000350000004E006F00740020
-
-[System #245] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=153 Provider=Microsoft-Windows-Kernel-Boot
-    Date=2026-08-21T05:05:49.9220000Z
-    Msg=Virtualization-based security (policies: 0) is disabled.
-  new-en:   EventID=153 Provider=Microsoft-Windows-Kernel-Boot
-    Time=2026-08-21 05:05:49.922031
-    Msg=Virtualization-based security (policies: 0) is Disabled.
 
 [System #273] B-裸参数未渲染（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
@@ -997,14 +957,6 @@
   new-en:   EventID=6013 Provider=EventLog
     Time=2026-08-21 09:31:08.465708
     Msg=;;;;;;;;23;;60;;-480 中国标准时间;;;31002E003100000030000000570069006E0064006F0077007300200031003000200045006400750063006100740069006F006E000000310030002E0030002E003200360032003200300020004200750069006C0064002000320036003200320030002000200000004D0075006C0074006900700072006F0063006500730073006F007200200046007200650065000000320036003100300030002E00670065005F00720065006C0065006100730065005F0066006C0074002E003200360030003700310036002D00310037003000300000003600610038003700360063006600380000004E006F00740020
-
-[System #486] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=153 Provider=Microsoft-Windows-Kernel-Boot
-    Date=2026-08-21T09:30:45.0290000Z
-    Msg=Virtualization-based security (policies: 0) is disabled.
-  new-en:   EventID=153 Provider=Microsoft-Windows-Kernel-Boot
-    Time=2026-08-21 09:30:45.029275
-    Msg=Virtualization-based security (policies: 0) is Disabled.
 
 [System #516] B-裸参数未渲染（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
@@ -1486,14 +1438,6 @@
     Time=2026-08-21 18:47:37.923496
     Msg=The description for Event ID 1 from source Microsoft-Windows-Configuration-Change-Monitor cannot be found. The component that raises this event is not installed on your local computer or the installation is corrupted. You can install or repair the component on the local computer. If the event originated on another computer, the display information had to be saved with the event. The following information was included with the event: S-1-5-18 netsh advfirewall firewall add rule name="ironboxd" pr
 
-[System #712] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
-    Date=2026-08-22T05:31:25.5320000Z
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->52.231.114.183:123) with reference id 3077760820. Current local stratum number is 5.
-  new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
-    Time=2026-08-22 05:31:25.532021
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->52.231.114.183:123) with reference id 0xb772e734. Current local stratum number is 5.
-
 [System #725] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6013 Provider=EventLog
     Date=2026-08-22T12:00:00.5390000Z
@@ -1501,14 +1445,6 @@
   new-en:   EventID=6013 Provider=EventLog
     Time=2026-08-22 12:00:00.539904
     Msg=;;;;;;;;95356;;60;;-480 中国标准时间;;;31002E003100000030000000570069006E0064006F0077007300200031003000200045006400750063006100740069006F006E000000310030002E0030002E003200360032003200300020004200750069006C0064002000320036003200320030002000200000004D0075006C0074006900700072006F0063006500730073006F007200200046007200650065000000320036003100300030002E00670065005F00720065006C0065006100730065005F0066006C0074002E003200360030003700310036002D00310037003000300000003600610038003700360063006600380000004E006F00740
-
-[System #775] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
-    Date=2026-08-23T10:04:12.8960000Z
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->52.231.114.183:123) with reference id 3077760820. Current local stratum number is 5.
-  new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
-    Time=2026-08-23 10:04:12.896680
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->52.231.114.183:123) with reference id 0xb772e734. Current local stratum number is 5.
 
 [System #780] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6013 Provider=EventLog
@@ -1589,14 +1525,6 @@
   new-en:   EventID=6013 Provider=EventLog
     Time=2026-08-24 12:00:00.920797
     Msg=;;;;;;;;268157;;60;;-480 中国标准时间;;;31002E003100000030000000570069006E0064006F0077007300200031003000200045006400750063006100740069006F006E000000310030002E0030002E003200360032003200300020004200750069006C0064002000320036003200320030002000200000004D0075006C0074006900700072006F0063006500730073006F007200200046007200650065000000320036003100300030002E00670065005F00720065006C0065006100730065005F0066006C0074002E003200360030003700310036002D00310037003000300000003600610038003700360063006600380000004E006F0074
-
-[System #886] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
-    Date=2026-08-24T16:24:33.9180000Z
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.131:123) with reference id 2197885638. Current local stratum number is 5.
-  new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
-    Time=2026-08-24 16:24:33.918449
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.131:123) with reference id 0x830112c6. Current local stratum number is 5.
 
 [System #895] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=24577 Provider=Microsoft-Windows-WPDClassInstaller
@@ -1766,14 +1694,6 @@
     Time=2026-08-25 09:22:44.288324
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #996] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
-    Date=2026-08-25T10:04:29.1350000Z
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.131:123) with reference id 2197885638. Current local stratum number is 5.
-  new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
-    Time=2026-08-25 10:04:29.135779
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.131:123) with reference id 0x830112c6. Current local stratum number is 5.
-
 [System #1002] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6013 Provider=EventLog
     Date=2026-08-25T12:00:00.1530000Z
@@ -1837,14 +1757,6 @@
   new-en:   EventID=0 Provider=hcmon
     Time=2026-08-26 09:25:51.489200
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
-
-[System #1090] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
-    Date=2026-08-26T10:04:12.6760000Z
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.131:123) with reference id 2197885638. Current local stratum number is 5.
-  new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
-    Time=2026-08-26 10:04:12.676838
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.131:123) with reference id 0x830112c6. Current local stratum number is 5.
 
 [System #1095] B-裸参数未渲染（见明细）
   baseline: EventID=157 Provider=disk
@@ -6278,14 +6190,6 @@
     Time=2026-08-31 18:31:07.711899
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #2322] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
-    Date=2026-09-01T05:32:21.7260000Z
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.0.187:123) with reference id 3137344198. Current local stratum number is 5.
-  new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
-    Time=2026-09-01 05:32:21.726284
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.0.187:123) with reference id 0xbb0012c6. Current local stratum number is 5.
-
 [System #2336] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon
     Date=2026-09-01T09:02:33.0580000Z
@@ -6421,14 +6325,6 @@
   new-en:   EventID=0 Provider=hcmon
     Time=2026-09-02 18:31:27.351778
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
-
-[System #2558] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=35 Provider=Microsoft-Windows-Time-Service
-    Date=2026-09-02T23:44:19.4210000Z
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.233:123) with reference id 3909161670. Current local stratum number is 5.
-  new-en:   EventID=35 Provider=Microsoft-Windows-Time-Service
-    Time=2026-09-02 23:44:19.421014
-    Msg=The time service is now synchronizing the system time with the time source time.windows.com,0x9 (ntp.m|0x9|0.0.0.0:123->198.18.1.233:123) with reference id 0xe90112c6. Current local stratum number is 5.
 
 [System #2580] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon

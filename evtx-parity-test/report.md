@@ -1,6 +1,6 @@
 # 对比报告（基线解析 vs 新解析）
 
-- 生成时间（本地）：2026-09-08 11:08:28
+- 生成时间（本地）：2026-09-08 17:11:49
 - 主比对：中文wevtutil文本基线 vs new-parsed/en（同语言，严格五字段）
 - 口径：EventID / Provider / Channel / TimeCreated（两边均为本地时间，直接比，容差2s）/ Message（空白归一）
 - 对齐：同一文件出现顺序逐条对齐（基线Event[N]顺序对应新解析sequence_number顺序）
@@ -8,16 +8,16 @@
 
 ## 结论
 
-- 未通过：主链（基线vs en）共比对 32801 条，一致 31989 条，差异 812 条
+- 未通过：主链（基线vs en）共比对 32801 条，一致 32002 条，差异 799 条
 
 ## 分通道统计（主：基线 vs en）
 
 | 通道 | 基线数 | 新解析(en) | 比对数 | 一致 | 差异 | en空消息 | 状态 |
 |---|---|---|---|---|---|---|---|
-| Application | 3925 | 3925 | 3925 | 3833 | 92 | 0 | ok |
+| Application | 3925 | 3925 | 3925 | 3836 | 89 | 0 | ok |
 | Setup | 222 | 222 | 222 | 222 | 0 | 0 | ok |
 | Security | 26031 | 26031 | 26031 | 26031 | 0 | 0 | ok |
-| System | 2623 | 2623 | 2623 | 1903 | 720 | 0 | ok |
+| System | 2623 | 2623 | 2623 | 1913 | 710 | 0 | ok |
 
 ## 中文覆盖率对照（基线 vs zh，不比Message）
 
@@ -166,11 +166,11 @@
 - 新解析en EventID=0 Provider=igfxCUIService2.0.0.0 Time=2026-08-21 05:09:28.484614
 - 新解析en Message（前300字）：Received Post Shell Event 1 ;;
 
-## 差异样例 20（Application #360：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
+## 差异样例 20（Application #463：B-裸参数未渲染（见明细））
 
-- 基线 EventID=1001 Provider=Windows Error Reporting Date=2026-08-21T05:09:43.2130000Z
-- 基线 Message（前300字）：Fault bucket 2221876170411248103, type 4;;Event Name: APPCRASH;;Response: 不可用;;Cab Id: 0;;;;Problem signature:;;P1: RstMwService.exe;;P2: 17.8.0.1065;;P3: 5dee8560;;P4: RstMwService.exe;;P5: 17.8.0.1065;;P6: 5dee8560;;P7: c0000005;;P8: 0000000000066aa5;;P9: ;;P10: ;;;;Attached files:;;\\?\C:\Program
-- 新解析en EventID=1001 Provider=Windows Error Reporting Time=2026-08-21 05:09:43.213902
-- 新解析en Message（前300字）：Fault bucket 2221876170411248103, type 4 Event Name: APPCRASH Response: 不可用 Cab Id: 0 Problem signature: P1: RstMwService.exe P2: 17.8.0.1065 P3: 5dee8560 P4: RstMwService.exe P5: 17.8.0.1065 P6: 5dee8560 P7: c0000005 P8: 0000000000066aa5 P9: P10: Attached files: \\?\C:\ProgramData\Microsoft\Windows
+- 基线 EventID=0 Provider=igfxCUIService2.0.0.0 Date=2026-08-21T09:31:08.4810000Z
+- 基线 Message（前300字）：操作成功完成。
+- 新解析en EventID=0 Provider=igfxCUIService2.0.0.0 Time=2026-08-21 09:31:08.481671
+- 新解析en Message（前300字）：Service started/resumed;;
 
-还有 792 条差异未展示，见 report.diff。
+还有 779 条差异未展示，见 report.diff。

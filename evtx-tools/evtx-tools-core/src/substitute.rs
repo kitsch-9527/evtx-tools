@@ -27,6 +27,15 @@ use std::collections::{HashMap, HashSet};
 ///
 /// This should be called after `substitute()` and `expand_param_refs()`.
 pub fn format_for_display(message: &str) -> String {
+    format_for_display_protected(message, &std::collections::HashSet::new())
+}
+
+/// `format_for_display` with a protection list: exact number strings that
+/// Step 3's large-decimal→hex conversion must leave alone. R10 typed (8,8)
+/// params render as decimal by contract (wevtapi UNSIGNEDINT), but values in
+/// the 0x80000000+ range would otherwise be re-hexified here (Time-Service 35
+/// TimeSourceRefId "3077760820" → "0xb772e734").
+pub fn format_for_display_protected(message: &str, protect: &std::collections::HashSet<String>) -> String {
     let mut result = message.to_string();
 
     // Step 1: Strip \r (Windows Event Viewer strips CR from CRLF)
@@ -147,7 +156,7 @@ pub fn format_for_display(message: &str) -> String {
             let is_guid_context = start_byte > 0 && ci < chars.len()
                 && (result.as_bytes()[start_byte - 1].is_ascii_hexdigit() || result.as_bytes()[start_byte - 1] == b'-')
                 && chars[ci].1.is_ascii_hexdigit();
-            if !is_sid_context && !is_sid_direct && !is_guid_context {
+            if !is_sid_context && !is_sid_direct && !is_guid_context && !protect.contains(num_str) {
                 if let Ok(val) = num_str.parse::<u64>() {
                     // Only convert 32-bit HRESULT/status codes (≥0x80000000 to
                     // ≤0xFFFFFFFF). Larger values are file sizes, counters, URL
@@ -329,11 +338,22 @@ pub fn substitute(template: &str, params: &[&str]) -> String {
 /// This function performs the two passes using the same `params` slice,
 /// without calling any Windows API — it is a pure Rust simulation.
 pub fn substitute_format_message(template: &str, params: &[&str]) -> String {
+    substitute_format_message_protected(template, params, &std::collections::HashSet::new())
+}
+
+/// `substitute_format_message` with a protection list: exact number strings
+/// the display layer's decimal→hex conversion must leave alone (R10 typed-
+/// owned params render decimal by contract — Time-Service 35 TimeSourceRefId).
+pub fn substitute_format_message_protected(
+    template: &str,
+    params: &[&str],
+    protect: &std::collections::HashSet<String>,
+) -> String {
     let pass1 = substitute(template, params);
     // Normalize GUIDs and hex BEFORE the second pass, so that URL-encoded
     // GUIDs (e.g. %7B430FD4D0-...%7D) are recognized and braced before
     // being split apart by the second pass's %N substitutions.
-    let normalized = format_for_display(&pass1);
+    let normalized = format_for_display_protected(&pass1, protect);
     substitute(&normalized, params)
 }
 
@@ -1684,4 +1704,18 @@ mod tests {
         assert_eq!(result[0], "Interactive");  // VMAP: exact match
         assert_eq!(result[1], "Read, Write");  // BMAP: bit decomposition
     }
+}
+
+#[test]
+fn format_for_display_protected_skips_typed_decimal() {
+    use std::collections::HashSet;
+    let msg = "with reference id 3077760820. Current stratum 5.";
+    // Unprotected: 3077760820 (0xB772E734, in HRESULT range) → hex.
+    let converted = format_for_display(msg);
+    assert!(converted.contains("0xb772e734"), "got: {converted}");
+    // Protected (R10 (8,8) typed-owned): stays decimal.
+    let mut protect = HashSet::new();
+    protect.insert("3077760820".to_string());
+    let kept = format_for_display_protected(msg, &protect);
+    assert!(kept.contains("3077760820"), "got: {kept}");
 }

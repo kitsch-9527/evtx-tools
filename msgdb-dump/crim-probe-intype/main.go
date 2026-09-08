@@ -34,15 +34,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Printf("[probe] D-strings in file: %d\n", len(combined.D2Strings))
+
+	// -mode=strings: dump all D-string-table entries (works on any PE, incl. MUI)
+	if os.Getenv("DUMP_STRINGS") != "" {
+		ids := make([]int, 0, len(combined.D2Strings))
+		for id := range combined.D2Strings {
+			ids = append(ids, int(id))
+		}
+		sort.Ints(ids)
+		for _, id := range ids {
+			fmt.Printf("%#010x = %q\n", id, combined.D2Strings[uint32(id)])
+		}
+		return
+	}
+
 	pd := findPD(combined.CrimBlobs, guid)
+	if pd2 := findPDWithStrings(combined.CrimBlobs, guid, combined.D2Strings); pd2 != nil {
+		pd = pd2
+		fmt.Printf("[probe] re-parsed with D-strings: VMAP maps=%d BMAP maps=%d\n", len(pd.ValueMaps), len(pd.BitMaps))
+	}
 	if pd == nil {
 		fmt.Fprintln(os.Stderr, "provider not found in CRIM blobs:", guid)
 		os.Exit(1)
-	}
-	fmt.Printf("[probe] D2 strings in main DLL: %d\n", len(combined.D2Strings))
-	if pd2 := findPDWithStrings(combined.CrimBlobs, guid, combined.D2Strings); pd2 != nil {
-		pd = pd2
-		fmt.Printf("[probe] re-parsed with D2 table: VMAP maps=%d BMAP maps=%d\n", len(pd.ValueMaps), len(pd.BitMaps))
 	}
 
 	// -mode=alltpl: dump every template containing param "TimeDeltaInMs"

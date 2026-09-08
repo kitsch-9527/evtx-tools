@@ -368,9 +368,7 @@ func resolveVMAPString(encodedOffset uint32, stringTable map[uint32]string) stri
 	}
 	// Only 0xDn string-table families are string references; anything else is
 	// a plain CRIM string offset handled by the caller.
-	switch high := encodedOffset >> 24; high {
-	case 0xD0, 0xD1, 0xD2:
-	default:
+	if encodedOffset>>24&0xF0 != 0xD0 {
 		return ""
 	}
 	// Look up by the full encoded ID (table family + index).
@@ -430,15 +428,12 @@ func ParseMAPSVMAPBlock(data []byte, pos int, stringTable map[uint32]string) (st
 		val := binary.LittleEndian.Uint32(data[entryOff : entryOff+4])
 		ref := binary.LittleEndian.Uint32(data[entryOff+4 : entryOff+8])
 		name := ""
-		// 0xDn-encoded reference: high byte 0xD0/0xD1/0xD2 → string table ID
-		switch h := ref >> 24; h {
-		case 0xD0, 0xD1, 0xD2:
+		// 0xDn-encoded reference: high nibble 0xD → string table ID
+		if ref>>24&0xF0 == 0xD0 {
 			name = resolveVMAPString(ref, stringTable)
-		default:
-			if ref > 0 {
-				// Fallback: treat as a direct CRIM string offset
-				name = readCRIMString(data, int(ref))
-			}
+		} else if ref > 0 {
+			// Fallback: treat as a direct CRIM string offset
+			name = readCRIMString(data, int(ref))
 		}
 		if name != "" {
 			entries[val] = name

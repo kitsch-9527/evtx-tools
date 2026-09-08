@@ -576,6 +576,7 @@ fn process_parallel_batch(
         };
 
         // Step 2: Substitute %1–%99 positional parameters.
+        let mut owned_values: std::collections::HashSet<String> = std::collections::HashSet::new();
         if template.contains('%') {
             let params = extract_subst_params(
                 &event.event_data,
@@ -593,6 +594,15 @@ fn process_parallel_batch(
                 &db,
                 prov,
             );
+            // Owned params' final values — captured NOW (indices still valid);
+            // protects them from the display layer's decimal→hex conversion.
+            owned_values = typed_fields
+                .iter()
+                .filter_map(|idx| {
+                    let i: usize = idx.parse().ok()?;
+                    i.checked_sub(1).and_then(|k| params.get(k)).cloned()
+                })
+                .collect();
             // typed_fields are param INDICES ("5") — convert to FIELD NAMES via
             // the parameters map; the downstream layers key by field name.
             // (2026-09-08 fix: unioning indices with names silently no-oped.)
@@ -623,7 +633,9 @@ fn process_parallel_batch(
             // before substitute_format_message consumes %% → %)
             let params = expand_params_par_refs(params, db, prov);
             let param_refs: Vec<&str> = params.iter().map(|s| s.as_str()).collect();
-            event.message = Some(substitute_format_message(&template, &param_refs));
+            event.message = Some(evtx_tools_core::substitute::substitute_format_message_protected(
+                &template, &param_refs, &owned_values,
+            ));
         } else {
             event.message = Some(template);
         }
@@ -665,7 +677,9 @@ fn process_parallel_batch(
 
         // ---- Final formatting: match Windows Event Viewer conventions ----
         if let Some(msg) = event.message.take() {
-            event.message = Some(evtx_tools_core::substitute::format_for_display(&msg));
+            event.message = Some(evtx_tools_core::substitute::format_for_display_protected(
+                &msg, &owned_values,
+            ));
         }
     });
 }
