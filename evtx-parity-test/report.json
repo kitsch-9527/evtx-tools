@@ -1,8 +1,379 @@
 {
-  "generated_local": "2026-09-09 08:14:28",
+  "generated_local": "2026-09-09 08:25:40",
   "compared": 32801,
   "matched": 32002,
-  "diff": 799,
+  "diff": 773,
+  "exemptions_enabled": true,
+  "exempted": 26,
+  "exempted_detail": [
+    {
+      "channel": "Application",
+      "index": 224,
+      "provider": "Microsoft-Windows-Security-SPP",
+      "event_id": "1004",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "Application",
+      "index": 2636,
+      "provider": "Microsoft-Windows-CAPI2",
+      "event_id": "4111",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "System",
+      "index": 51,
+      "provider": "Microsoft-Windows-Directory-Services-SAM",
+      "event_id": "16962",
+      "root_cause": "BIN"
+    },
+    {
+      "channel": "System",
+      "index": 238,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 303,
+      "provider": "Microsoft-Windows-Directory-Services-SAM",
+      "event_id": "16962",
+      "root_cause": "BIN"
+    },
+    {
+      "channel": "System",
+      "index": 485,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 547,
+      "provider": "Microsoft-Windows-Directory-Services-SAM",
+      "event_id": "16962",
+      "root_cause": "BIN"
+    },
+    {
+      "channel": "System",
+      "index": 630,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 638,
+      "provider": "Microsoft-Windows-WPDClassInstaller",
+      "event_id": "24577",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "System",
+      "index": 639,
+      "provider": "Microsoft-Windows-WPDClassInstaller",
+      "event_id": "24579",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "System",
+      "index": 725,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 780,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 855,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 895,
+      "provider": "Microsoft-Windows-WPDClassInstaller",
+      "event_id": "24577",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "System",
+      "index": 896,
+      "provider": "Microsoft-Windows-WPDClassInstaller",
+      "event_id": "24579",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "System",
+      "index": 907,
+      "provider": "disk",
+      "event_id": "51",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 1002,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 1130,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 1355,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 1467,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2182,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2223,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2281,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2358,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2515,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2617,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    }
+  ],
+  "whitelist_diff_hits": 26,
+  "whitelist_diff_detail": [
+    {
+      "channel": "Application",
+      "index": 224,
+      "provider": "Microsoft-Windows-Security-SPP",
+      "event_id": "1004",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "Application",
+      "index": 2636,
+      "provider": "Microsoft-Windows-CAPI2",
+      "event_id": "4111",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "System",
+      "index": 51,
+      "provider": "Microsoft-Windows-Directory-Services-SAM",
+      "event_id": "16962",
+      "root_cause": "BIN"
+    },
+    {
+      "channel": "System",
+      "index": 238,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 303,
+      "provider": "Microsoft-Windows-Directory-Services-SAM",
+      "event_id": "16962",
+      "root_cause": "BIN"
+    },
+    {
+      "channel": "System",
+      "index": 485,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 547,
+      "provider": "Microsoft-Windows-Directory-Services-SAM",
+      "event_id": "16962",
+      "root_cause": "BIN"
+    },
+    {
+      "channel": "System",
+      "index": 630,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 638,
+      "provider": "Microsoft-Windows-WPDClassInstaller",
+      "event_id": "24577",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "System",
+      "index": 639,
+      "provider": "Microsoft-Windows-WPDClassInstaller",
+      "event_id": "24579",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "System",
+      "index": 725,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 780,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 855,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 895,
+      "provider": "Microsoft-Windows-WPDClassInstaller",
+      "event_id": "24577",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "System",
+      "index": 896,
+      "provider": "Microsoft-Windows-WPDClassInstaller",
+      "event_id": "24579",
+      "root_cause": "PARSE"
+    },
+    {
+      "channel": "System",
+      "index": 907,
+      "provider": "disk",
+      "event_id": "51",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 1002,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 1130,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 1355,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 1467,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2182,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2223,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2281,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2358,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2515,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    },
+    {
+      "channel": "System",
+      "index": 2617,
+      "provider": "EventLog",
+      "event_id": "6013",
+      "root_cause": "SRC"
+    }
+  ],
   "verdict": "DIFF",
   "by_channel": {
     "Application": {
@@ -11,14 +382,15 @@
       "new_zh": 3925,
       "compared": 3925,
       "matched": 3836,
-      "diff": 89,
+      "diff": 87,
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
       "categories": {
         "B-裸参数未渲染（见明细）": 74,
         "C-无模板fallback（见明细）": 11,
-        "D-实质分歧（含渲染格式差：hex大小写/GUI": 4
+        "D-实质分歧（含渲染格式差：hex大小写/GUI": 2
       },
+      "exempted": 2,
       "status": "ok"
     },
     "Setup": {
@@ -31,6 +403,7 @@
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
       "categories": {},
+      "exempted": 0,
       "status": "ok"
     },
     "Security": {
@@ -43,6 +416,7 @@
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
       "categories": {},
+      "exempted": 0,
       "status": "ok"
     },
     "System": {
@@ -51,14 +425,15 @@
       "new_zh": 2623,
       "compared": 2623,
       "matched": 1913,
-      "diff": 710,
+      "diff": 686,
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
       "categories": {
         "B-裸参数未渲染（见明细）": 644,
-        "D-实质分歧（含渲染格式差：hex大小写/GUI": 26,
-        "C-无模板fallback（见明细）": 40
+        "C-无模板fallback（见明细）": 40,
+        "D-实质分歧（含渲染格式差：hex大小写/GUI": 2
       },
+      "exempted": 24,
       "status": "ok"
     }
   }

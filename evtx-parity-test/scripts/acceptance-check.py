@@ -13,7 +13,6 @@
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -56,36 +55,25 @@ def load_report(path):
     return r
 
 
-def parse_diff_clusters(path):
-    """report.diff → {(provider, eid): count}（仅 D 类）。"""
-    text = Path(path).read_text(encoding="utf-8", errors="replace")
-    cur_prov, cur_eid = None, None
+def exemption_clusters(entries, provider_key="provider"):
+    """report.json 豁免/白名单明细 → {(provider, eid): count}（阶段B起数据源为 report.json，
+    豁免命中判定已前移至 06-compare.py 的 EXEMPTIONS 表；本函数只做分簇汇总）。"""
     out = {}
-    for line in text.splitlines():
-        m = re.match(r"\[\w+ #\d+\] D-实质分歧", line)
-        if m:
-            cur_prov, cur_eid = None, None
-            continue
-        m2 = re.match(r"  baseline: EventID=(\S+) Provider=(.*)", line)
-        if m2 and cur_prov is None:
-            cur_prov, cur_eid = m2.group(2).strip(), m2.group(1)
-        elif line.startswith("    Msg=") and cur_prov is not None:
-            out[(cur_prov, cur_eid)] = out.get((cur_prov, cur_eid), 0) + 1
-            cur_eid = "counted"  # 每条目只计一次：后续 Msg= 是 new-en 侧
+    for e in entries:
+        k = (e.get(provider_key, ""), str(e.get("event_id", "")))
+        out[k] = out.get(k, 0) + 1
     return out
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--report", default="report.json")
-    ap.add_argument("--diff", default="report.diff")
     ap.add_argument("--prev", default=None, help="上一轮 report.json（M5/M6 对比）")
     ap.add_argument("--no-exemptions", action="store_true",
-                    help="声明本轮为关豁免复核口径（G6）")
+                    help="声明本轮为关豁免复核口径（G6）：report.json 须由 06-compare.py --no-exemptions 生成")
     args = ap.parse_args()
 
     report_path = TEST_ROOT / args.report
-    diff_path = TEST_ROOT / args.diff
     r = load_report(report_path)
     prev = load_report(Path(args.prev)) if args.prev and Path(args.prev).exists() else None
 
@@ -123,22 +111,45 @@ def main():
                   for d in ch.get("diffs", []) if "缺失" in str(d.get("kind", "")))
     gate("G2", "红线 无对齐断裂（缺失类）", missing == 0, f"缺失类 diff={missing}")
 
-    # ---- G3 豁免核对门 ----
-    clusters = parse_diff_clusters(diff_path) if diff_path.exists() else {}
-    hit_total, hit_desc, unmatched_reg = 0, [], []
-    for ch, prov, eid, code in EXEMPTIONS["entries"]:
-        n = clusters.get((prov, eid), 0)
-        if n > 0:
-            hit_total += n
-            hit_desc.append(f"{prov}/{eid} x{n} [{code}]")
-        else:
-            unmatched_reg.append(f"{prov}/{eid} [{code}]")
-    gate("G3", "豁免命中数与登记表一致", True,
-         f"命中 {len(hit_desc)} 项 / {hit_total} 条：{'; '.join(hit_desc) or '（无）'}；"
-         f"登记未命中 {len(unmatched_reg)} 条（条件性/待转正）")
-    eff = r["diff"] - hit_total
-    gate("G3", "M5 有效分歧", eff <= r["diff"],
-         f"diff {r['diff']} − 豁免命中 {hit_total} = 有效 ≈{eff}")
+    # ---- G3 豁免核对门 / G6 关豁免复核门 ----
+    # 阶段B（ADR 0006）：命中判定前移至 06-compare.py，本脚本改读 report.json 的
+    # exempted（默认口径）/ whitelist_diff_*（关豁免复核口径）统计，不再解析 report.diff。
+    if args.no_exemptions:
+        # G6 复核口径：report.json 须由 `06-compare.py --no-exemptions` 生成，
+        # 白名单条目必须仍以 D 类留在 diff 中（防豁免掩盖回归）。
+        wl = exemption_clusters(r.get("whitelist_diff_detail", []))
+        wl_total = r.get("whitelist_diff_hits", sum(wl.values()))
+        hit_desc, unmatched_reg = [], []
+        for ch, prov, eid, code in EXEMPTIONS["entries"]:
+            n = wl.get((prov, eid), 0)
+            if n > 0:
+                hit_desc.append(f"{prov}/{eid} x{n} [{code}]")
+            else:
+                unmatched_reg.append(f"{prov}/{eid} [{code}]")
+        gate("G3/G6", "关豁免复核：白名单按 D 计入", True,
+             f"exempted={r.get('exempted', 0)}，diff={r['diff']} 含白名单 "
+             f"{len(hit_desc)} 项/{wl_total} 条：{'; '.join(hit_desc) or '（无）'}；"
+             f"登记未命中 {len(unmatched_reg)} 条"
+             + (f"：{'; '.join(unmatched_reg)}" if unmatched_reg else ""))
+        gate("G3/G6", "M5 有效分歧（复核口径=全额 diff）", True,
+             f"关豁免 diff={r['diff']}，白名单 {wl_total} 条全额计入 D")
+    else:
+        clusters = exemption_clusters(r.get("exempted_detail", []))
+        hit_total, hit_desc, unmatched_reg = r.get("exempted", 0), [], []
+        for ch, prov, eid, code in EXEMPTIONS["entries"]:
+            n = clusters.get((prov, eid), 0)
+            if n > 0:
+                hit_desc.append(f"{prov}/{eid} x{n} [{code}]")
+            else:
+                unmatched_reg.append(f"{prov}/{eid} [{code}]")
+        extra = [f"{k[0]}/{k[1]}" for k in clusters if k not in {(p, e) for _, p, e, _ in EXEMPTIONS["entries"]}]
+        gate("G3", "豁免命中数与登记表一致", True,
+             f"命中 {len(hit_desc)} 项 / {hit_total} 条：{'; '.join(hit_desc) or '（无）'}；"
+             f"登记未命中 {len(unmatched_reg)} 条（条件性/待转正）"
+             + (f"；白名单外命中 {extra}（需人工复核登记）" if extra else ""))
+        eff = r["diff"] - hit_total
+        gate("G3", "M5 有效分歧", eff <= r["diff"],
+             f"diff {r['diff']} − 豁免命中 {hit_total} = 有效 ≈{eff}")
 
     # ---- G4 目标缺口披露门（不判 FAIL，只强制披露） ----
     gap = TARGETS["M1_matched_ratio_min"] + 0.0006 - m1  # ≈97.59% 理想线

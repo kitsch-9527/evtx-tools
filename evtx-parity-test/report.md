@@ -1,23 +1,24 @@
 # 对比报告（基线解析 vs 新解析）
 
-- 生成时间（本地）：2026-09-09 08:14:28
+- 生成时间（本地）：2026-09-09 08:25:40
 - 主比对：中文wevtutil文本基线 vs new-parsed/en（同语言，严格五字段）
 - 口径：EventID / Provider / Channel / TimeCreated（两边均为本地时间，直接比，容差2s）/ Message（空白归一）
 - 对齐：同一文件出现顺序逐条对齐（基线Event[N]顺序对应新解析sequence_number顺序）
 - 对照：new-parsed/zh 只计覆盖率（条数/EventID顺序一致率/空消息率），不逐条比Message
+- 豁免（ADR 0006）：开启——白名单命中 26 条已移出 diff 计入 exempted（--no-exemptions 关闭复核）
 
 ## 结论
 
-- 未通过：主链（基线vs en）共比对 32801 条，一致 32002 条，差异 799 条
+- 未通过：主链（基线vs en）共比对 32801 条，一致 32002 条，差异 773 条
 
 ## 分通道统计（主：基线 vs en）
 
 | 通道 | 基线数 | 新解析(en) | 比对数 | 一致 | 差异 | en空消息 | 状态 |
 |---|---|---|---|---|---|---|---|
-| Application | 3925 | 3925 | 3925 | 3836 | 89 | 0 | ok |
+| Application | 3925 | 3925 | 3925 | 3836 | 87 | 0 | ok |
 | Setup | 222 | 222 | 222 | 222 | 0 | 0 | ok |
 | Security | 26031 | 26031 | 26031 | 26031 | 0 | 0 | ok |
-| System | 2623 | 2623 | 2623 | 1913 | 710 | 0 | ok |
+| System | 2623 | 2623 | 2623 | 1913 | 686 | 0 | ok |
 
 ## 中文覆盖率对照（基线 vs zh，不比Message）
 
@@ -131,46 +132,46 @@
 - 新解析en EventID=2 Provider=WMIRegistrationService Time=2026-08-21 05:06:16.560692
 - 新解析en Message（前300字）：The description for Event ID 2 from source WMIRegistrationService cannot be found. The component that raises this event is not installed on your local computer or the installation is corrupted. You can install or repair the component on the local computer. If the event originated on another computer
 
-## 差异样例 15（Application #224：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
-
-- 基线 EventID=1004 Provider=Microsoft-Windows-Security-SPP Date=2026-08-21T05:07:11.6530000Z
-- 基线 Message（前300字）：The Software Protection service has successfully installed the license.;;License Title=Office 19 Publishing License (Public);;License Id=cc94d1c3-85e3-4b36-986e-0d3935872741
-- 新解析en EventID=1004 Provider=Microsoft-Windows-Security-SPP Time=2026-08-21 05:07:11.653417
-- 新解析en Message（前300字）：The Software Protection service has successfully installed the license. License Title=Office 19 Publishing License (Public) License Id=cc94d1c3-85e3-4b36-986e-0d0xea98a6e5
-
-## 差异样例 16（Application #323：B-裸参数未渲染（见明细））
+## 差异样例 15（Application #323：B-裸参数未渲染（见明细））
 
 - 基线 EventID=0 Provider=asus Date=2026-08-21T05:08:23.2070000Z
 - 基线 Message（前300字）：操作成功完成。
 - 新解析en EventID=0 Provider=asus Time=2026-08-21 05:08:23.207814
 - 新解析en Message（前300字）：Service stopped;;
 
-## 差异样例 17（Application #351：B-裸参数未渲染（见明细））
+## 差异样例 16（Application #351：B-裸参数未渲染（见明细））
 
 - 基线 EventID=0 Provider=igfxCUIService2.0.0.0 Date=2026-08-21T05:09:28.4430000Z
 - 基线 Message（前300字）：操作成功完成。
 - 新解析en EventID=0 Provider=igfxCUIService2.0.0.0 Time=2026-08-21 05:09:28.443628
 - 新解析en Message（前300字）：Log on event received User1 ;;
 
-## 差异样例 18（Application #352：B-裸参数未渲染（见明细））
+## 差异样例 17（Application #352：B-裸参数未渲染（见明细））
 
 - 基线 EventID=0 Provider=igfxCUIService2.0.0.0 Date=2026-08-21T05:09:28.4490000Z
 - 基线 Message（前300字）：操作成功完成。
 - 新解析en EventID=0 Provider=igfxCUIService2.0.0.0 Time=2026-08-21 05:09:28.449453
 - 新解析en Message（前300字）：Logon: 1 ;;
 
-## 差异样例 19（Application #353：B-裸参数未渲染（见明细））
+## 差异样例 18（Application #353：B-裸参数未渲染（见明细））
 
 - 基线 EventID=0 Provider=igfxCUIService2.0.0.0 Date=2026-08-21T05:09:28.4840000Z
 - 基线 Message（前300字）：操作成功完成。
 - 新解析en EventID=0 Provider=igfxCUIService2.0.0.0 Time=2026-08-21 05:09:28.484614
 - 新解析en Message（前300字）：Received Post Shell Event 1 ;;
 
-## 差异样例 20（Application #463：B-裸参数未渲染（见明细））
+## 差异样例 19（Application #463：B-裸参数未渲染（见明细））
 
 - 基线 EventID=0 Provider=igfxCUIService2.0.0.0 Date=2026-08-21T09:31:08.4810000Z
 - 基线 Message（前300字）：操作成功完成。
 - 新解析en EventID=0 Provider=igfxCUIService2.0.0.0 Time=2026-08-21 09:31:08.481671
 - 新解析en Message（前300字）：Service started/resumed;;
 
-还有 779 条差异未展示，见 report.diff。
+## 差异样例 20（Application #465：C-无模板fallback（见明细））
+
+- 基线 EventID=0 Provider=WMIRegistrationService Date=2026-08-21T09:31:09.0530000Z
+- 基线 Message（前300字）：Intel(R) WMI Registration Service started.
+- 新解析en EventID=0 Provider=WMIRegistrationService Time=2026-08-21 09:31:09.053729
+- 新解析en Message（前300字）：The description for Event ID 0 from source WMIRegistrationService cannot be found. The component that raises this event is not installed on your local computer or the installation is corrupted. You can install or repair the component on the local computer. If the event originated on another computer
+
+还有 753 条差异未展示，见 report.diff。

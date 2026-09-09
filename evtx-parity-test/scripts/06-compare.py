@@ -1,4 +1,8 @@
-"""06-compare.py v3 — 基线解析 vs 新解析归一化比对."""
+"""06-compare.py v4 — 基线解析 vs 新解析归一化比对。
+
+阶段B（2026-09-09，ADR 0006）：内置豁免白名单（EXEMPTIONS，键=通道+provider+eid）。
+默认口径：白名单命中的 D 类 diff 计入 exempted（report.json 新增 exempted/exempted_detail/
+whitelist_diff_hits）。--no-exemptions：白名单仍按 D 计入 diff（G6 关豁免复核口径）。"""
 from __future__ import annotations
 import argparse
 import csv
@@ -22,6 +26,24 @@ TRAIL_RE = re.compile(r"[;\s]+$")
 # R7（2026-09-04）：TRAIL 不再含 ':'。sed 把消息尾 NUL 换成 ':'（形态 `XXX:;;;;`），与模板尾真冒号
 # （SCM7045 `Service Account:` + 空param，live 取证）混杂。剥离分两步：先去 sed 冒号段
 # （尾 `:` + 其后仅 ;/空白），再剥 ;/空白。模板尾冒号保留。
+# 阶段B（2026-09-09）ADR 0006 豁免白名单：键 = 通道 + provider + event_id，值为根因码。
+# 豁免判定前移进比对器：默认口径下命中键的 D 类 diff 条目移出 diffs 计入 exempted
+# （report.json 新增 exempted / exempted_detail / whitelist_diff_hits 字段）；
+# --no-exemptions（G6 复核口径）下白名单仍按 D 计入 diff。
+# 本表必须与 scripts/acceptance-check.py 的 EXEMPTIONS 表内容一致，两处改动须同一提交；
+# 登记表唯一真源：docs/residual-zeroing-plan-2026-09-07.md §4。
+EXEMPTIONS = {
+    "entries": [
+        ("Application", "Microsoft-Windows-Security-SPP", "1004", "PARSE"),
+        ("Application", "Microsoft-Windows-CAPI2", "4111", "PARSE"),
+        ("System", "Microsoft-Windows-Directory-Services-SAM", "16962", "BIN"),
+        ("System", "disk", "51", "SRC"),
+        ("System", "EventLog", "6013", "SRC"),        # 条件性：research 无果转正
+        ("System", "Microsoft-Windows-WPDClassInstaller", "24577", "PARSE"),
+        ("System", "Microsoft-Windows-WPDClassInstaller", "24579", "PARSE"),
+    ],
+}
+EXEMPTION_KEYS = {(ch, prov, eid): code for ch, prov, eid, code in EXEMPTIONS["entries"]}
 def norm_text(s):
     if not s:
         return ""
@@ -236,11 +258,45 @@ def compare_channel(channel):
     res["zh_compared"] = zn
     res["zh_eventid_agree"] = zid
     return res
+def apply_exemptions(results, enabled):
+    """ADR 0006 白名单命中判定（阶段B起在比对器内完成，acceptance-check 只读 report.json）。
+
+    仅命中"键 =（通道, baseline.provider, baseline.event_id）"且 kind 以 D- 开头的条目
+    （与旧 acceptance-check 对 report.diff 的 `D-实质分歧` 逐簇解析口径一致，实测 7 项/26 条）。
+    enabled=True（默认）：条目移出 diffs 计入 exempted；enabled=False（G6 复核口径）：
+    条目保留在 diffs 按 D 计入。两种口径下都返回白名单命中明细（whitelist_detail），
+    供 report.json 的 whitelist_diff_hits 供 G6 核对"豁免未掩盖回归"。
+    """
+    exempted_detail = []
+    whitelist_detail = []
+    for r in results:
+        kept = []
+        ch_exempt = 0
+        for d in r.get("diffs", []):
+            b = d.get("baseline")
+            key = (r["channel"], b["provider"], b["event_id"]) if (b and d["kind"].startswith("D-")) else None
+            if key is not None and key in EXEMPTION_KEYS:
+                rec = {"channel": r["channel"], "index": d["index"], "provider": b["provider"],
+                       "event_id": b["event_id"], "root_cause": EXEMPTION_KEYS[key]}
+                whitelist_detail.append(rec)
+                if enabled:
+                    exempted_detail.append(rec)
+                    ch_exempt += 1
+                    continue
+            kept.append(d)
+        r["diffs"] = kept
+        r["diff_count"] = len(kept)
+        r["exempted"] = ch_exempt
+    return exempted_detail, whitelist_detail
 def main():
     ap = argparse.ArgumentParser(description="基线解析 vs 新解析顺序对齐比对（主en-US，zh覆盖率）")
     ap.add_argument("--channels", nargs="*", default=CHANNELS)
+    ap.add_argument("--no-exemptions", action="store_true",
+                    help="关豁免复核口径（ADR 0006/G6）：白名单命中仍按 D 计入 diff")
     args = ap.parse_args()
     results = [compare_channel(c) for c in args.channels]
+    exemptions_on = not args.no_exemptions
+    exempted_detail, whitelist_detail = apply_exemptions(results, exemptions_on)
     total_compared = sum(r.get("compared", 0) for r in results)
     total_matched = sum(r.get("matched", 0) for r in results)
     total_diff = sum(r.get("diff_count", 0) for r in results)
@@ -255,6 +311,10 @@ def main():
     a("- 口径：EventID / Provider / Channel / TimeCreated（两边均为本地时间，直接比，容差2s）/ Message（空白归一）")
     a("- 对齐：同一文件出现顺序逐条对齐（基线Event[N]顺序对应新解析sequence_number顺序）")
     a("- 对照：new-parsed/zh 只计覆盖率（条数/EventID顺序一致率/空消息率），不逐条比Message")
+    if exemptions_on:
+        a("- 豁免（ADR 0006）：开启——白名单命中 " + str(len(exempted_detail)) + " 条已移出 diff 计入 exempted（--no-exemptions 关闭复核）")
+    else:
+        a("- 豁免（ADR 0006）：关闭（G6 复核口径）——白名单命中 " + str(len(whitelist_detail)) + " 条仍按 D 计入 diff")
     a("")
     a("## 结论")
     a("")
@@ -344,6 +404,7 @@ def main():
             "en_empty_msg": r.get("en_empty_msg"),
             "zh_empty_msg": r.get("zh_empty_msg"),
             "categories": cats,
+            "exempted": r.get("exempted", 0),
             "status": r["status"],
         }
     summary = {
@@ -351,11 +412,19 @@ def main():
         "compared": total_compared,
         "matched": total_matched,
         "diff": total_diff,
+        # 阶段B（ADR 0006）：豁免统计。exempted = 默认口径下移出 diff 的白名单命中；
+        # whitelist_diff_hits = 两种口径下白名单键在 diff 中的命中（G6 关豁免复核用）。
+        "exemptions_enabled": exemptions_on,
+        "exempted": len(exempted_detail) if exemptions_on else 0,
+        "exempted_detail": exempted_detail if exemptions_on else [],
+        "whitelist_diff_hits": len(whitelist_detail),
+        "whitelist_diff_detail": whitelist_detail,
         "verdict": ("BLOCKED" if blocked else ("PASS" if passed else "DIFF")),
         "by_channel": by_channel,
     }
     (TEST_ROOT / "report.json").write_text(_json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
-    print("compared=" + str(total_compared) + " matched=" + str(total_matched) + " diff=" + str(total_diff))
+    print("compared=" + str(total_compared) + " matched=" + str(total_matched) + " diff=" + str(total_diff)
+          + " exempted=" + str(len(exempted_detail) if exemptions_on else 0))
     if passed:
         print("PASS")
         return 0
