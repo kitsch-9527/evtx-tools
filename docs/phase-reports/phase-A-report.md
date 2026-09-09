@@ -33,8 +33,10 @@
 - `evtx-parity-test/report.{md,json,diff}`（06 重跑再生成，数字与改前一致，仅时间戳变）
 - `docs/phase-reports/phase-A-report.md`（本报告）
 
+（jj change id：nkymvymr）
+
 == 验收记录 · Phase A · 2026-09-08 ==
-jj 变更：（见提交）
+jj 变更：nkymvymr（fd8c157f）
 G1: M1=97.5641%（目标 ≥97.53%）｜ M2=91.38%（硬门 ≥80%）
 G2: Security=0 / Setup=0 / 四通道 B/C 不新增 / 无缺失
 G3: 豁免命中 7 项/26 条（SPP1004×1, CAPI2 4111×1, SAM16962×3, disk51×1, 6013×16, WPD24577×2, 24579×2）
