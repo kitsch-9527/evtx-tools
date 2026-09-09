@@ -61,9 +61,19 @@
 2. 确认最终 jj 提交已包含：全部阶段报告、文档同步（skill 三镜像/STATUS/计划勾销）。
 3. 把最终执行报告写回 `docs/phase-reports/final-report.md`。
 
-## 当前状态锚点（2026-09-08，续跑时以 report.json 实测为准）
+## 当前状态锚点（2026-09-09 更新，续跑时以磁盘阶段报告与 report.json 实测为准）
 
-- diff=799（97.53%）、D=30/12 簇、Security/Setup 全绿；
-- 豁免登记 7 项/26 条（`scripts/acceptance-check.py` 的 EXEMPTIONS 表为真源）；
-- 残留工作项与逐项步骤：执行计划 §A–§F；
-- 已知坑位：Runbook §3.3（03 重建期间禁止并发 05；03 输出 GBK 等）。
+- 已完成：**A**（归一落地但两簇未清零，blocked 登记，phase-A-report.md）、
+  **B**（豁免白名单+`--no-exemptions`+acceptance-check 集成，全部达成，
+  phase-B-report.md）。**入口 = C**。
+- 终态数字（阶段 B 后实测）：默认口径 diff=773、exempted=26 条/7 项、
+  M1=97.5641%、M2=98.85%（D 残留 4/348）；关豁免口径 diff=799（M2=91.38%）；
+  Security/Setup 全绿、B/C 零新增、缺失类=0。
+- EXEMPTIONS 双表（06-compare.py / acceptance-check.py）已同步（zmuvrlrp）；
+  登记表唯一真源仍为 residual plan §4（F 阶段核对）。
+- 残留工作项与逐项步骤：执行计划 §C–§H；终态锚点与未决清单：
+  docs/phase-reports/final-report.md。
+- 已知坑位：Runbook §3.3（03 重建期间禁止并发 05；03 输出 GBK）；report.diff
+  每条 Msg 截断 500 字；**改簇前先跑 dry-run 探针实测影响面，勿直接信计划简报
+  （阶段 A 两个根因假设均被实测证伪）**。
+- 夜间无人值守续跑协议：docs/overnight-watchdog.md（心跳+并发锁+单阶段/轮）。
