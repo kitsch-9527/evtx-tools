@@ -1,10 +1,10 @@
 {
-  "generated_local": "2026-09-09 08:25:40",
+  "generated_local": "2026-09-14 23:50:09",
   "compared": 32801,
-  "matched": 32002,
+  "matched": 32018,
   "diff": 773,
   "exemptions_enabled": true,
-  "exempted": 26,
+  "exempted": 10,
   "exempted_detail": [
     {
       "channel": "Application",
@@ -29,13 +29,6 @@
     },
     {
       "channel": "System",
-      "index": 238,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
       "index": 303,
       "provider": "Microsoft-Windows-Directory-Services-SAM",
       "event_id": "16962",
@@ -43,24 +36,10 @@
     },
     {
       "channel": "System",
-      "index": 485,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
       "index": 547,
       "provider": "Microsoft-Windows-Directory-Services-SAM",
       "event_id": "16962",
       "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 630,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
     },
     {
       "channel": "System",
@@ -75,27 +54,6 @@
       "provider": "Microsoft-Windows-WPDClassInstaller",
       "event_id": "24579",
       "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 725,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 780,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 855,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
     },
     {
       "channel": "System",
@@ -117,79 +75,9 @@
       "provider": "disk",
       "event_id": "51",
       "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 1002,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 1130,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 1355,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 1467,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2182,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2223,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2281,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2358,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2515,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2617,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
     }
   ],
-  "whitelist_diff_hits": 26,
+  "whitelist_diff_hits": 10,
   "whitelist_diff_detail": [
     {
       "channel": "Application",
@@ -214,13 +102,6 @@
     },
     {
       "channel": "System",
-      "index": 238,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
       "index": 303,
       "provider": "Microsoft-Windows-Directory-Services-SAM",
       "event_id": "16962",
@@ -228,24 +109,10 @@
     },
     {
       "channel": "System",
-      "index": 485,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
       "index": 547,
       "provider": "Microsoft-Windows-Directory-Services-SAM",
       "event_id": "16962",
       "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 630,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
     },
     {
       "channel": "System",
@@ -260,27 +127,6 @@
       "provider": "Microsoft-Windows-WPDClassInstaller",
       "event_id": "24579",
       "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 725,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 780,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 855,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
     },
     {
       "channel": "System",
@@ -301,76 +147,6 @@
       "index": 907,
       "provider": "disk",
       "event_id": "51",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 1002,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 1130,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 1355,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 1467,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2182,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2223,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2281,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2358,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2515,
-      "provider": "EventLog",
-      "event_id": "6013",
-      "root_cause": "SRC"
-    },
-    {
-      "channel": "System",
-      "index": 2617,
-      "provider": "EventLog",
-      "event_id": "6013",
       "root_cause": "SRC"
     }
   ],
@@ -424,7 +200,7 @@
       "new_en": 2623,
       "new_zh": 2623,
       "compared": 2623,
-      "matched": 1913,
+      "matched": 1929,
       "diff": 686,
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
@@ -433,7 +209,7 @@
         "C-无模板fallback（见明细）": 40,
         "D-实质分歧（含渲染格式差：hex大小写/GUI": 2
       },
-      "exempted": 24,
+      "exempted": 8,
       "status": "ok"
     }
   }

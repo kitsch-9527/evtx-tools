@@ -386,6 +386,10 @@ func RunDump(args *DumpArgs) error {
 		return fmt.Errorf("no provider variant groups could be built")
 	}
 	variantGroups = mergeDuplicateProvidersVariants(variantGroups)
+	// Phase D (2026-09-14): inject well-known classic messages into variant
+	// groups — currently EventLog 6013 (netevent.dll MUI RT_MESSAGETABLE
+	// 0x8000177D), unreachable by the default extraction path.
+	variantGroups = injectWellKnownVariants(variantGroups, langCodes)
 	// Fresh build: remove any previous DB first. CREATE TABLE IF NOT EXISTS
 	// would otherwise keep a stale layout (2026-09-08: param_name column
 	// silently missing because the old file survived).

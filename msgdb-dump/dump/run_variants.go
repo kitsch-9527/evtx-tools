@@ -93,9 +93,96 @@ func extractVariantsFallback(res *DLLResult, prov ProviderInfo, langCodes []stri
 	return byLang, nil, nil, nil, nil
 }
 
-// injectWellKnownVariants — v6 variant-aware well-known injection (stub)
+// wellKnownEventLog6013 — phase D (2026-09-14) variant injection source.
+//
+// EventLog 6013 lives in netevent.dll's MUI satellite RT_MESSAGETABLE
+// (table ID 0x8000177D, low 16 bits = 6013); the main netevent.dll carries
+// no message table and no WEVT_TEMPLATE, so the default extraction path
+// finds nothing. Texts verified char-by-char against the MUI tables and the
+// live Get-WinEvent ground truth (phase C).
+//
+// Slot contract: the live event has 8 substitution slots — slots 1-4 are
+// EMPTY strings, slot 5 = uptime seconds. The template therefore says %5,
+// and the renderer's classic Data.#text strategy keeps empty slots in
+// position, so no slot remapping is needed on our side. Inject only 6013:
+// it is the one classic ID still diffing in the parity corpus (6013×16);
+// 6005/6006/6008/6009 fallback rendering is pre-existing behavior outside
+// this phase's scope.
+var wellKnownEventLog6013 = map[string]string{
+	"en-US": "The system uptime is %5 seconds.",
+	"zh-CN": "系统启动时间为 %5 秒。",
+}
+
+// injectWellKnownVariants — variant-aware well-known injection (phase D).
+// Adds the (EventLog, 6013) variant rows when no extraction path produced
+// them; creates the EventLog provider group if the corpus scan yielded none.
 func injectWellKnownVariants(groups []ProviderVariantGroup, langCodes []string) []ProviderVariantGroup {
-	return groups
+	for gi := range groups {
+		if groups[gi].Provider.Name != "EventLog" {
+			continue
+		}
+		if variantGroupHas6013(groups[gi]) {
+			return groups
+		}
+		guid := ""
+		if groups[gi].Provider.GUID != nil {
+			guid = *groups[gi].Provider.GUID
+		}
+		for _, code := range langCodes {
+			msg, ok := wellKnownEventLog6013[code]
+			if !ok {
+				continue
+			}
+			groups[gi].VariantsByLang[code] = append(groups[gi].VariantsByLang[code], VariantRow{
+				ProviderName: "EventLog",
+				ProviderGUID: guid,
+				Lang:         code,
+				EventID:      6013,
+				Message:      msg,
+				// version/level/opcode/task/keywords/channel/message_identifier
+				// stay 0 = wildcard for the renderer's resolve_variant ladder.
+			})
+		}
+		return groups
+	}
+	// No EventLog group from extraction — create a minimal one so the
+	// writer emits providers/dll_entries/variants rows.
+	byLang := make(map[string][]VariantRow)
+	for _, code := range langCodes {
+		msg, ok := wellKnownEventLog6013[code]
+		if !ok {
+			continue
+		}
+		byLang[code] = append(byLang[code], VariantRow{
+			ProviderName: "EventLog",
+			Lang:         code,
+			EventID:      6013,
+			Message:      msg,
+		})
+	}
+	if len(byLang) == 0 {
+		return groups
+	}
+	return append(groups, ProviderVariantGroup{
+		Provider:       ProviderInfo{Name: "EventLog", Channel: strPtr("System")},
+		DLLName:        "netevent.dll",
+		DLLPath:        `C:\Windows\System32\netevent.dll`,
+		PEVersion:      "10.0.0.0",
+		VariantsByLang: byLang,
+	})
+}
+
+// variantGroupHas6013 reports whether any language variant of the group
+// already carries an extracted 6013 row (real extraction wins over injection).
+func variantGroupHas6013(g ProviderVariantGroup) bool {
+	for _, rows := range g.VariantsByLang {
+		for _, r := range rows {
+			if r.EventID == 6013 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // mergeDuplicateProvidersVariants merges variant groups sharing same provider name across DLLs.

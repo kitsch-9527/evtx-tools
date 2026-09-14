@@ -37,7 +37,6 @@ EXEMPTIONS = {
         ("Application", "Microsoft-Windows-CAPI2", "4111", "PARSE"),
         ("System", "Microsoft-Windows-Directory-Services-SAM", "16962", "BIN"),
         ("System", "disk", "51", "SRC"),
-        ("System", "EventLog", "6013", "SRC"),        # 条件性：research 无果转正
         ("System", "Microsoft-Windows-WPDClassInstaller", "24577", "PARSE"),
         ("System", "Microsoft-Windows-WPDClassInstaller", "24579", "PARSE"),
     ],

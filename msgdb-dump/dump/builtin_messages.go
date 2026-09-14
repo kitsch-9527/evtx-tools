@@ -3,8 +3,19 @@ package dump
 // injectWellKnownMessages adds well-known classic EventLog messages to the
 // DLL groups when they are not already covered by the normal extraction.
 //
-// These messages (6005, 6006, 6008, 6009, 6011, 6013) are hardcoded in the
-// EventLog service and cannot be extracted from any message DLL.
+// Source (phase C, 2026-09-14): these classic messages live in the MUI
+// satellite `C:\Windows\System32\en-US\netevent.dll.mui` /
+// `zh-CN\netevent.dll.mui` RT_MESSAGETABLE (type 11); the main netevent.dll
+// carries no message table, so the default PE extraction path finds nothing.
+// 6013 = table ID 0x8000177D (low 16 bits 0x177D = 6013), text
+// "The system uptime is %5 seconds." — verified against the live
+// Get-WinEvent ground truth (8 substitution slots, slots 1-4 empty, slot 5 =
+// uptime seconds).
+//
+// NOTE: this DllGroup-level helper feeds the legacy (non-variant) pipeline
+// and is currently dormant; the live path is injectWellKnownVariants in
+// run_variants.go, which injects ONLY 6013 (the one ID the parity corpus
+// still diffs on).
 func injectWellKnownMessages(groups []DllGroup, langCodes []string) []DllGroup {
 	// Check if any existing group already covers EventLog classic messages
 	alreadyCovered := false
@@ -61,8 +72,15 @@ func injectWellKnownMessages(groups []DllGroup, langCodes []string) []DllGroup {
 	return groups
 }
 
-// wellKnownEventLogMessages returns the classic EventLog event messages
-// that are built into the EventLog service and not extractable from DLLs.
+// wellKnownEventLogMessages returns the classic EventLog event messages as
+// recorded in the netevent.dll MUI RT_MESSAGETABLE (phase C ground truth).
+//
+// 6013 previously carried a fabricated text ("Windows has shut down or
+// restarted...") with a comment claiming the messages "cannot be extracted
+// from any message DLL" — disproved by phase C. The real table has no 6011
+// entry (the old 6011 text was a mis-attributed %1 variant of the real 6013);
+// it is kept out of the variant injection path and only retained here for the
+// dormant legacy helper.
 func wellKnownEventLogMessages() map[string][]PeMessage {
 	return map[string][]PeMessage{
 		"en-US": {
@@ -70,16 +88,14 @@ func wellKnownEventLogMessages() map[string][]PeMessage {
 			{EventID: 6006, Message: "The Event log service was stopped."},
 			{EventID: 6008, Message: "The previous system shutdown at %1 on %2 was unexpected."},
 			{EventID: 6009, Message: "Microsoft (R) Windows (R) %1 %2 %3 %4"},
-			{EventID: 6011, Message: "The system uptime is %1 seconds."},
-			{EventID: 6013, Message: "Windows has shut down or restarted. The system was last started on %1."},
+			{EventID: 6013, Message: "The system uptime is %5 seconds."},
 		},
 		"zh-CN": {
 			{EventID: 6005, Message: "Event Log 服务已启动。"},
 			{EventID: 6006, Message: "Event Log 服务已停止。"},
 			{EventID: 6008, Message: "上一次系统的 %1 在 %2 的关闭是意外的。"},
 			{EventID: 6009, Message: "Microsoft (R) Windows (R) %1 %2 %3 %4"},
-			{EventID: 6011, Message: "系统运行时间 %1 秒。"},
-			{EventID: 6013, Message: "Windows 已关闭或重新启动。系统上一次启动是在 %1。"},
+			{EventID: 6013, Message: "系统启动时间为 %5 秒。"},
 		},
 	}
 }

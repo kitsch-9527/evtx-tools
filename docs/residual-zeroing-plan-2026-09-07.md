@@ -37,7 +37,7 @@
 | SPP 1004 | 1 | PARSE | 参数值本身异常（`0d0xea98a6e5`），evtx crate 值读取层 | evtx crate 修复该值解析 |
 | SAM 16962 | 3 | BIN | 二进制 security_descriptor → SDDL 文本转换机制未建 | 实现 SDDL 转换（可与 B 类专项合并） |
 | disk 51 | 1 | SRC | 经典源二进制 EventData，模板源未定位 | 定位 disk 51 消息源 |
-| EventLog 6013 | 16 | SRC（条件性） | 消息源未定位（netevent MUI 已排除） | 批次 3 research 无果则转正式豁免 |
+| ~~EventLog 6013~~ | ~~16~~ | ~~SRC（条件性）~~ | ~~消息源未定位（netevent MUI 已排除）~~（2026-09-14 阶段C证伪：源=netevent.dll.mui RT_MESSAGETABLE 0x8000177D） | **已关闭（2026-09-14，阶段D）：定位到源并接入（msgdb-dump well-known 注入 6013 真实表文本 `%5` 槽位对齐），16 条全部 matched，EXEMPTIONS 白名单两处同步摘除 |
 | WPD 24577/24579 | 4 | PARSE（条件性） | 取值层 Named-Data 对齐失败 | 批次 3 取证超一轮则转正式豁免 |
 | （预留） | — | — | 批次 1/2 取证中发现的真不可修项 | 逐条登记 |
 
