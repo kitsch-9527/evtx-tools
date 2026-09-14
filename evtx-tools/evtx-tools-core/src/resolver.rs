@@ -138,6 +138,16 @@ impl MessageDb {
             .cloned()
     }
 
+    /// NTSTATUS message text (Phase E table, "NTSTATUS-System-Error" group).
+    /// ntdll's RT_MESSAGETABLE extracted at dump time; used by typed
+    /// rendering for OutType 0x1F (Ntfs 140 `Failure status`).
+    pub fn lookup_ntstatus(&self, code: u32) -> Option<String> {
+        self.param_refs
+            .get("NTSTATUS-System-Error")?
+            .get(&code)
+            .cloned()
+    }
+
     /// Load the registered event source snapshot from the `eventlog_sources`
     /// table (R12 / ADR 0004). The table is part of the v8 schema — absence
     /// is a hard error (re-run msgdb-dump). An empty snapshot (collection

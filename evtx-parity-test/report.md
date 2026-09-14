@@ -1,6 +1,6 @@
 # 对比报告（基线解析 vs 新解析）
 
-- 生成时间（本地）：2026-09-14 23:50:09
+- 生成时间（本地）：2026-09-15 00:19:54
 - 主比对：中文wevtutil文本基线 vs new-parsed/en（同语言，严格五字段）
 - 口径：EventID / Provider / Channel / TimeCreated（两边均为本地时间，直接比，容差2s）/ Message（空白归一）
 - 对齐：同一文件出现顺序逐条对齐（基线Event[N]顺序对应新解析sequence_number顺序）
@@ -9,7 +9,7 @@
 
 ## 结论
 
-- 未通过：主链（基线vs en）共比对 32801 条，一致 32018 条，差异 773 条
+- 未通过：主链（基线vs en）共比对 32801 条，一致 32020 条，差异 771 条
 
 ## 分通道统计（主：基线 vs en）
 
@@ -18,7 +18,7 @@
 | Application | 3925 | 3925 | 3925 | 3836 | 87 | 0 | ok |
 | Setup | 222 | 222 | 222 | 222 | 0 | 0 | ok |
 | Security | 26031 | 26031 | 26031 | 26031 | 0 | 0 | ok |
-| System | 2623 | 2623 | 2623 | 1929 | 686 | 0 | ok |
+| System | 2623 | 2623 | 2623 | 1931 | 684 | 0 | ok |
 
 ## 中文覆盖率对照（基线 vs zh，不比Message）
 
@@ -174,4 +174,4 @@
 - 新解析en EventID=0 Provider=WMIRegistrationService Time=2026-08-21 09:31:09.053729
 - 新解析en Message（前300字）：The description for Event ID 0 from source WMIRegistrationService cannot be found. The component that raises this event is not installed on your local computer or the installation is corrupted. You can install or repair the component on the local computer. If the event originated on another computer
 
-还有 753 条差异未展示，见 report.diff。
+还有 751 条差异未展示，见 report.diff。

@@ -1822,14 +1822,6 @@
     Time=2026-08-28 14:03:03.339252
     Msg=\Device\hcmon;;\Driver\hrdevmon;;;00000000020028000000000000000080000000000000000000000000000000000000000000000000;;
 
-[System #1502] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=140 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-29T05:31:50.7470000Z
-    Msg=The system failed to flush data to the transaction log. Corruption may occur in VolumeId: 系统, DeviceName: \Device\HarddiskVolumeShadowCopy9.;;;; Failure status: A device which does not exist was specified.;;;; Device GUID: {00000000-0000-0000-0000-000000000000};; Device manufacturer: ;; Device model: ;; Device revision: ;; Device serial number: ;; Bus type: <unknown>;;;; Adapter serial number:
-  new-en:   EventID=140 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-29 05:31:50.747352
-    Msg=The system failed to flush data to the transaction log. Corruption may occur in VolumeId: 系统, DeviceName: \Device\HarddiskVolumeShadowCopy9. Failure status: 0xc000000e Device GUID: {00000000-0000-0000-0000-000000000000} Device manufacturer: Device model: Device revision: Device serial number: Bus type: <unknown> Adapter serial number:
-
 [System #1503] B-裸参数未渲染（见明细）
   baseline: EventID=50 Provider=Ntfs
     Date=2026-08-29T05:31:50.7470000Z
@@ -5949,14 +5941,6 @@
   new-en:   EventID=50 Provider=Ntfs
     Time=2026-08-29 05:31:50.766729
     Msg=;;\Device\HarddiskVolumeShadowCopy9\$Mft;;;04000400020030000000000032000480000000000E0000C0000000000000000000000000000000000E0000C0;;
-
-[System #2244] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=26 Provider=Microsoft-Windows-Wininit
-    Date=2026-08-31T02:07:18.5650000Z
-    Msg=Boot App Anti-Rollback: Boot.stl Enforcement completed with status:;;;;HRESULT: The operation completed successfully.;;Boot Stl Enforced Successfully: true;;WNF Published with result: STATUS_SUCCESS
-  new-en:   EventID=26 Provider=Microsoft-Windows-Wininit
-    Time=2026-08-31 02:07:18.565269
-    Msg=Boot App Anti-Rollback: Boot.stl Enforcement completed with status: HRESULT: The operation completed successfully. Boot Stl Enforced Successfully: true WNF Published with result: 0x0
 
 [System #2256] B-裸参数未渲染（见明细）
   baseline: EventID=0 Provider=hcmon

@@ -1,8 +1,8 @@
 {
-  "generated_local": "2026-09-14 23:50:09",
+  "generated_local": "2026-09-15 00:19:54",
   "compared": 32801,
-  "matched": 32018,
-  "diff": 773,
+  "matched": 32020,
+  "diff": 771,
   "exemptions_enabled": true,
   "exempted": 10,
   "exempted_detail": [
@@ -200,14 +200,13 @@
       "new_en": 2623,
       "new_zh": 2623,
       "compared": 2623,
-      "matched": 1929,
-      "diff": 686,
+      "matched": 1931,
+      "diff": 684,
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
       "categories": {
         "B-裸参数未渲染（见明细）": 644,
-        "C-无模板fallback（见明细）": 40,
-        "D-实质分歧（含渲染格式差：hex大小写/GUI": 2
+        "C-无模板fallback（见明细）": 40
       },
       "exempted": 8,
       "status": "ok"

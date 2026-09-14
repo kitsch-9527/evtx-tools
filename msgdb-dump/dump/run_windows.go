@@ -451,6 +451,19 @@ func RunDump(args *DumpArgs) error {
 		})
 	}
 
+	// 11c. NTSTATUS 消息文本（阶段 E）：Ntfs 140 `Failure status`（InType 0x14 /
+	// OutType 0x1F）基线渲染为 ntdll 消息表文本。照 R15 模式写全局 provider 组
+	// "NTSTATUS-System-Error"（渲染端查表命中才替换，未命中保持原样）。
+	if ntstatus, err := collectNtstatusMessages(); err != nil {
+		fmt.Printf("[warn] NTSTATUS message table: %v\n", err)
+	} else if len(ntstatus) > 0 {
+		fmt.Printf("[info] NTSTATUS messages from ntdll (Phase E): %d entries\n", len(ntstatus))
+		allParamRefs = append(allParamRefs, paramRefEntry{
+			ProviderName: "NTSTATUS-System-Error",
+			Messages:     ntstatus,
+		})
+	}
+
 	// 12. Write parameter_refs for %%N expansion
 	if len(allParamRefs) > 0 {
 		if err := writeParamRefs(sysDBPath, allParamRefs, primaryCode); err != nil {

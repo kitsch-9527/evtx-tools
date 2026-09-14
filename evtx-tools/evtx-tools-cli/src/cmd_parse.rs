@@ -287,6 +287,10 @@ fn apply_param_types(
         let guard = db.lock().ok()?;
         guard.lookup_win32_error(code)
     };
+    let ntstatus_lookup = |code: u32| -> Option<String> {
+        let guard = db.lock().ok()?;
+        guard.lookup_ntstatus(code)
+    };
     let mut owned: HashSet<String> = HashSet::new();
     let trace = std::env::var("EVTX_TRACE_TYPED").is_ok();
     for (i, value) in params.iter_mut().enumerate() {
@@ -306,6 +310,22 @@ fn apply_param_types(
                 (parse_num(value).map(|v| format!("0x{v:x}")).unwrap_or_else(|| value.clone()), true)
             }
             (0x07, 0x20) | (0x14, 0x20) => (format_hresult(value, &hresult_lookup), true),
+            // NTSTATUS (any InType, OutType 0x1F) — wevtapi/TdhFormatProperty
+            // resolves the raw code through ntdll's message table (Phase E:
+            // Ntfs 140 `Failure status` → "A device which does not exist was
+            // specified."). Hit-only: unknown codes / texts carrying %N insert
+            // placeholders keep the passthrough rendering (not owned), so
+            // unobserved pairs are unaffected.
+            (_, 0x1F) => {
+                let text = parse_num(value)
+                    .map(|v| v as u32)
+                    .and_then(|code| (ntstatus_lookup)(code))
+                    .filter(|t| !t.contains('%'));
+                match text {
+                    Some(t) => (t, true),
+                    None => (value.clone(), false),
+                }
+            }
             (0x11, 0x02) => (format_datetime_ns(value), true),
             // GUID (15,14) — wevtapi renders lowercase with braces (KGA 11
             // TmId/RmId, DriverFrameworks CLSID; raw event value is already
@@ -1592,6 +1612,53 @@ mod r10_typed_tests {
             "missing param_types must keep passthrough rendering"
         );
         let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn unit_ntstatus_outtype_1f_lookup_hit_only() {
+        // Phase E: Ntfs 140 `Failure status` (14,1f) — wevtapi resolves
+        // NTSTATUS via ntdll's message table. Hit → text (owned); miss →
+        // passthrough unchanged (not owned).
+        let db_path = tmp_path("ntstatus");
+        setup_db(&db_path);
+        {
+            let conn = rusqlite::Connection::open(&db_path).unwrap();
+            conn.execute(
+                "INSERT INTO parameter_refs(provider_name, param_id, message, lang)
+                 VALUES('NTSTATUS-System-Error', 3221225486, 'A device which does not exist was specified.', 'en-US')",
+                [],
+            )
+            .unwrap();
+        }
+        let mut db = MessageDb::open(db_path.to_str().unwrap()).unwrap();
+        db.load_param_refs().unwrap();
+        let msg_db: Option<Arc<Mutex<MessageDb>>> = Some(Arc::new(Mutex::new(db)));
+
+        let types = HashMap::from([("1".to_string(), "14:1f".to_string())]);
+
+        // hit: raw hex param resolves to ntdll message text
+        let (out, owned) = apply_param_types(
+            vec!["0xc000000e".to_string()],
+            &types,
+            &HashMap::new(),
+            msg_db.as_ref().unwrap(),
+            "T",
+        );
+        assert_eq!(out[0], "A device which does not exist was specified.");
+        assert!(owned.contains("1"));
+
+        // miss: unknown code keeps passthrough rendering, not owned
+        let (out, owned) = apply_param_types(
+            vec!["0xdeadc0de".to_string()],
+            &types,
+            &HashMap::new(),
+            msg_db.as_ref().unwrap(),
+            "T",
+        );
+        assert_eq!(out[0], "0xdeadc0de");
+        assert!(!owned.contains("1"));
+
+        let _ = std::fs::remove_file(&db_path);
     }
 
     #[test]
