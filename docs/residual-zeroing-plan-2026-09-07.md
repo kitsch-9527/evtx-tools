@@ -35,10 +35,13 @@
 | 簇 | 条数 | 根因码 | 根因描述 | 关闭条件 |
 |---|---|---|---|---|
 | SPP 1004 | 1 | PARSE | 参数值本身异常（`0d0xea98a6e5`），evtx crate 值读取层 | evtx crate 修复该值解析 |
+| CAPI2 4111 | 1 | PARSE | 基线侧 CJK 日期被基线管线打成 `?`（LRM 关联），需 R5 层 `clean_baseline_artefacts` 基线侧手术（阶段A 2026-09-08 归因） | 基线侧 `?` 手术实施（须编排者授权） |
 | SAM 16962 | 3 | BIN | 二进制 security_descriptor → SDDL 文本转换机制未建 | 实现 SDDL 转换（可与 B 类专项合并） |
 | disk 51 | 1 | SRC | 经典源二进制 EventData，模板源未定位 | 定位 disk 51 消息源 |
+| WER 1001 | 2 | 专项（非豁免） | 上游渲染器把 WER 报告文件名 GUID 尾段十进制串 hex 化（`3003916586`→`0xb30c212a`，阶段A 2026-09-08 实证；App #2972/#3429）——TS35 同域，比对层不修（2026-09-15 阶段F 登记） | 上游渲染器 format_for_display 保护名单/取值层修复 |
+| ~~Wininit 26~~ | ~~1~~ | ~~待归属~~ | **已修（2026-09-15 阶段F 核实）**：LocalStatus（in 0x14/out 0x1F）经阶段E NTSTATUS 渲染臂命中 `parameter_refs` 组 code 0 字面文本 `STATUS_SUCCESS`，与基线逐字符一致，已出 diff | 无（已闭环） |
 | ~~EventLog 6013~~ | ~~16~~ | ~~SRC（条件性）~~ | ~~消息源未定位（netevent MUI 已排除）~~（2026-09-14 阶段C证伪：源=netevent.dll.mui RT_MESSAGETABLE 0x8000177D） | **已关闭（2026-09-14，阶段D）：定位到源并接入（msgdb-dump well-known 注入 6013 真实表文本 `%5` 槽位对齐），16 条全部 matched，EXEMPTIONS 白名单两处同步摘除 |
-| WPD 24577/24579 | 4 | PARSE（条件性） | 取值层 Named-Data 对齐失败 | 批次 3 取证超一轮则转正式豁免 |
+| WPD 24577/24579 | 4 | PARSE（条件性→已转正） | 取值层 Named-Data 对齐失败 | 批次 3 取证超一轮则转正式豁免（2026-09-15 阶段F 核实：已正式豁免并生效，命中 24577×2+24579×2） |
 | （预留） | — | — | 批次 1/2 取证中发现的真不可修项 | 逐条登记 |
 
 ## 5. 方法论约束（全程有效）
