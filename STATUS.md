@@ -1,7 +1,7 @@
 # evet 项目现状说明
 
-> 生成时间：2026-09-07。本文档由 jj 初始提交时的机器可验证状态汇总而成；
-> 数字口径以 `evtx-parity-test/report.json` 为准，术语见 `CONTEXT.md`。
+> 生成时间：2026-09-07，**2026-09-15 阶段 H 定稿更新**（数字口径以
+> `evtx-parity-test/report.json` 为准，术语见 `CONTEXT.md`）。
 
 ## 1. 项目是什么
 
@@ -50,18 +50,23 @@ Message）。
 4. 枚举启发式（R11）→ CRIM 值映射（Layer 2/2b）→ LUID 大写 hex（R14）。
 5. `%1-%99` 位置代入 → 展示格式化。取值层含 JSON 原生 Bool 修复（R18）。
 
-## 5. 当前基线（2026-09-07，verdict=DIFF）
+## 5. 当前基线（2026-09-15 终态，verdict=DIFF）
 
-| 通道 | 比对 | 一致 | 差异构成 |
+| 通道 | 比对 | 一致 | 差异构成（默认口径） |
 |---|---|---|---|
-| Application | 3925 | 3833 | B74 + C11 + D7 |
+| Application | 3925 | 3836 | B74 + C11 + D2 + 豁免2 |
 | Setup | 222 | 222 | 全绿 |
 | Security | 26031 | 26031 | **全绿** |
-| System | 2623 | 1784 | B644 + C40 + D155 |
+| System | 2623 | 1931 | B644 + C40 + 豁免8 |
 
-- 全量：32801 条比对，31870 一致，diff=931。
-- D 类（实质分歧）：**348 → 162**（-53%，2026-09-05 起点 → 2026-09-07）。
-- B/C 类为已知未覆盖场景（历史既有，见 skill 基线）。
+- 全量：32801 条比对，**32020 一致，diff=771**（B718 + C51 + D2），exempted=10 条/6 项，M5=761。
+- **M1 = 97.6190%**（超理想线 97.59%）；**M2 = 99.43%**（D 残留 2/348：WER 1001×2，
+  上游渲染器 hex 化 `3003916586`→`0xb30c212a`，App #2972/#3429，转后续专项）。
+  D 类轨迹：348（09-05 起点）→ 162 → **2**。
+- 关豁免口径：diff=781=771+10（白名单 10 条全额回 D，exempted=0，无意外掩盖）。
+- B/C 类为已知未覆盖场景（历史既有，见 skill 基线）；G1–G7 全量验收全过
+  （2026-09-15，`docs/phase-reports/phase-G-report.md`）；
+  单测 Rust 225 绿 + Go 125 绿。
 
 ## 6. 已落地修复（全部 TDD 回归测试保护，勿回退）
 
@@ -75,15 +80,18 @@ Message）。
 | R12 | 09-07 | **源注册快照 + miss N/A parity**（ADR 0004） |
 | R14/R15/R15b/R16/R17 | 09-04/05 | LUID 大写、Win32 系统错误 %%N、provider 维度隔离、MUI companion、参数引用按 provider 分组 |
 | R18 | 09-07 | JSON 原生布尔参数取值（此前被吃成空串） |
+| R19/R20 | 09-08 | CRIM VMAP 0xDn 字符串表家族泛化（value_maps 8540→29718）、param_name 校验挂载、bool/(8,8) 接管臂 |
+| 批次 C–G | 09-14/15 | 豁免白名单+`--no-exemptions`；6013 消息表接入（netevent MUI RT_MESSAGETABLE 0x8000177D，well-known 注入）；NTSTATUS `NTSTATUS-System-Error` 全局组（ntdll 2975 条）+ (_,0x1F) hit-only 渲染臂；残余归属收口（Wininit 26 闭合） |
 
-## 7. 残留问题（D 类 162 条 / 24 簇，根因全部定位）
+## 7. 残留问题（2026-09-15 终态：D 类仅 2 条，归属已收口）
 
-- **map 条目簇（约 -85，下轮优先）**：KPP 55×36、Ntfs 98×28 等 VMAP 条目缺失；
-  Wininit 14 / Kernel-Boot 153 / LsaSrv 的 over-mapping（我们应用了 TDH 会忽略的 map）。
-- **GUID 花括号（-11）**：KGA 11×9、DriverFrameworks×2（需 (0f,0e) 渲染规则）。
-- **EventLog 6013×16**：消息源未定位（netevent MUI 已排除）。
-- **零星**：WER 1001×5（基线管线吃 `?` 产物，比对级豁免候选）、SAM 16962×3（SDDL
-  二进制转文本未实现）、WPD×4、SPP 1004×1（参数值本身异常）、CAPI2 4111×1。
+- **D 残留 2 条 = WER 1001×2**（App #2972/#3429）：上游渲染器把 WER 报告文件名 GUID
+  尾段十进制串 hex 化（`3003916586`→`0xb30c212a`，实证相等）——属上游取值层修复专项，
+  落地后 D 清零、M2=100%，比对层不动。
+- **豁免 6 项/10 条**（登记表唯一真源 `docs/residual-zeroing-plan-2026-09-07.md` §4）：
+  SPP 1004×1（PARSE）、CAPI2 4111×1（PARSE，可选专项=基线侧 CJK 日期 `?` 手术）、
+  SAM 16962×3（BIN）、disk 51×1（SRC）、WPD 24577×2 / 24579×2（PARSE）。
+- B718 / C51（含 6013 已接出后的无模板/裸参数簇）为已知未覆盖场景，历史既有。
 
 ## 8. 验证与测试循环（使用 `evtx-parity-test/`）
 
@@ -95,9 +103,9 @@ Message）。
 ### 8.1 层次一：代码单元测试（秒级，改上游后立即跑）
 
 ```bash
-cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ -count=1   # Go 侧（注：根目录 go build ./... 会因
-                                                                 #  历史坏探针 crim-probe-566/ 报错，属已知遗留）
-cd evtx-tools   && cargo test --workspace                       # Rust 侧（core 192 + cli 28 + 集成 3）
+cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ -count=1   # Go 侧（2026-09-15 起 go test ./... 全包绿：
+                                                                 #  125 用例，crim-probe-566 坏括号已修）
+cd evtx-tools   && cargo test --workspace                       # Rust 侧（2026-09-15：225 绿，bin 29 + core 193 + doctest 3）
 ```
 
 覆盖：v8 schema 契约（旧 v7 拒开、缺表硬错、空表特性关）、渲染规则

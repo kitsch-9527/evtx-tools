@@ -78,6 +78,23 @@
     ④format_for_display Step 2.5（9 位小数剥 000）已移除——它与 (17,2) 纳秒补位冲突，
     小数位差异由 06 norm_msg_time_frac 在比对层归一；⑤03 重建前必须删旧 DB 文件
     （CREATE TABLE IF NOT EXISTS 会保留旧表结构，param_name 列曾静默缺失）。
+12. **消息表排查路径（2026-09-14，阶段 C/D）**：EventLog 6013 的消息在 netevent.dll MUI 的
+    **RT_MESSAGETABLE（type 11）**，ID 0x8000177D。msgdb-dump 的 DUMP_STRINGS 只扫
+    RT_STRING（type 6）——**勿再以其 0 命中作为"type 11 消息不存在"的证据**；
+    同类排查一律走消息表抽取路径（阶段 D 已以 well-known 注入接入，6013×16 全 matched）。
+13. **injectWellKnownVariants 已实装（2026-09-14，阶段 D，勿回退为 stub）**；
+    `builtin_messages.go` 的 6013 硬编码已改正、6011 假条目已移除（勿恢复）。
+14. **NTSTATUS 渲染臂（2026-09-14，阶段 E）**：ntdll.dll RT_MESSAGETABLE 2975 条已入
+    `NTSTATUS-System-Error` 全局组（`parameter_refs`）；渲染臂 `(_, 0x1F)` 为
+    **hit-only（未命中 passthrough）**——勿改为全接管，否则殃及其它 0x1F 参数
+    （Wininit 26 `STATUS_SUCCESS` 即经此臂闭合）。
+15. **canon 双归一规则（2026-09-08，阶段 A）**：06-compare.py 的 `\\?\`≡`\\\` 双向与
+    U+200E/200F 剥离当前零命中仍保留——防御性正确（注释含根因，可一键摘除）；
+    勿以"零命中"为由删除。
+16. **EXEMPTIONS 双表（2026-09-08 起，阶段 B）**：`06-compare.py` 与
+    `scripts/acceptance-check.py` 的豁免表必须**同一提交同步改动**；登记表唯一真源为
+    `docs/residual-zeroing-plan-2026-09-07.md` §4（终态 6 项/10 条：SPP1004×1、
+    CAPI2 4111×1、SAM16962×3、disk51×1、WPD24577×2、WPD24579×2）。
 
 ## 已知上游缺口（首轮闭环发现；ADR 0003 单文件迁移已修 #1）
 
@@ -87,22 +104,23 @@
    而 wevtutil 现场拿到 Proof-of-Purchase，降格策略与运行时语义的真实分歧点。
 3. CSV 表头重复、`--format both` 同路径抢写（见上）。
 
-## 基线（严格口径 v8+R12+R10，2026-09-07，verdict=DIFF，31870/32801 一致）
+## 基线（严格口径，2026-09-15 终态，verdict=DIFF，32020/32801 一致，M1=97.6190%）
 
-| 通道 | 基线 | 新解析 | 一致 | 差异构成 |
+| 通道 | 基线 | 新解析 | 一致 | 差异构成（默认口径） |
 |---|---|---|---|---|
-| Application | 3925 | 3925 | 3833 | B74 + C11 + D7 |
+| Application | 3925 | 3925 | 3836 | B74 + C11 + D2 + 豁免2 |
 | Setup | 222 | 222 | 222 | 全绿 |
 | Security | 26031 | 26031 | 26031 | 全绿 |
-| System | 2623 | 2623 | 1784 | B644 + C40 + D155 |
+| System | 2623 | 2623 | 1931 | B644 + C40 + 豁免8 |
 
-历史：2026-09-05 起点 diff=1127（App D102/Sys D246）；R12 后 1026；R18+R10 后 931。
-D 类 348 → 162（-53%）。会话落地：ADR 0004（eventlog_sources 源注册快照 + N/A parity）、
-ADR 0005（param_types TDH 类型化渲染）、R18（JSON 布尔参数取值）。
-残余 D 主簇：KPP 55×36 / Ntfs 98×28（VMAP 条目缺）、KGA 1×26（枚举缺条目+纳秒）、
-EventLog 6013×16（消息源未定位）、KGA 11×9 + DriverFrameworks×2（GUID 花括号小写）、
-Wininit 14 / Kernel-Boot 153 / LsaSrv（over-mapping：TDB 忽略 map 而我们应用）、
-WER 1001×5（基线管线吃 `?` 产物，`\\?\` vs `\\\`，比对级豁免候选）。
+历史：2026-09-05 起点 diff=1127（App D102/Sys D246）；R12 后 1026；R18+R10 后 931；
+2026-09-08/09 批次（豁免机制）后 773；**2026-09-15 终态 771**（matched 32020，
+M1=97.6190%，超理想线 97.59%；M2=99.43%，D 残留 2/348；exempted=10 条/6 项，M5=761）。
+会话落地：ADR 0004/0005、R18-R20、豁免白名单+`--no-exemptions`、6013 消息表接入（D）、
+NTSTATUS `NTSTATUS-System-Error` 全局组+(_,0x1F) hit-only 渲染臂（E）。
+终态 D 残留：仅 **WER 1001×2**（App #2972/#3429，上游渲染器 hex 化 `3003916586`→`0xb30c212a`，
+转后续专项）。关豁免口径：diff=781=771+10（白名单全额回 D，无意外掩盖）。
+B718 / C51 为已知未覆盖场景（历史既有，见上文事实清单）。
 
 严格口径（2026-09-04 起）：hex 大小写 / GUID 花括号 / SDDL 分号 / 基线 `?` 不再豁免，
 上游渲染必须完全一致。Security 全绿实证链：`%1843` 映射修复 + 零 GUID 加花括号 +

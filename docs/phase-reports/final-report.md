@@ -1,10 +1,11 @@
 # 六小时持续执行计划 · 最终执行报告
 
+> **✅ 全部 8 阶段已完成（2026-09-15，C–H 于夜间心跳续跑完成）**
+
 - 执行日期：2026-09-08 23:04:31 启动（编排者会话，模型 glm-5.3-flash）
 - 实际执行窗口：23:04–23:32 + 次日 08:15–08:55（夜间遭平台限流与会话中断，跨夜续跑；
-  硬停止 2026-09-09 08:55）。有效执行约 **1 小时**，远小于 6h 总时间盒——
-  C–H 按计划 §3 缓冲裁剪规则**登记转后续**，未硬扛。
-- 阶段完成度：**A blocked 登记 / B 全部达成 / C–H 未执行（转后续）**。
+  硬停止 2026-09-09 08:55）+ **2026-09-14/15 夜间心跳续跑（C–H）**。
+- 阶段完成度：**A/B 于 09-08 完成；C–H 于 09-14/15 夜间心跳续跑完成——8/8 全部完成**。
 
 ---
 
@@ -42,28 +43,29 @@
 - 门：两模式 acceptance-check 均 **PASS，exit=0**；红线零 FAIL。
 - jj：`zmuvrlrp`。
 
-### 阶段 C–H — 未执行（时间盒耗尽，转后续）
+### 阶段 C–H（✅ 已于 2026-09-14/15 夜间心跳续跑完成，逐阶段结论）
 
-| 阶段 | 状态 | 续跑入口 |
+| 阶段 | 结论 | 报告 |
 |---|---|---|
-| C | 未执行 | 计划 §C：6013×16 三步法 research（注册表源枚举→全盘 message table 扫描→在线对照），60min 盒 |
-| D | 未执行 | 计划 §D：依 C 结论二选一（定位到源→接入萃取 / 未定位→WPD×4 取值层取证修复） |
-| E | 未执行 | 计划 §E：Ntfs 140 NTSTATUS 源定位（0xC000000E 检索 ntdll/ntoskrnl MUI；(x,0x1F)→NTSTATUS 渲染臂），30min 盒 |
-| F | 未执行 | 计划 §F：残余归属核对（Wininit 26 需 NTSTATUS 符号名表，大概率转豁免） |
-| G | 部分预演 | G6 关豁免口径已可跑且 PASS（B 落地）；**确定性门（05+06 重跑两次 diff/matched 一致）未跑**；G1–G7 全量未执行 |
-| H | 未执行 | skill 三镜像新"勿回退"事实、STATUS.md 数字更新、计划勾销、验收记录模板填写 |
+| C | **定位到源**：6013 消息在 netevent.dll MUI RT_MESSAGETABLE（type 11），ID 0x8000177D（DUMP_STRINGS 只扫 type 6，此前 0 命中系假证据） | phase-C-report.md |
+| D | **6013 清零**：`injectWellKnownVariants` 实装接入真实表文本，16 条全 matched；6011 假条目移除 | phase-D-report.md |
+| E | **Ntfs 140 清零 + 超收**：ntdll.dll RT_MESSAGETABLE 2975 条入 `NTSTATUS-System-Error` 全局组，渲染臂 (_,0x1F) hit-only | phase-E-report.md |
+| F | **归属收口**：Wininit 26 闭合（STATUS_SUCCESS 经 NTSTATUS 臂），豁免收口 6 项/10 条，登记表更新 | phase-F-report.md |
+| G | **全量验收 G1–G7 全过**：M1=97.6190%、M2=99.43%、确定性门三度全等、关豁免 781=771+10 无掩盖、exit=0 | phase-G-report.md |
+| H | **定稿**：skill 三镜像勿回退事实、STATUS 终态数字、计划勾销、handoff/final-report 同步、最终提交 | phase-H-report.md |
 
-## 2. 终态锚点（2026-09-09 08:30 实测，下次续跑以此为基线）
+## 2. 终态锚点（2026-09-15 阶段 G/H 实测，后续工作以此为基线）
 
-- **默认口径（豁免开启）**：diff=773、matched=32002/32801（97.5641%）、
-  D 残留 4/348（M2 98.85%）、exempted=26 条/7 项。
-- **关豁免口径**：diff=799、D 残留 30/348（M2 91.38%）。
+- **默认口径（豁免开启）**：diff=771、matched=32020/32801（**M1=97.6190%**，超理想线 97.59%）、
+  D 残留 2/348（**M2 99.43%**）、exempted=10 条/6 项、M5=761。
+- **关豁免口径**：diff=781=771+10（白名单全额按 D 计入，exempted=0），acceptance-check 亦 PASS。
 - 红线：Security/Setup diff=0、四通道 B/C 零新增（B 74/0/0/644，C 11/0/0/40）、
-  缺失类=0。
-- `report.prev.json` 仍为 A 前快照（diff=799 无 exempted 字段）——B/C 趋势线仍有效，
-  下轮可继续用；若刷新请整轮基线策略一并考虑。
-- EXEMPTIONS 双表（06-compare.py / acceptance-check.py）已同步于同一提交 `zmuvrlrp`；
-  登记表唯一真源仍为 residual plan §4（下轮 F 阶段核对同步）。
+  缺失类=0；单测 Rust 225 绿 + Go 125 绿。
+- D 残留归属：WER 1001×2（App #2972/#3429，上游 hex 化专项）；无未归属簇。
+- `report.prev.json` 为 E 前旧快照（diff=799）——G2 红线即以该口径执行且全过；
+  如需严格 prev 链可 `cp report.json report.prev.json` 刷新。
+- EXEMPTIONS 双表（06-compare.py / acceptance-check.py）自 B 起同提交同步；
+  登记表唯一真源 residual plan §4（F 已核对一致）。
 
 ## 3. 红线复核结论
 
