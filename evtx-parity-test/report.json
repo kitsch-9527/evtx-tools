@@ -1,9 +1,9 @@
 {
-  "generated_local": "2026-09-30 01:04:38",
+  "generated_local": "2026-09-30 01:31:26",
   "baseline_lang": "zh-CN",
   "compared": 44890,
-  "matched": 44828,
-  "diff": 44,
+  "matched": 44837,
+  "diff": 35,
   "exemptions_enabled": true,
   "exempted": 18,
   "exempted_detail": [
@@ -311,12 +311,12 @@
       "new_en": 6106,
       "new_zh": 6106,
       "compared": 6106,
-      "matched": 6060,
-      "diff": 30,
+      "matched": 6069,
+      "diff": 21,
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
       "categories": {
-        "D-实质分歧（含渲染格式差：hex大小写/GUI": 30
+        "D-实质分歧（含渲染格式差：hex大小写/GUI": 21
       },
       "exempted": 16,
       "status": "ok"

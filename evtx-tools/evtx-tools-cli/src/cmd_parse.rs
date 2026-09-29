@@ -1238,6 +1238,60 @@ mod tests {
         assert_eq!(result, vec!["S-1-5-21-...", "admin"]);
     }
 
+    // ── P4: 嵌套 UserData 展平后（parser.rs），取值层按 msgdb 63 参数表命中 9 槽 ──
+    // Resource-Exhaustion-Detector 2004 模板：%21 (%22) 使用了 %24 字节；…（Process_1..3）
+    #[test]
+    fn test_extract_subst_params_nested_userdata_resource_exhaustion() {
+        use serde_json::json;
+        // parser.rs 展平产物（真实 event_data 形态，键与 msgdb 参数表同名）
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "SystemCommitLimit": "65288781824",
+            "SystemCommitCharge": "65226944512",
+            "PagedPoolUsage": "6296014848",
+            "Tag_1_Name": "Toke",
+            "Tag_1_PoolUsed": "2343021056",
+            "Process_1_Name": "agent-win.exe",
+            "Process_1_ID": "18268",
+            "Process_1_CreationTime": "2026-09-07T08:24:56.170740Z",
+            "Process_1_CommitCharge": "7402741760",
+            "Process_1_HandleCount": "302",
+            "Process_1_Version": "1.3.11.0",
+            "Process_1_TypeInfo": "201",
+            "Process_2_Name": "Quicker.exe",
+            "Process_2_ID": "7860",
+            "Process_2_CommitCharge": "1702064128",
+            "Process_3_Name": "ZCode.exe",
+            "Process_3_ID": "36156",
+            "Process_3_CommitCharge": "801992704",
+            "Time": "2026-09-09T15:00:29.655227Z"
+        }));
+        // msgdb provider_message_variants.parameters 真实切片（同键序无关）
+        let param_map: Option<HashMap<String, String>> = Some(HashMap::from([
+            ("21".into(), "Process_1_Name".into()),
+            ("22".into(), "Process_1_ID".into()),
+            ("23".into(), "Process_1_CreationTime".into()),
+            ("24".into(), "Process_1_CommitCharge".into()),
+            ("28".into(), "Process_2_Name".into()),
+            ("29".into(), "Process_2_ID".into()),
+            ("31".into(), "Process_2_CommitCharge".into()),
+            ("35".into(), "Process_3_Name".into()),
+            ("36".into(), "Process_3_ID".into()),
+            ("38".into(), "Process_3_CommitCharge".into()),
+        ]));
+        let result = extract_subst_params(&None, ed_val.as_ref(), &param_map);
+        assert_eq!(result.len(), 38, "vec must cover the highest param index");
+        // 模板引用的 9 槽（0 基 = %N-1）全部取到真实值
+        assert_eq!(result[20], "agent-win.exe");   // %21
+        assert_eq!(result[21], "18268");           // %22
+        assert_eq!(result[23], "7402741760");      // %24
+        assert_eq!(result[27], "Quicker.exe");     // %28
+        assert_eq!(result[28], "7860");            // %29
+        assert_eq!(result[30], "1702064128");      // %31
+        assert_eq!(result[34], "ZCode.exe");       // %35
+        assert_eq!(result[35], "36156");           // %36
+        assert_eq!(result[37], "801992704");       // %38
+    }
+
     // ── P3: classic Binary → %n+1（wevtapi 实证：NetBT 4311 模板 %2=Binary hex）──
 
     #[test]

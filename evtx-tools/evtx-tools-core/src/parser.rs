@@ -193,8 +193,56 @@ pub fn extract_fields(
     /// ```
     /// → Output: `{"PackageIdentifier": "KB5087051", "IntendedPackageStateTextized": "Absent"}`
     ///
+    /// P4（2026-09-30）nested-UserData structs: when a direct child is an object
+    /// WITHOUT a `#text`/`$` leaf (nested containers, e.g. Resource-Exhaustion
+    /// Detector 2004 `MemoryExhaustionInfo` → `SystemInfo`/`ProcessInfo`), the
+    /// legacy code dropped it entirely → `event_data=None` → all substitution
+    /// params empty. Such containers are now flattened, shape-gated:
+    /// - depth-2 leaf fields keep their bare name (`SystemInfo.SystemCommitLimit`
+    ///   → `"SystemCommitLimit"` — matches the msgdb parameter table exactly);
+    /// - depth-3 struct members get the struct name as prefix
+    ///   (`ProcessInfo.Process_1.Name` → `"Process_1_Name"` — the msgdb naming
+    ///   for template slots %21/%22/%24 etc.);
+    /// - `null` leaves produce no key; anything deeper stays untouched.
+    /// Single-level UserData (Setup channel) behaves exactly as before.
+    ///
     /// Returns `None` if UserData is not in the expected format.
     fn extract_userdata_as_eventdata(userdata: &Value) -> Option<Value> {
+        // Flatten one nested container (an object without a #text/$ leaf).
+        // `prefix` is None for the container's direct children (depth-2: bare
+        // field name) and the struct name for depth-3 members.
+        fn flatten_container(container: &serde_json::Map<String, Value>, prefix: Option<&str>, flat: &mut serde_json::Map<String, Value>) {
+            for (k, v) in container.iter() {
+                // Skip XML attribute wrappers (#attributes, xmlns, etc.)
+                if k.starts_with('#') || k.starts_with('@') {
+                    continue;
+                }
+                let key = match prefix {
+                    Some(p) => format!("{p}_{k}"),
+                    None => k.clone(),
+                };
+                match v {
+                    Value::String(_) | Value::Number(_) => {
+                        flat.insert(key, v.clone());
+                    }
+                    Value::Object(o) => {
+                        // {"#text": ...}/{"$": ...} leaf wrapper → take the leaf
+                        if let Some(inner) = o.get("#text").or_else(|| o.get("$")) {
+                            flat.insert(key, inner.clone());
+                        } else if prefix.is_none() {
+                            // One more nesting level (e.g. Process_1 → {Name, ID,...}):
+                            // struct name becomes the key prefix. Deeper nesting is
+                            // left untouched (conservative shape gate).
+                            flatten_container(o, Some(&key), flat);
+                        }
+                    }
+                    _ => {
+                        // null / bool / array leaves: no key (null Process_N.Name etc.)
+                    }
+                }
+            }
+        }
+
         let userdata_obj = userdata.as_object()?;
         // UserData always contains exactly one child element (the event-specific XML element)
         let (_event_name, event_data_value) = userdata_obj.iter().next()?;
@@ -213,8 +261,15 @@ pub fn extract_fields(
                         Value::Number(n) => Some(Value::Number(n.clone())),
                         Value::Object(o) => {
                             // Handle {"#text": "value"} wrapper from evtx crate
-                            let inner = o.get("#text").or_else(|| o.get("$")).cloned();
-                            inner
+                            match o.get("#text").or_else(|| o.get("$")) {
+                                Some(inner) => Some(inner.clone()),
+                                // P4: nested container without a leaf — flatten it
+                                // (shape gate: this previously produced no key at all)
+                                None => {
+                                    flatten_container(o, None, &mut flat);
+                                    None
+                                }
+                            }
                         }
                         _ => None,
                     };
@@ -594,6 +649,152 @@ mod tests {
         assert_eq!(event.event_id, None);
         assert!(event_data_val.is_none());
         assert_eq!(event.file_name.as_deref(), Some("empty_file.evtx"));
+    }
+
+    // ── P4（2026-09-30）：嵌套 UserData 结构展平（Resource-Exhaustion-Detector 2004 ×9）──
+    //
+    // 形态取证（probe 对 baseline-evtx/System.evtx 真实记录 + wevtutil raw XML 双向实证）：
+    // UserData.MemoryExhaustionInfo 下是嵌套容器（SystemInfo/ProcessInfo/...），evtx 0.12
+    // JSON 里是**无 #text/$ 叶子的嵌套 Object**，旧逻辑整支丢弃 → event_data=None →
+    // 模板命中但 63 个参数全空（"() 使用了 字节"）。
+    // 展平规则（只对"根子节点为无叶子嵌套 Object"的形态生效，单层 Setup 形态不变）：
+    //   深度2 容器名丢弃：SystemInfo.SystemCommitLimit → "SystemCommitLimit"
+    //   深度3 结构体名保留为前缀：ProcessInfo.Process_1.Name → "Process_1_Name"
+    // msgdb 参数表（63 项）按名精确命中模板引用的 9 槽：
+    //   %21=Process_1_Name %22=Process_1_ID %24=Process_1_CommitCharge
+    //   %28/%29/%31、%35/%36/%38 同构（Process_2/3）。
+    #[test]
+    fn test_extract_fields_userdata_nested_struct_flattened() {
+        // 形态与 baseline-evtx/System.evtx EventRecordID=3614 的 evtx-0.12 输出逐字段一致
+        //（数字保持 JSON Number，Process_4.Name 为 null）
+        let value: Value = serde_json::from_str(r##"{
+            "Event": {
+                "System": {
+                    "Provider": {"#attributes": {"Name": "Microsoft-Windows-Resource-Exhaustion-Detector"}},
+                    "EventID": 2004,
+                    "Channel": "System"
+                },
+                "UserData": {
+                    "MemoryExhaustionInfo": {
+                        "#attributes": {"xmlns": "http://www.microsoft.com/Windows/Resource/Exhaustion/Detector/Events"},
+                        "SystemInfo": {
+                            "SystemCommitLimit": 65288781824,
+                            "SystemCommitCharge": 65226944512,
+                            "PagedPoolUsage": 6296014848,
+                            "Processes": 1923
+                        },
+                        "PagedPoolInfo": {
+                            "Tag_1": {"Name": "Toke", "PoolUsed": 2343021056}
+                        },
+                        "ProcessInfo": {
+                            "Process_1": {
+                                "Name": "agent-win.exe",
+                                "ID": 18268,
+                                "CreationTime": "2026-09-07T08:24:56.170740Z",
+                                "CommitCharge": 7402741760,
+                                "HandleCount": 302,
+                                "Version": "1.3.11.0",
+                                "TypeInfo": 201
+                            },
+                            "Process_2": {"Name": "Quicker.exe", "ID": 7860, "CommitCharge": 1702064128},
+                            "Process_3": {"Name": "ZCode.exe", "ID": 36156, "CommitCharge": 801992704},
+                            "Process_4": {"Name": null, "ID": 0, "CommitCharge": 0}
+                        },
+                        "ExhaustionEventInfo": {"Time": "2026-09-09T15:00:29.655227Z"}
+                    }
+                }
+            }
+        }"##).unwrap();
+        let (event, event_data_val) = extract_fields(value, 3614, "System.evtx");
+
+        // 解析层不再空置：event_data 必须携带展平后的对象
+        let ed_str = event.event_data.as_deref().expect("event_data must be Some for nested UserData");
+        let ed: Value = serde_json::from_str(ed_str).unwrap();
+        let obj = ed.as_object().unwrap();
+        // 数字叶子在 JSON 序列化后仍是 Number（下游 extract_subst_params_ext 会 to_string）
+        let s = |k: &str| -> Option<String> {
+            obj.get(k).map(|v| match v {
+                Value::String(x) => x.clone(),
+                Value::Number(n) => n.to_string(),
+                other => other.to_string(),
+            })
+        };
+
+        // 深度2：容器名丢弃，叶子键为字段名（与 msgdb 参数表精确同名）
+        assert_eq!(s("SystemCommitLimit"), Some("65288781824".to_string()));
+        assert_eq!(s("SystemCommitCharge"), Some("65226944512".to_string()));
+        assert_eq!(s("PagedPoolUsage"), Some("6296014848".to_string()));
+        assert_eq!(s("Time"), Some("2026-09-09T15:00:29.655227Z".to_string()));
+
+        // 深度3：结构体名作前缀（msgdb %21/%22/%24 命名即此形态）
+        assert_eq!(s("Process_1_Name"), Some("agent-win.exe".to_string()));
+        assert_eq!(s("Process_1_ID"), Some("18268".to_string()));
+        assert_eq!(s("Process_1_CommitCharge"), Some("7402741760".to_string()));
+        assert_eq!(s("Process_2_Name"), Some("Quicker.exe".to_string()));
+        assert_eq!(s("Process_2_ID"), Some("7860".to_string()));
+        assert_eq!(s("Process_2_CommitCharge"), Some("1702064128".to_string()));
+        assert_eq!(s("Process_3_Name"), Some("ZCode.exe".to_string()));
+        assert_eq!(s("Process_3_CommitCharge"), Some("801992704".to_string()));
+
+        // Tag 结构体同规则（模板未引用，但展平不丢）；null 叶子不产出键
+        assert_eq!(s("Tag_1_Name"), Some("Toke".to_string()));
+        assert_eq!(s("Tag_1_PoolUsed"), Some("2343021056".to_string()));
+        assert!(!obj.contains_key("Process_4_Name"), "null leaf must not produce a key");
+
+        // 返回给下游的 event_data_value 与序列化结果同源
+        assert!(event_data_val.is_some());
+    }
+
+    #[test]
+    fn test_extract_fields_userdata_single_level_flat_preserved() {
+        // Setup 通道既有形态（单层 UserData）必须完全不受展平影响
+        let value: Value = serde_json::from_str(r##"{
+            "Event": {
+                "System": {
+                    "Provider": {"#attributes": {"Name": "Microsoft-Windows-Servicing"}},
+                    "EventID": 1,
+                    "Channel": "Setup"
+                },
+                "UserData": {
+                    "CbsPackageChangeState": {
+                        "#attributes": {"xmlns": "http://manifests.microsoft.com/win/2008/08/windows/setup_events"},
+                        "PackageIdentifier": "KB5087051",
+                        "IntendedPackageStateTextized": "Absent"
+                    }
+                }
+            }
+        }"##).unwrap();
+        let (event, event_data_val) = extract_fields(value, 1, "Setup.evtx");
+
+        let ed_str = event.event_data.expect("single-level UserData must still flatten");
+        let ed: Value = serde_json::from_str(&ed_str).unwrap();
+        let obj = ed.as_object().unwrap();
+        assert_eq!(obj.len(), 2, "exactly the two direct leaf fields");
+        assert_eq!(obj.get("PackageIdentifier").and_then(|v| v.as_str()), Some("KB5087051"));
+        assert_eq!(obj.get("IntendedPackageStateTextized").and_then(|v| v.as_str()), Some("Absent"));
+        assert!(event_data_val.is_some());
+    }
+
+    #[test]
+    fn test_extract_fields_userdata_nested_object_with_text_leaf() {
+        // 嵌套容器的儿子若带 #text/$ 叶子，仍按"容器键=键名"取叶子（不递归再深）
+        let value: Value = serde_json::from_str(r##"{
+            "Event": {
+                "System": {"Provider": {"#attributes": {"Name": "X"}}, "EventID": 1},
+                "UserData": {
+                    "Root": {
+                        "Wrapper": {"#text": "leaf-value"},
+                        "Dollar": {"$": "dollar-value"}
+                    }
+                }
+            }
+        }"##).unwrap();
+        let (event, _) = extract_fields(value, 2, "t.evtx");
+        let ed_str = event.event_data.expect("text-wrapped nested objects stay extractable");
+        let ed: Value = serde_json::from_str(&ed_str).unwrap();
+        let obj = ed.as_object().unwrap();
+        assert_eq!(obj.get("Wrapper").and_then(|v| v.as_str()), Some("leaf-value"));
+        assert_eq!(obj.get("Dollar").and_then(|v| v.as_str()), Some("dollar-value"));
     }
 
     #[test]
