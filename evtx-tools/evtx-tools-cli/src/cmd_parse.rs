@@ -57,6 +57,7 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
     db.load_param_refs(&target_lang)?;
     db.load_value_maps()?;
     db.load_registry_sources()?;
+    db.load_variant_providers()?;
     db.load_param_types()?;
     let msg_db: Option<MessageDb> = Some(db);
 
@@ -527,11 +528,25 @@ fn process_parallel_batch(
                 let eid = event.event_id.unwrap_or(0);
                 if eid != 0 {
                     if let Some(prov) = event.provider_name.as_deref() {
-                        let (known, registered) = match db.lock() {
-                            Ok(g) => (g.registry_known(), g.is_registered_source(prov)),
-                            Err(_) => (false, true),
+                        let (known, registered, has_variants) = match db.lock() {
+                            Ok(g) => (
+                                g.registry_known(),
+                                g.is_registered_source(prov),
+                                g.has_any_variant(prov),
+                            ),
+                            Err(_) => (false, true, true),
                         };
                         if known && !registered {
+                            event.message = Some("N/A".to_string());
+                            return;
+                        }
+                        // R12b（2026-09-30）registered-but-no-resources：已注册但
+                        // provider_message_variants 无任何行（如
+                        // Microsoft-Windows-Configuration-Change-Monitor，System
+                        // 通道 eid=1 ×80，基线渲染全 N/A）→ wevtapi
+                        // EvtFormatMessage 无消息资源可解析，同样渲染 N/A。
+                        // 既有「未注册→N/A」语义完全不变；表空=未知=保守不触发。
+                        if known && registered && !has_variants {
                             event.message = Some("N/A".to_string());
                             return;
                         }

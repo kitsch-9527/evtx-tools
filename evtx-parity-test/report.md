@@ -1,6 +1,6 @@
 # 对比报告（基线解析 vs 新解析）
 
-- 生成时间（本地）：2026-09-29 18:33:22
+- 生成时间（本地）：2026-09-29 23:39:29
 - 主比对：基线（zh-CN 渲染，G0 自动探测） vs new-parsed/zh（同语言，严格五字段）
 - 口径：EventID / Provider / Channel / TimeCreated（两边均为本地时间，直接比，容差2s）/ Message（空白归一）
 - 对齐：同一文件出现顺序逐条对齐（基线Event[N]顺序对应新解析sequence_number顺序）
@@ -9,7 +9,7 @@
 
 ## 结论
 
-- 未通过：主链（基线vs en）共比对 44890 条，一致 44635 条，差异 237 条
+- 未通过：主链（基线vs en）共比对 44890 条，一致 44715 条，差异 157 条
 
 ## 分通道统计（主：基线 vs zh）
 
@@ -18,7 +18,7 @@
 | Application | 10742 | 10742 | 10742 | 10726 | 14 | 0 | ok |
 | Setup | 676 | 676 | 676 | 676 | 0 | 0 | ok |
 | Security | 27366 | 27366 | 27366 | 27366 | 0 | 0 | ok |
-| System | 6106 | 6106 | 6106 | 5867 | 223 | 0 | ok |
+| System | 6106 | 6106 | 6106 | 5947 | 143 | 0 | ok |
 
 ## 副侧覆盖率对照（基线 vs en，不比Message）
 
@@ -174,4 +174,4 @@
 - 新解析zh EventID=98 Provider=Microsoft-Windows-Ntfs Time=2026-08-21 05:02:59.410638
 - 新解析zh Message（前300字）：卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume8) is healthy. No action is needed.
 
-还有 217 条差异未展示，见 report.diff。
+还有 137 条差异未展示，见 report.diff。

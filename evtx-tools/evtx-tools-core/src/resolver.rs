@@ -65,6 +65,12 @@ pub struct MessageDb {
     /// snapshot means "registry state unknown": `is_registered_source` then
     /// reports everything registered and the N/A-parity path stays off.
     registry_sources: HashSet<String>,
+    /// Providers with at least one `provider_message_variants` row (R12b,
+    /// 2026-09-30, registered-but-no-resources). An empty set means "unknown"
+    /// (table empty or `load_variant_providers` not called) and reads
+    /// conservatively as "every provider has resources" — the extra N/A path
+    /// stays off, mirroring the empty-registry semantics of ADR 0004.
+    providers_with_variants: HashSet<String>,
     /// Per-parameter TDH InType/OutType hints (R10 / ADR 0005):
     /// (provider, event_id) → param_index → (in:out hex pair, param_name).
     /// The param_name makes the hint template-scoped: variants whose param at
@@ -101,6 +107,7 @@ impl MessageDb {
             value_maps: HashMap::new(),
             bitmap_names: HashSet::new(),
             registry_sources: HashSet::new(),
+            providers_with_variants: HashSet::new(),
             param_types_cache: HashMap::new(),
         })
     }
@@ -214,6 +221,43 @@ impl MessageDb {
             return true;
         }
         self.registry_sources.contains(name)
+    }
+
+    /// Load the set of providers that have at least one row in
+    /// `provider_message_variants` (R12b, registered-but-no-resources).
+    /// The table is part of the v8 schema — absence is a hard error
+    /// (re-run msgdb-dump). An empty table reads as "state unknown":
+    /// [`has_any_variant`](MessageDb::has_any_variant) then conservatively
+    /// reports every provider as having resources.
+    pub fn load_variant_providers(&mut self) -> Result<()> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT DISTINCT provider_name FROM provider_message_variants")
+            .map_err(|e| {
+                format!("messages db lacks provider_message_variants (want schema_version 8, re-run msgdb-dump): {e}")
+            })?;
+        let rows = stmt
+            .query_map([], |row| row.get::<_, String>(0))
+            .map_err(|e| format!("failed to query provider_message_variants: {e}"))?;
+        for row in rows {
+            if let Ok(name) = row {
+                self.providers_with_variants.insert(name);
+            }
+        }
+        Ok(())
+    }
+
+    /// Whether `name` has at least one message-variant row (any language).
+    /// R12b: a registered provider with zero variant rows has no message
+    /// resources at all — wevtapi's EvtFormatMessage fails on it and renders
+    /// N/A, exactly like the unregistered case. An unknown state (empty set:
+    /// table empty or not loaded) conservatively reports true so the extra
+    /// N/A path stays off.
+    pub fn has_any_variant(&self, name: &str) -> bool {
+        if self.providers_with_variants.is_empty() {
+            return true;
+        }
+        self.providers_with_variants.contains(name)
     }
 
     /// Load all `%%N` parameter references from the `parameter_refs` table.
@@ -1020,6 +1064,84 @@ mod tests {
         assert!(!db.registry_known(), "empty snapshot = unknown state");
         assert!(db.is_registered_source("Anything-At-All"));
         let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn load_variant_providers_registered_without_resources() {
+        // R12b（2026-09-30）registered-but-no-resources：CfgChangeMonitor 形态 —
+        // eventlog_sources 有行（已注册）、provider_message_variants 无行（无任何
+        // 消息资源）。wevtapi EvtFormatMessage 无资源可解析同样渲染 N/A，
+        // 谓词必须区分这两种 provider。
+        let tmp = tmp_path("variant_providers");
+        let _ = std::fs::remove_file(&tmp);
+        {
+            let conn = Connection::open(&tmp).unwrap();
+            create_v8_schema(&conn);
+            insert_metadata_8(&conn);
+            conn.execute_batch(
+                "INSERT INTO eventlog_sources(source_name, source_type) VALUES
+                    ('Registered-No-Resources', 'winevt'),
+                    ('Registered-With-Resources', 'winevt');",
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO dll_entries(dll_id, dll_name, dll_path) VALUES(1, 'rw.dll', 'C:/rw.dll')",
+                [],
+            )
+            .unwrap();
+            conn.execute(
+                r#"INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id, message) VALUES('Registered-With-Resources', '{RW-GUID}', 'en-US', 1, 0, 4, 0, 0, '0', 0, 1, 1, 'Hello %1')"#,
+                [],
+            )
+            .unwrap();
+            drop(conn);
+        }
+        let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db.load_variant_providers().unwrap();
+        assert!(
+            !db.has_any_variant("Registered-No-Resources"),
+            "registered provider with zero variant rows must read as no-resources"
+        );
+        assert!(
+            db.has_any_variant("Registered-With-Resources"),
+            "provider with variant rows must read as having resources"
+        );
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn has_any_variant_empty_or_unloaded_is_conservative_true() {
+        // 表空 = 快照未知（采集失败/未加载）：谓词一律 true 保守 —— 新 N/A 路径
+        // 保持关闭，不得把「全库无 variants 行」误读成「全员无资源」（ADR 0004
+        // 空 registry 快照同款保守语义）。
+        let tmp = tmp_path("variant_providers_empty");
+        let _ = std::fs::remove_file(&tmp);
+        {
+            let conn = Connection::open(&tmp).unwrap();
+            create_v8_schema(&conn);
+            insert_metadata_8(&conn);
+            drop(conn);
+        }
+        let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db.load_variant_providers().unwrap();
+        assert!(
+            db.has_any_variant("Any-Provider-At-All"),
+            "empty variants table = unknown state, must conservatively report true"
+        );
+
+        // load 未调用（快照未加载）同样保守 true。
+        let tmp2 = tmp_path("variant_providers_unloaded");
+        let _ = std::fs::remove_file(&tmp2);
+        {
+            let conn = Connection::open(&tmp2).unwrap();
+            create_v8_schema(&conn);
+            insert_metadata_8(&conn);
+            drop(conn);
+        }
+        let db2 = MessageDb::open(tmp2.to_str().unwrap()).unwrap();
+        assert!(db2.has_any_variant("Any-Provider-At-All"));
+        let _ = std::fs::remove_file(&tmp);
+        let _ = std::fs::remove_file(&tmp2);
     }
 
     #[test]
