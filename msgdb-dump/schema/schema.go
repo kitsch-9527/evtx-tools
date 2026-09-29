@@ -56,13 +56,20 @@ CREATE TABLE IF NOT EXISTS parameter_refs (
     PRIMARY KEY (provider_name, param_id, lang)
 );
 
+-- Value map table (v9, 2026-09-30): lang column added so per-language
+-- display strings can coexist — each language's MUI D2 string overlay is
+-- parsed separately and its MAPS/VMAP displays land as their own rows
+-- (zh-CN over en-US at the same provider/map/value key). Readers load the
+-- render language as the preferred layer and en-US as the fallback layer,
+-- mirroring load_param_refs' v9 dual-layer pattern.
 CREATE TABLE IF NOT EXISTS value_maps (
     provider_name TEXT NOT NULL,
     map_name      TEXT NOT NULL,
     entry_value   TEXT NOT NULL,
     display_name  TEXT NOT NULL,
     is_bitmap     INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (provider_name, map_name, entry_value)
+    lang          TEXT NOT NULL DEFAULT 'en-US',
+    PRIMARY KEY (provider_name, map_name, entry_value, lang)
 );
 
 CREATE TABLE IF NOT EXISTS param_value_maps (

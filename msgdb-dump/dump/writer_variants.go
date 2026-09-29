@@ -75,15 +75,17 @@ func InsertParameterRef(db *sql.DB, providerName string, paramID int, message, l
 	return nil
 }
 
-// InsertValueMap inserts a single value map entry.
-func InsertValueMap(db *sql.DB, providerName, mapName, entryValue, displayName string, isBitmap bool) error {
+// InsertValueMap inserts a single value map entry. v9 (2026-09-30): rows are
+// lang-scoped — the same (provider, map, value) key can hold one display per
+// language (zh-CN MUI overlay vs en-US base).
+func InsertValueMap(db *sql.DB, providerName, mapName, entryValue, displayName string, isBitmap bool, lang string) error {
 	bitmapVal := 0
 	if isBitmap {
 		bitmapVal = 1
 	}
 	_, err := db.Exec(
-		"INSERT OR IGNORE INTO value_maps (provider_name, map_name, entry_value, display_name, is_bitmap) VALUES (?, ?, ?, ?, ?)",
-		providerName, mapName, entryValue, displayName, bitmapVal,
+		"INSERT OR IGNORE INTO value_maps (provider_name, map_name, entry_value, display_name, is_bitmap, lang) VALUES (?, ?, ?, ?, ?, ?)",
+		providerName, mapName, entryValue, displayName, bitmapVal, lang,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert value_map '%s' for %s: %w", mapName, providerName, err)
@@ -290,7 +292,7 @@ func insertSystemMetadata(db *sql.DB, osInfo OsInfo, langCodes []string) error {
 		"product_name":    osInfo.ProductName,
 		"display_version": osInfo.DisplayVersion,
 		"build_number":    osInfo.BuildNumber,
-		"schema_version":  "8",
+		"schema_version":  "9",
 		"langs":           joinLangCodes(langCodes),
 		"created_at":      "2026-09-02T00:00:00Z",
 	}

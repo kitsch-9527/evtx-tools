@@ -94,6 +94,12 @@ type DLLResult struct {
 	// ParamMessages keeps the en-US layer for existing consumers.
 	ParamMessagesByLang map[string]map[uint32]string `json:"param_messages_by_lang,omitempty"`
 	ValueMaps      map[string]map[string]string `json:"value_maps"`
+	// ValueMapsByLang carries per-language value maps (v9, 2026-09-30):
+	// lang → map_name → value_str → display. Each language's MUI D2-string
+	// overlay is parsed separately (same-key full override over the main-DLL
+	// base), fixing the en-bias where MUI strings only filled missing keys.
+	// Legacy ValueMaps keeps the merged/en layer for existing consumers.
+	ValueMapsByLang map[string]map[string]map[string]string `json:"value_maps_by_lang,omitempty"`
 	// ParamMapRefs links event parameters to their value maps, collected
 	// from the CRIM+MUI fallback (TEMP item +8 → VMAP/BMAP association).
 	ParamMapRefs []ParamMapRef `json:"param_map_refs,omitempty"`

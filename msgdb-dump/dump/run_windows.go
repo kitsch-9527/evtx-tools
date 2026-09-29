@@ -30,9 +30,13 @@ type paramRefEntry struct {
 }
 
 // valueMapEntry groups a provider name with its value maps (VMAP/BMAP).
+// v9 (2026-09-30): ValueMapsByLang carries per-language displays
+// (lang → map_name → value → display) parsed from each language's MUI
+// D2-string overlay; legacy ValueMaps stays as the en-US layer.
 type valueMapEntry struct {
 	ProviderName string
 	ValueMaps    map[string]map[string]string
+	ValueMapsByLang map[string]map[string]map[string]string
 }
 
 // ---------------------------------------------------------------------------
@@ -294,15 +298,28 @@ func RunDump(args *DumpArgs) error {
 						if langCode == langCodes[0] && len(crimResult.ParamMapRefs) > 0 {
 							allParamValueMaps = append(allParamValueMaps, crimResult.ParamMapRefs...)
 						}
-						// Collect ValueMaps from CRIM+MUI fallback (only once)
-						if langCode == langCodes[0] {
+						// Collect ValueMaps from CRIM+MUI fallback.
+						// v9: extractMUICRIMFromBlobs parses with langCode's MUI
+						// D2 strings — displays land under their own lang;
+						// the primary language also fills the legacy flat layer.
+						{
+							if result.ValueMapsByLang == nil {
+								result.ValueMapsByLang = make(map[string]map[string]map[string]string)
+							}
+							byMap := result.ValueMapsByLang[langCode]
+							if byMap == nil {
+								byMap = make(map[string]map[string]string)
+							}
 							if len(crimResult.ValueMaps) > 0 {
 								for mapName, entries := range crimResult.ValueMaps {
 									vm := make(map[string]string)
 									for val, display := range entries {
 										vm[strconv.FormatUint(uint64(val), 10)] = display
 									}
-									result.ValueMaps[provider.Name+"."+mapName] = vm
+									byMap[provider.Name+"."+mapName] = vm
+									if langCode == langCodes[0] {
+										result.ValueMaps[provider.Name+"."+mapName] = vm
+									}
 								}
 							}
 							if len(crimResult.BitMaps) > 0 {
@@ -311,9 +328,13 @@ func RunDump(args *DumpArgs) error {
 									for bitPos, display := range entries {
 										vm[strconv.FormatUint(bitPos, 10)] = display
 									}
-									result.ValueMaps[provider.Name+"."+mapName+"_bits"] = vm
+									byMap[provider.Name+"."+mapName+"_bits"] = vm
+									if langCode == langCodes[0] {
+										result.ValueMaps[provider.Name+"."+mapName+"_bits"] = vm
+									}
 								}
 							}
+							result.ValueMapsByLang[langCode] = byMap
 						}
 					}
 				}
@@ -321,21 +342,23 @@ func RunDump(args *DumpArgs) error {
 		}
 
 		// Collect ValueMaps added during CRIM+MUI fallback
-		if len(result.ValueMaps) > 0 {
+		if len(result.ValueMaps) > 0 || len(result.ValueMapsByLang) > 0 {
 			for _, p := range result.Providers {
 				allValueMaps = append(allValueMaps, valueMapEntry{
-					ProviderName: p.Name,
-					ValueMaps:    result.ValueMaps,
+					ProviderName:    p.Name,
+					ValueMaps:       result.ValueMaps,
+					ValueMapsByLang: result.ValueMapsByLang,
 				})
 			}
 		}
 
 		// Collect ValueMaps from CRIM+MUI fallback (after the loop)
-		if len(result.ValueMaps) > 0 {
+		if len(result.ValueMaps) > 0 || len(result.ValueMapsByLang) > 0 {
 			for _, p := range result.Providers {
 				allValueMaps = append(allValueMaps, valueMapEntry{
-					ProviderName: p.Name,
-					ValueMaps:    result.ValueMaps,
+					ProviderName:    p.Name,
+					ValueMaps:       result.ValueMaps,
+					ValueMapsByLang: result.ValueMapsByLang,
 				})
 			}
 		}
@@ -385,7 +408,7 @@ func RunDump(args *DumpArgs) error {
 	sysDBName := SystemDBFilename(osInfo)
 	sysDBPath := filepath.Join(args.OutDir, sysDBName)
 
-	variantGroups, variantValueMaps, variantParamRefs, variantParamTypes := BuildProviderVariantGroups(dllResults, langCodes)
+	variantGroups, variantValueMaps, variantValueMapsByLang, variantParamRefs, variantParamTypes := BuildProviderVariantGroups(dllResults, langCodes)
 	if len(variantGroups) == 0 {
 		return fmt.Errorf("no provider variant groups could be built")
 	}
@@ -415,6 +438,19 @@ func RunDump(args *DumpArgs) error {
 			providerName = fullKey[:idx]
 		}
 		allValueMaps = append(allValueMaps, valueMapEntry{ProviderName: providerName, ValueMaps: map[string]map[string]string{fullKey: v}})
+	}
+	// v9 (2026-09-30): per-language value maps land as lang-scoped rows.
+	for lang, byMap := range variantValueMapsByLang {
+		for fullKey, v := range byMap {
+			providerName := fullKey
+			if idx := strings.Index(fullKey, "."); idx >= 0 {
+				providerName = fullKey[:idx]
+			}
+			allValueMaps = append(allValueMaps, valueMapEntry{
+				ProviderName:    providerName,
+				ValueMapsByLang: map[string]map[string]map[string]string{lang: {fullKey: v}},
+			})
+		}
 	}
 	if len(variantParamRefs) > 0 {
 		allParamValueMaps = append(allParamValueMaps, variantParamRefs...)
@@ -695,10 +731,11 @@ func importWELMSeed(db *sql.DB, welmPath string) (uint64, error) {
 		return 0, fmt.Errorf("import parameter_refs: %w", err)
 	}
 
-	// Step 6: value_maps
+	// Step 6: value_maps (v9: the v7 seed has no lang column — seed rows land
+	// as the en-US fallback layer via the lang literal)
 	if _, err := db.Exec(`INSERT OR IGNORE INTO value_maps
-		(provider_name, map_name, entry_value, display_name, is_bitmap)
-		SELECT provider_name, map_name, entry_value, display_name, is_bitmap FROM seed.value_maps`); err != nil {
+		(provider_name, map_name, entry_value, display_name, is_bitmap, lang)
+		SELECT provider_name, map_name, entry_value, display_name, is_bitmap, 'en-US' FROM seed.value_maps`); err != nil {
 		db.Exec("ROLLBACK")
 		return 0, fmt.Errorf("import value_maps: %w", err)
 	}
@@ -789,7 +826,8 @@ func writeValueMaps(dbPath string, maps []valueMapEntry) error {
 		entry_value   TEXT NOT NULL,
 		display_name  TEXT NOT NULL,
 		is_bitmap     INTEGER NOT NULL DEFAULT 0,
-		PRIMARY KEY (provider_name, map_name, entry_value)
+		lang          TEXT NOT NULL DEFAULT 'en-US',
+		PRIMARY KEY (provider_name, map_name, entry_value, lang)
 	)`); err != nil {
 		return fmt.Errorf("create value_maps table: %w", err)
 	}
@@ -798,10 +836,24 @@ func writeValueMaps(dbPath string, maps []valueMapEntry) error {
 	}
 	written := 0
 	for _, vm := range maps {
+		// v9 (2026-09-30): per-language rows first; the legacy layer lands as
+		// en-US (the fallback language every reader keeps).
+		for lang, byMap := range vm.ValueMapsByLang {
+			for mapName, entries := range byMap {
+				isBitmap := strings.HasSuffix(mapName, "_bits")
+				for entryValue, displayName := range entries {
+					if err := InsertValueMap(db, vm.ProviderName, mapName, entryValue, displayName, isBitmap, lang); err != nil {
+						fmt.Printf("[warn] value_map '%s' for '%s' (%s): %v\n", mapName, vm.ProviderName, lang, err)
+					} else {
+						written++
+					}
+				}
+			}
+		}
 		for mapName, entries := range vm.ValueMaps {
 			isBitmap := strings.HasSuffix(mapName, "_bits")
 			for entryValue, displayName := range entries {
-				if err := InsertValueMap(db, vm.ProviderName, mapName, entryValue, displayName, isBitmap); err != nil {
+				if err := InsertValueMap(db, vm.ProviderName, mapName, entryValue, displayName, isBitmap, "en-US"); err != nil {
 					fmt.Printf("[warn] value_map '%s' for '%s': %v\n", mapName, vm.ProviderName, err)
 				} else {
 					written++

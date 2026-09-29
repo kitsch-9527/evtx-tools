@@ -67,7 +67,7 @@ func ExtractSingleDLL(dllPath string, providers []ProviderInfo, langLCIDs, langC
 	// Collect the 0xD2 string table (RT_MESSAGETABLE entries with IDs
 	// 0xD200xxxx) from the main DLL and all MUI companions. CRIM VMAP/BMAP
 	// entry references use 0xD2-encoded indexes into this table.
-	d2Strings := make(map[uint32]string)
+		d2Strings := make(map[uint32]string)
 	for k, v := range combined.D2Strings {
 		d2Strings[k] = v
 	}
@@ -84,6 +84,13 @@ func ExtractSingleDLL(dllPath string, providers []ProviderInfo, langLCIDs, langC
 			}
 		}
 	}
+
+	// v9 (2026-09-30): per-language string tables for VMAP/BMAP display
+	// extraction. Base = main DLL RTStrings+D2Strings; each language's MUI
+	// D2Strings fully overlay it (same-key override — mirrors MUI whole-family
+	// localization; the old merge only filled missing keys and left the en
+	// string occupying the key, the Ntfs 98 %3 root cause).
+	stringTablesByLang := buildStringTablesByLang(dllPath, combined, d2Strings, langCodes)
 
 	// 3. RT_MESSAGETABLE branch: messages found in DLL
 	if len(combined.Messages) > 0 {
@@ -129,6 +136,9 @@ func ExtractSingleDLL(dllPath string, providers []ProviderInfo, langLCIDs, langC
 			stringTable[k] = v
 		}
 		enrichFromCRIM(result, providers, stringTable)
+
+		// v9: per-language value map extraction (MAPS blocks + provider data)
+		enrichValueMapsByLang(result, providers, stringTablesByLang)
 	}
 
 	// 4. CRIM+MUI fallback: no messages, but CRIM blobs exist
@@ -146,24 +156,49 @@ func ExtractSingleDLL(dllPath string, providers []ProviderInfo, langLCIDs, langC
 					if len(crimResult.ParamMapRefs) > 0 {
 						result.ParamMapRefs = append(result.ParamMapRefs, crimResult.ParamMapRefs...)
 					}
-					// Collect ValueMaps from CRIM+MUI fallback
+					// Collect ValueMaps from CRIM+MUI fallback.
+					// v9: extractMUICRIMFromBlobs parses with THIS language's
+					// MUI D2 strings, so its displays land under their own lang;
+					// en-US also fills the legacy flat layer.
 					if len(crimResult.ValueMaps) > 0 {
+						if result.ValueMapsByLang == nil {
+							result.ValueMapsByLang = make(map[string]map[string]map[string]string)
+						}
+						byMap := result.ValueMapsByLang[code]
+						if byMap == nil {
+							byMap = make(map[string]map[string]string)
+						}
 						for mapName, entries := range crimResult.ValueMaps {
 							vm := make(map[string]string)
 							for val, display := range entries {
 								vm[strconv.FormatUint(uint64(val), 10)] = display
 							}
-							result.ValueMaps[p.Name+"."+mapName] = vm
+							byMap[p.Name+"."+mapName] = vm
+							if code == "en-US" {
+								result.ValueMaps[p.Name+"."+mapName] = vm
+							}
 						}
+						result.ValueMapsByLang[code] = byMap
 					}
 					if len(crimResult.BitMaps) > 0 {
+						if result.ValueMapsByLang == nil {
+							result.ValueMapsByLang = make(map[string]map[string]map[string]string)
+						}
+						byMap := result.ValueMapsByLang[code]
+						if byMap == nil {
+							byMap = make(map[string]map[string]string)
+						}
 						for mapName, entries := range crimResult.BitMaps {
 							vm := make(map[string]string)
 							for bitPos, display := range entries {
 								vm[strconv.FormatUint(bitPos, 10)] = display
 							}
-							result.ValueMaps[p.Name+"."+mapName+"_bits"] = vm
+							byMap[p.Name+"."+mapName+"_bits"] = vm
+							if code == "en-US" {
+								result.ValueMaps[p.Name+"."+mapName+"_bits"] = vm
+							}
 						}
+						result.ValueMapsByLang[code] = byMap
 					}
 				}
 			}
@@ -421,6 +456,122 @@ func applyCRIMMessageMapping(msgs []PeMessage, msgIDMap map[uint32]crim.EventEnt
 		result = append(result, p)
 	}
 	return result
+}
+
+// ---------------------------------------------------------------------------
+// per-language value map extraction (v9, 2026-09-30)
+// ---------------------------------------------------------------------------
+
+// overlayStringTable returns a new table: base entries with every overlay
+// entry fully overriding same-key values (MUI localization semantics — the
+// MUI resource is authoritative for its language even when the main DLL
+// already carries an en string at that 0xD2 key).
+func overlayStringTable(base, overlay map[uint32]string) map[uint32]string {
+	out := make(map[uint32]string, len(base)+len(overlay))
+	for k, v := range base {
+		out[k] = v
+	}
+	for k, v := range overlay {
+		out[k] = v
+	}
+	return out
+}
+
+// buildStringTablesByLang builds one string table per language: the main
+// DLL's D2 string table as base, each language's MUI D2Strings overlaid.
+func buildStringTablesByLang(dllPath string, combined *pe.CombinedPEData, d2Strings map[uint32]string, langCodes []string) map[string]map[uint32]string {
+	tables := make(map[string]map[uint32]string, len(langCodes))
+	for _, code := range langCodes {
+		base := make(map[uint32]string, len(d2Strings))
+		for k, v := range d2Strings {
+			base[k] = v
+		}
+		tables[code] = base
+		muiPath := FindMUICompanion(dllPath, code)
+		if muiPath == nil {
+			continue
+		}
+		if mc, err := pe.ExtractAllFromPE(*muiPath); err == nil && len(mc.D2Strings) > 0 {
+			tables[code] = overlayStringTable(base, mc.D2Strings)
+		}
+	}
+	return tables
+}
+
+// enrichValueMapsByLang extracts VMAP/BMAP displays per language from the
+// same CRIM structures enrichFromCRIM reads (top-level MAPS blocks plus each
+// provider's parsed data), landing them in result.ValueMapsByLang[lang]. The
+// legacy ValueMaps layer and LEVL/KEYW enrichment are untouched.
+func enrichValueMapsByLang(result *DLLResult, providers []ProviderInfo, stringTablesByLang map[string]map[uint32]string) {
+	if len(result.CrimBlobs) == 0 || len(stringTablesByLang) == 0 {
+		return
+	}
+	for lang, stringTable := range stringTablesByLang {
+		if result.ValueMapsByLang == nil {
+			result.ValueMapsByLang = make(map[string]map[string]map[string]string)
+		}
+		byMap := result.ValueMapsByLang[lang]
+		if byMap == nil {
+			byMap = make(map[string]map[string]string)
+		}
+		// Top-level MAPS blocks (same scan as enrichFromCRIM first pass)
+		for _, blob := range result.CrimBlobs {
+			if len(blob) < 16 || string(blob[:4]) != "CRIM" {
+				continue
+			}
+			providerCount := int(binary.LittleEndian.Uint32(blob[12:16]))
+			mapsStart := 16 + providerCount*20
+			if mapsStart < len(blob) {
+				for pos := mapsStart; pos+12 < len(blob); pos += 4 {
+					if string(blob[pos:pos+4]) != "MAPS" {
+						continue
+					}
+					vmaps, bmaps := crim.ParseMAPSBlockWithStrings(blob, pos, stringTable)
+					for mapName, entries := range vmaps {
+						vm := make(map[string]string)
+						for val, display := range entries {
+							vm[strconv.FormatUint(uint64(val), 10)] = display
+						}
+						byMap["MAPS."+mapName] = vm
+					}
+					for mapName, entries := range bmaps {
+						vm := make(map[string]string)
+						for bitPos, display := range entries {
+							vm[strconv.FormatUint(bitPos, 10)] = display
+						}
+						byMap["MAPS."+mapName+"_bits"] = vm
+					}
+				}
+			}
+		}
+		// Per-provider data value maps
+		for _, p := range providers {
+			if p.GUID == nil {
+				continue
+			}
+			for _, blob := range result.CrimBlobs {
+				pd := crim.ParseProviderDataWithStrings(blob, *p.GUID, stringTable)
+				if pd == nil {
+					continue
+				}
+				for mapName, entries := range pd.ValueMaps {
+					vm := make(map[string]string)
+					for val, display := range entries {
+						vm[strconv.FormatUint(uint64(val), 10)] = display
+					}
+					byMap[p.Name+"."+mapName] = vm
+				}
+				for mapName, entries := range pd.BitMaps {
+					vm := make(map[string]string)
+					for bitPos, display := range entries {
+						vm[strconv.FormatUint(bitPos, 10)] = display
+					}
+					byMap[p.Name+"."+mapName+"_bits"] = vm
+				}
+			}
+		}
+		result.ValueMapsByLang[lang] = byMap
+	}
 }
 
 // ---------------------------------------------------------------------------

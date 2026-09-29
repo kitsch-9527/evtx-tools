@@ -62,3 +62,15 @@ func TestBulkInsertPragmas_ContainsPragmas(t *testing.T) {
 		}
 	}
 }
+
+// v9 (2026-09-30): value_maps carries a lang column so per-language display
+// strings can coexist (zh-CN MUI D2 string overlay over the en-US base).
+func TestSchemaDDL_ValueMapsLangColumn(t *testing.T) {
+	if !strings.Contains(SchemaDDL, "lang          TEXT NOT NULL DEFAULT 'en-US'") {
+		t.Errorf("value_maps table should have lang column")
+	}
+	want := "PRIMARY KEY (provider_name, map_name, entry_value, lang)"
+	if !strings.Contains(SchemaDDL, want) {
+		t.Errorf("value_maps PK should include lang")
+	}
+}

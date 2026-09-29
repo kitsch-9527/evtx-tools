@@ -11,10 +11,10 @@ import (
 // ExtractProviderVariants extracts 8-tuple variants for a single provider (Q2=A).
 // It parses CRIM per-GUID WEVT block and maps message_identifier -> MUI RT_MESSAGETABLE.
 // No DllGroup bulk copy; each Provider isolated.
-func ExtractProviderVariants(dllPath string, provider ProviderInfo, langs, langCodes []string) (map[string][]VariantRow, map[string]map[string]string, []ParamMapRef, []ParamTypeRef, error) {
+func ExtractProviderVariants(dllPath string, provider ProviderInfo, langs, langCodes []string) (map[string][]VariantRow, map[string]map[string]string, map[string]map[string]map[string]string, []ParamMapRef, []ParamTypeRef, error) {
 	combined, err := pe.ExtractAllFromPE(dllPath)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	// Collect D2 strings from main DLL + MUIs
@@ -40,6 +40,10 @@ func ExtractProviderVariants(dllPath string, provider ProviderInfo, langs, langC
 	// If no CRIM, fall back to flat RT_MESSAGETABLE (legacy single-template providers)
 	variantsByLang := make(map[string][]VariantRow)
 	valueMaps := make(map[string]map[string]string)
+	// v9 (2026-09-30): per-language value maps — each language's MUI D2
+	// strings fully overlay the main-DLL base before the MAPS parse, so the
+	// same map key can carry zh-CN and en-US displays side by side.
+	valueMapsByLang := make(map[string]map[string]map[string]string)
 	var paramMapRefs []ParamMapRef
 	var paramTypes []ParamTypeRef
 
@@ -187,7 +191,43 @@ func ExtractProviderVariants(dllPath string, provider ProviderInfo, langs, langC
 					valueMaps[provider.Name+"."+name+"_bits"] = vm
 				}
 			}
-			return variantsByLang, valueMaps, paramMapRefs, paramTypes, nil
+			// v9: re-parse the provider data per language with that language's
+			// MUI D2 overlay so its VMAP/BMAP displays are extracted too.
+			for _, langCode := range langCodes {
+				langD2 := make(map[uint32]string, len(d2Strings))
+				for k, v := range d2Strings {
+					langD2[k] = v
+				}
+				if mp := FindMUICompanion(dllPath, langCode); mp != nil {
+					if mc, err := pe.ExtractAllFromPE(*mp); err == nil && len(mc.D2Strings) > 0 {
+						langD2 = overlayStringTable(langD2, mc.D2Strings)
+					}
+				}
+				pdLang := findProviderData(combined.CrimBlobs, *provider.GUID, langD2)
+				if pdLang == nil {
+					continue
+				}
+				byMap := valueMapsByLang[langCode]
+				if byMap == nil {
+					byMap = make(map[string]map[string]string)
+				}
+				for name, entries := range pdLang.ValueMaps {
+					vm := make(map[string]string)
+					for v, d := range entries {
+						vm[fmt.Sprintf("%d", v)] = d
+					}
+					byMap[provider.Name+"."+name] = vm
+				}
+				for name, entries := range pdLang.BitMaps {
+					vm := make(map[string]string)
+					for b, d := range entries {
+						vm[fmt.Sprintf("%d", b)] = d
+					}
+					byMap[provider.Name+"."+name+"_bits"] = vm
+				}
+				valueMapsByLang[langCode] = byMap
+			}
+			return variantsByLang, valueMaps, valueMapsByLang, paramMapRefs, paramTypes, nil
 		}
 	}
 
@@ -214,7 +254,7 @@ func ExtractProviderVariants(dllPath string, provider ProviderInfo, langs, langC
 		}
 		variantsByLang[langCode] = classicVariantRows(provider, langCode, msgs)
 	}
-	return variantsByLang, valueMaps, paramMapRefs, paramTypes, nil
+	return variantsByLang, valueMaps, valueMapsByLang, paramMapRefs, paramTypes, nil
 }
 
 func collectProviderEvents(blobs [][]byte, guid string, d2 map[uint32]string) []crim.EventEntry {

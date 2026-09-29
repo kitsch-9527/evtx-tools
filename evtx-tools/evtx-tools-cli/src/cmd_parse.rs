@@ -55,7 +55,7 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
     eprintln!("[info] loading messages db: {db_path}");
     let mut db = MessageDb::open(&db_path)?;
     db.load_param_refs(&target_lang)?;
-    db.load_value_maps()?;
+    db.load_value_maps(&target_lang)?;
     db.load_registry_sources()?;
     db.load_variant_providers()?;
     db.load_param_types()?;
@@ -1540,7 +1540,7 @@ mod r10_typed_tests {
         let conn = rusqlite::Connection::open(path).unwrap();
         super::r12_na_tests::create_v8_schema(&conn);
         conn.execute_batch(
-            "INSERT INTO metadata(key, value) VALUES('schema_version', '8');
+            "INSERT INTO metadata(key, value) VALUES('schema_version', '9');
              INSERT INTO dll_entries(dll_id, dll_name, dll_path) VALUES(1, 't.dll', 'C:/t.dll');
              INSERT INTO providers(provider_name, guid, channel, dll_id) VALUES('T-Provider', '{T}', 'System', 1);
              INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, message_identifier, dll_id, message, parameters)
@@ -1615,7 +1615,7 @@ mod r10_typed_tests {
         let conn = rusqlite::Connection::open(&tmp).unwrap();
         super::r12_na_tests::create_v8_schema(&conn);
         conn.execute_batch(
-            "INSERT INTO metadata(key, value) VALUES('schema_version', '8');
+            "INSERT INTO metadata(key, value) VALUES('schema_version', '9');
              INSERT INTO dll_entries(dll_id, dll_name, dll_path) VALUES(1, 't.dll', 'C:/t.dll');
              INSERT INTO providers(provider_name, guid, channel, dll_id) VALUES('T-Provider', '{T}', 'System', 1);
              INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, message_identifier, dll_id, message, parameters)
@@ -1808,7 +1808,8 @@ mod r12_na_tests {
                 entry_value TEXT NOT NULL,
                 display_name TEXT NOT NULL,
                 is_bitmap INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY (provider_name, map_name, entry_value)
+                lang TEXT NOT NULL DEFAULT 'en-US',
+                PRIMARY KEY (provider_name, map_name, entry_value, lang)
             );
             CREATE TABLE param_value_maps (
                 provider_name TEXT NOT NULL,
@@ -1843,7 +1844,7 @@ mod r12_na_tests {
         let conn = rusqlite::Connection::open(path).unwrap();
         create_v8_schema(&conn);
         conn.execute(
-            "INSERT INTO metadata(key, value) VALUES('schema_version', '8')",
+            "INSERT INTO metadata(key, value) VALUES('schema_version', '9')",
             [],
         )
         .unwrap();

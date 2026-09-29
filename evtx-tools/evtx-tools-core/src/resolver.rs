@@ -57,7 +57,14 @@ pub struct MessageDb {
     param_refs_fallback: HashMap<String, HashMap<u32, String>>,
     /// CRIM value map cache: map_name → {value_str → display_name}.
     /// Populated from the `value_maps` table (VMAP/BMAP blocks).
+    /// v9 (2026-09-30): the render-language rows land here; en-US rows land
+    /// in [`value_maps_fallback`](MessageDb::value_maps_fallback).
     value_maps: HashMap<String, HashMap<String, String>>,
+    /// en-US value map fallback layer (v9, 2026-09-30): filled by
+    /// [`load_value_maps`](MessageDb::load_value_maps) when the requested
+    /// render language has no row for a key, mirroring the EvtFormatMessage
+    /// MUI fallback chain (zh-CN → en-US) and the param_refs v9 pattern.
+    value_maps_fallback: HashMap<String, HashMap<String, String>>,
     /// Set of map names that are bitmaps (is_bitmap=1 in DB).
     bitmap_names: HashSet<String>,
     /// Registered event source names (R12 / ADR 0004): classic EventLog
@@ -93,10 +100,10 @@ impl MessageDb {
                 [],
                 |row| row.get(0),
             )
-            .map_err(|e| format!("messages db '{path}' has no schema_version (not a v8 single-file DB): {e}"))?;
-        if version != "8" {
+            .map_err(|e| format!("messages db '{path}' has no schema_version (not a v9 single-file DB): {e}"))?;
+        if version != "9" {
             return Err(format!(
-                "messages db '{path}' schema_version={version}, want 8: re-run msgdb-dump (single-file, ADR 0003/0004/0005)"
+                "messages db '{path}' schema_version={version}, want 9: re-run msgdb-dump (single-file, ADR 0003/0004/0005; v9 adds value_maps.lang)"
             ));
         }
         Ok(MessageDb {
@@ -105,6 +112,7 @@ impl MessageDb {
             param_refs: HashMap::new(),
             param_refs_fallback: HashMap::new(),
             value_maps: HashMap::new(),
+            value_maps_fallback: HashMap::new(),
             bitmap_names: HashSet::new(),
             registry_sources: HashSet::new(),
             providers_with_variants: HashSet::new(),
@@ -347,14 +355,18 @@ impl MessageDb {
 
     /// Load all value maps from the `value_maps` table.
     ///
-    /// Populates the in-memory `value_maps` cache used by
-    /// [`get_value_map`](MessageDb::get_value_map) and other resolution methods.
+    /// v9 (2026-09-30): language-aware. Rows whose `lang` matches the
+    /// requested render language fill the preferred layer
+    /// ([`value_maps`](MessageDb::value_maps)); en-US rows fill the fallback
+    /// layer ([`value_maps_fallback`](MessageDb::value_maps_fallback)),
+    /// mirroring [`load_param_refs`](MessageDb::load_param_refs)' dual-layer
+    /// pattern and the EvtFormatMessage MUI fallback chain (zh-CN → en-US).
     /// Also populates `bitmap_names` for map entries where `is_bitmap=1`.
-    /// Single-file v7 always has this table; a missing table is a hard error.
-    pub fn load_value_maps(&mut self) -> Result<()> {
+    /// A missing table is a hard error (re-run msgdb-dump).
+    pub fn load_value_maps(&mut self, lang: &str) -> Result<()> {
         let mut stmt = self
             .conn
-            .prepare("SELECT map_name, entry_value, display_name, is_bitmap FROM value_maps")
+            .prepare("SELECT map_name, entry_value, display_name, is_bitmap, lang FROM value_maps")
             .map_err(|e| format!("failed to prepare value_maps query: {e}"))?;
 
         let rows = stmt
@@ -363,16 +375,24 @@ impl MessageDb {
                 let entry_value: String = row.get(1)?;
                 let display_name: String = row.get(2)?;
                 let is_bitmap: i32 = row.get(3)?;
-                Ok((map_name, entry_value, display_name, is_bitmap))
+                let row_lang: String = row.get(4)?;
+                Ok((map_name, entry_value, display_name, is_bitmap, row_lang))
             })
             .map_err(|e| format!("failed to query value_maps: {e}"))?;
 
         for row in rows {
-            if let Ok((map_name, entry_value, display_name, is_bitmap)) = row {
+            if let Ok((map_name, entry_value, display_name, is_bitmap, row_lang)) = row {
                 if is_bitmap != 0 {
                     self.bitmap_names.insert(map_name.clone());
                 }
-                self.value_maps
+                let layer = if row_lang == lang {
+                    &mut self.value_maps
+                } else if row_lang == "en-US" {
+                    &mut self.value_maps_fallback
+                } else {
+                    continue;
+                };
+                layer
                     .entry(map_name)
                     .or_default()
                     .insert(entry_value, display_name);
@@ -382,13 +402,19 @@ impl MessageDb {
         Ok(())
     }
 
-    /// Look up a value in the value_maps cache.
+    /// Look up a value in the value_maps cache: preferred layer first, then
+    /// the en-US fallback layer (v9).
     ///
-    /// Returns `None` if the map_name or value is not found.
+    /// Returns `None` if the map_name or value is not found in either layer.
     pub fn get_value_map(&self, map_name: &str, value: &str) -> Option<&str> {
         self.value_maps
             .get(map_name)
             .and_then(|entries| entries.get(value))
+            .or_else(|| {
+                self.value_maps_fallback
+                    .get(map_name)
+                    .and_then(|entries| entries.get(value))
+            })
             .map(|s| s.as_str())
     }
 
@@ -398,15 +424,26 @@ impl MessageDb {
     /// returns a map of field_name → {value_str → display_name} for any field
     /// names that have value map entries. This allows the caller to clone only
     /// the relevant value maps without holding the lock.
+    /// v9: entries are merged per field name — the en-US fallback layer fills
+    /// keys the preferred layer lacks (preferred wins on conflict).
     pub fn get_param_value_maps(
         &self,
         param_map: &std::collections::HashMap<String, String>,
     ) -> HashMap<String, HashMap<String, String>> {
         let mut result = HashMap::new();
         for (_idx, field_name) in param_map {
-            if let Some(entries) = self.value_maps.get(field_name) {
-                result.insert(field_name.clone(), entries.clone());
+            let preferred = self.value_maps.get(field_name);
+            let fallback = self.value_maps_fallback.get(field_name);
+            if preferred.is_none() && fallback.is_none() {
+                continue;
             }
+            let mut merged = fallback.cloned().unwrap_or_default();
+            if let Some(entries) = preferred {
+                for (k, v) in entries {
+                    merged.insert(k.clone(), v.clone());
+                }
+            }
+            result.insert(field_name.clone(), merged);
         }
         result
     }
@@ -424,12 +461,17 @@ impl MessageDb {
         self.value_maps
             .get(map_name)
             .and_then(|entries| entries.get(&raw_value.to_string()))
+            .or_else(|| {
+                self.value_maps_fallback
+                    .get(map_name)
+                    .and_then(|entries| entries.get(&raw_value.to_string()))
+            })
             .cloned()
     }
 
     /// Returns true when value maps are loaded and available.
     pub fn has_value_maps(&self) -> bool {
-        !self.value_maps.is_empty()
+        !self.value_maps.is_empty() || !self.value_maps_fallback.is_empty()
     }
 
     /// Returns the set of bitmap map names loaded from `value_maps`.
@@ -589,10 +631,19 @@ impl MessageDb {
             let Some(field_name) = params.get(idx) else {
                 continue;
             };
-            let Some(entries) = self.value_maps.get(map_name) else {
+            // v9: preferred layer wins, en-US fallback fills missing keys.
+            let preferred = self.value_maps.get(map_name);
+            let fallback = self.value_maps_fallback.get(map_name);
+            if preferred.is_none() && fallback.is_none() {
                 continue;
-            };
-            result.insert(field_name.clone(), entries.clone());
+            }
+            let mut merged = fallback.cloned().unwrap_or_default();
+            if let Some(entries) = preferred {
+                for (k, v) in entries {
+                    merged.insert(k.clone(), v.clone());
+                }
+            }
+            result.insert(field_name.clone(), merged);
             if row.param_bitmap_refs.contains(idx) {
                 bitmaps.insert(field_name.clone());
             }
@@ -682,7 +733,8 @@ mod tests {
                 entry_value   TEXT NOT NULL,
                 display_name  TEXT NOT NULL,
                 is_bitmap     INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY (provider_name, map_name, entry_value)
+                lang          TEXT NOT NULL DEFAULT 'en-US',
+                PRIMARY KEY (provider_name, map_name, entry_value, lang)
             );
             CREATE TABLE param_value_maps (
                 provider_name TEXT NOT NULL,
@@ -710,9 +762,10 @@ mod tests {
         .unwrap();
     }
 
+    // v9 (2026-09-30): fixtures stamp schema_version 9 (value_maps lang).
     fn insert_metadata_8(conn: &Connection) {
         conn.execute(
-            "INSERT INTO metadata(key, value) VALUES('schema_version', '8')",
+            "INSERT INTO metadata(key, value) VALUES('schema_version', '9')",
             [],
         )
         .unwrap();
@@ -842,7 +895,7 @@ mod tests {
             Ok(_) => panic!("v7 DB must be rejected"),
         };
         assert!(
-            err.contains("want 8"),
+            err.contains("want 9"),
             "v7 DB must be rejected with a re-run hint, got: {err}"
         );
         let _ = std::fs::remove_file(&v7);
@@ -867,7 +920,7 @@ mod tests {
         let tmp = tmp_path("warmup_resolve");
         setup_v8_db(&tmp);
         let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
-        db.load_value_maps().unwrap();
+        db.load_value_maps("en-US").unwrap();
         db.warmup(&[key_4624()], "en-US").unwrap();
 
         let row = db.resolve_variant(&key_4624()).expect("4624 variant resolves");
@@ -1149,7 +1202,7 @@ mod tests {
         let tmp = tmp_path("value_maps_data");
         setup_v8_db(&tmp);
         let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
-        db.load_value_maps().unwrap();
+        db.load_value_maps("en-US").unwrap();
         assert!(db.has_value_maps());
         assert_eq!(db.get_value_map("LogonType", "2"), Some("Interactive"));
         assert_eq!(db.get_value_map("LogonType", "99"), None);
@@ -1171,7 +1224,7 @@ mod tests {
             )
             .unwrap();
             conn.execute(
-                "INSERT INTO metadata(key, value) VALUES('schema_version', '8')",
+                "INSERT INTO metadata(key, value) VALUES('schema_version', '9')",
                 [],
             )
             .unwrap();
@@ -1179,7 +1232,7 @@ mod tests {
         }
         let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
         assert!(!db.has_value_maps());
-        assert!(db.load_value_maps().is_err());
+        assert!(db.load_value_maps("en-US").is_err());
         let _ = std::fs::remove_file(&tmp);
     }
 
@@ -1198,7 +1251,7 @@ mod tests {
             )
             .unwrap();
             conn.execute(
-                "INSERT INTO metadata(key, value) VALUES('schema_version', '8')",
+                "INSERT INTO metadata(key, value) VALUES('schema_version', '9')",
                 [],
             )
             .unwrap();
@@ -1550,6 +1603,88 @@ mod tests {
         assert!(result.contains("admin"), "%1 should still be substituted");
         assert!(result.contains('\t') && result.contains('2'), "%5 should still be substituted");
 
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    // --- v9 (2026-09-30): bilingual value_maps ------------------------------
+
+    /// v9 fixture: value_maps with per-language rows. Map key '0' exists in
+    /// both en-US and zh-CN; key '1' is en-US only (fallback case); key '2'
+    /// exists in neither (None case).
+    fn setup_value_maps_lang_db(path: &Path) {
+        let _ = std::fs::remove_file(path);
+        let conn = Connection::open(path).unwrap();
+        create_v8_schema(&conn);
+        insert_metadata_8(&conn);
+        conn.execute_batch(
+            "INSERT INTO value_maps(provider_name, map_name, entry_value, display_name, is_bitmap, lang) VALUES
+                ('T', 'VMap', '0', 'is healthy.', 0, 'en-US'),
+                ('T', 'VMap', '0', '运行状况良好。', 0, 'zh-CN'),
+                ('T', 'VMap', '1', 'corruption detected', 0, 'en-US');",
+        )
+        .unwrap();
+        conn.close().unwrap();
+    }
+
+    #[test]
+    fn load_value_maps_prefers_render_lang_with_en_fallback() {
+        let tmp = tmp_path("vmaps_lang");
+        setup_value_maps_lang_db(&tmp);
+        let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db.load_value_maps("zh-CN").unwrap();
+
+        // zh row wins for the bilingual key
+        assert_eq!(
+            db.get_value_map("VMap", "0"),
+            Some("运行状况良好。"),
+            "zh-CN row must be preferred over en-US at the same key"
+        );
+        assert_eq!(
+            db.resolve_value("T", "VMap", 0),
+            Some("运行状况良好。".to_string()),
+            "resolve_value must go through the same dual-layer path"
+        );
+        // en-only key falls back to the en-US layer
+        assert_eq!(
+            db.get_value_map("VMap", "1"),
+            Some("corruption detected"),
+            "missing zh row must fall back to en-US"
+        );
+        // neither layer has the key
+        assert_eq!(db.get_value_map("VMap", "2"), None, "missing in both layers must be None");
+        assert!(db.has_value_maps());
+
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn load_value_maps_en_render_ignores_other_langs() {
+        let tmp = tmp_path("vmaps_lang_en");
+        setup_value_maps_lang_db(&tmp);
+        let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db.load_value_maps("en-US").unwrap();
+
+        assert_eq!(
+            db.get_value_map("VMap", "0"),
+            Some("is healthy."),
+            "en render must keep the en-US display"
+        );
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn get_param_value_maps_merges_fallback_under_preferred() {
+        let tmp = tmp_path("vmaps_lang_merge");
+        setup_value_maps_lang_db(&tmp);
+        let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db.load_value_maps("zh-CN").unwrap();
+
+        let mut param_map = HashMap::new();
+        param_map.insert("1".to_string(), "VMap".to_string());
+        let vms = db.get_param_value_maps(&param_map);
+        let entries = vms.get("VMap").expect("VMap entries returned");
+        assert_eq!(entries.get("0").map(|s| s.as_str()), Some("运行状况良好。"), "preferred layer must win");
+        assert_eq!(entries.get("1").map(|s| s.as_str()), Some("corruption detected"), "fallback must fill missing keys");
         let _ = std::fs::remove_file(&tmp);
     }
 }

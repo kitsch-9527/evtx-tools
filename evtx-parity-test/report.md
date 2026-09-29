@@ -1,6 +1,6 @@
 # 对比报告（基线解析 vs 新解析）
 
-- 生成时间（本地）：2026-09-29 23:39:29
+- 生成时间（本地）：2026-09-30 00:37:44
 - 主比对：基线（zh-CN 渲染，G0 自动探测） vs new-parsed/zh（同语言，严格五字段）
 - 口径：EventID / Provider / Channel / TimeCreated（两边均为本地时间，直接比，容差2s）/ Message（空白归一）
 - 对齐：同一文件出现顺序逐条对齐（基线Event[N]顺序对应新解析sequence_number顺序）
@@ -9,7 +9,7 @@
 
 ## 结论
 
-- 未通过：主链（基线vs en）共比对 44890 条，一致 44715 条，差异 157 条
+- 未通过：主链（基线vs en）共比对 44890 条，一致 44790 条，差异 82 条
 
 ## 分通道统计（主：基线 vs zh）
 
@@ -18,7 +18,7 @@
 | Application | 10742 | 10742 | 10742 | 10726 | 14 | 0 | ok |
 | Setup | 676 | 676 | 676 | 676 | 0 | 0 | ok |
 | Security | 27366 | 27366 | 27366 | 27366 | 0 | 0 | ok |
-| System | 6106 | 6106 | 6106 | 5947 | 143 | 0 | ok |
+| System | 6106 | 6106 | 6106 | 6022 | 68 | 0 | ok |
 
 ## 副侧覆盖率对照（基线 vs en，不比Message）
 
@@ -132,46 +132,46 @@
 - 新解析zh EventID=256 Provider=Edge Time=2026-09-29 10:23:06.686255
 - 新解析zh Message（前300字）：[10116:38528:0929/102306.685:INFO:chrome\browser\extensions\extension_garbage_collector.cc:212] Garbage collection for extensions on file thread is complete.!S!
 
-## 差异样例 15（System #17：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
+## 差异样例 15（System #132：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
 
-- 基线 EventID=98 Provider=Microsoft-Windows-Ntfs Date=2026-08-21T05:02:12.2920000Z
-- 基线 Message（前300字）：卷 C: (\Device\HarddiskVolume4) 运行状况良好。无需执行任何操作。
-- 新解析zh EventID=98 Provider=Microsoft-Windows-Ntfs Time=2026-08-21 05:02:12.292166
-- 新解析zh Message（前300字）：卷 C: (\Device\HarddiskVolume4) is healthy. No action is needed.
+- 基线 EventID=36 Provider=VMnetAdapter Date=2026-08-21T05:03:38.7900000Z
+- 基线 Message（前300字）：() Starting up the Adapter Driver for VMware Virtual Networks.
+- 新解析zh EventID=36 Provider=VMnetAdapter Time=2026-08-21 05:03:38.790802
+- 新解析zh Message（前300字）：一个用户已达到卷 上的配额阈值。
 
-## 差异样例 16（System #36：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
+## 差异样例 16（System #159：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
 
-- 基线 EventID=98 Provider=Microsoft-Windows-Ntfs Date=2026-08-21T05:02:13.8180000Z
-- 基线 Message（前300字）：卷 D: (\Device\HarddiskVolume7) 运行状况良好。无需执行任何操作。
-- 新解析zh EventID=98 Provider=Microsoft-Windows-Ntfs Time=2026-08-21 05:02:13.818907
-- 新解析zh Message（前300字）：卷 D: (\Device\HarddiskVolume7) is healthy. No action is needed.
+- 基线 EventID=32 Provider=e1dexpress Date=2026-08-21T05:03:47.9620000Z
+- 基线 Message（前300字）：Intel(R) Ethernet Connection (12) I219-V;; 网络链接已以 1Gbps 全双工建立。
+- 新解析zh EventID=32 Provider=e1dexpress Time=2026-08-21 05:03:47.962030
+- 新解析zh Message（前300字）：Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
 
-## 差异样例 17（System #37：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
+## 差异样例 17（System #273：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
 
-- 基线 EventID=98 Provider=Microsoft-Windows-Ntfs Date=2026-08-21T05:02:14.4290000Z
-- 基线 Message（前300字）：卷 F: (\Device\HarddiskVolume6) 运行状况良好。无需执行任何操作。
-- 新解析zh EventID=98 Provider=Microsoft-Windows-Ntfs Time=2026-08-21 05:02:14.429749
-- 新解析zh Message（前300字）：卷 F: (\Device\HarddiskVolume6) is healthy. No action is needed.
+- 基线 EventID=36 Provider=VMnetAdapter Date=2026-08-21T05:05:54.8680000Z
+- 基线 Message（前300字）：() Starting up the Adapter Driver for VMware Virtual Networks.
+- 新解析zh EventID=36 Provider=VMnetAdapter Time=2026-08-21 05:05:54.868527
+- 新解析zh Message（前300字）：一个用户已达到卷 上的配额阈值。
 
-## 差异样例 18（System #38：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
+## 差异样例 18（System #292：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
 
-- 基线 EventID=98 Provider=Microsoft-Windows-Ntfs Date=2026-08-21T05:02:15.0580000Z
-- 基线 Message（前300字）：卷 E: (\Device\HarddiskVolume1) 运行状况良好。无需执行任何操作。
-- 新解析zh EventID=98 Provider=Microsoft-Windows-Ntfs Time=2026-08-21 05:02:15.058621
-- 新解析zh Message（前300字）：卷 E: (\Device\HarddiskVolume1) is healthy. No action is needed.
+- 基线 EventID=32 Provider=e1dexpress Date=2026-08-21T05:05:58.6570000Z
+- 基线 Message（前300字）：Intel(R) Ethernet Connection (12) I219-V;; 网络链接已以 1Gbps 全双工建立。
+- 新解析zh EventID=32 Provider=e1dexpress Time=2026-08-21 05:05:58.657466
+- 新解析zh Message（前300字）：Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
 
-## 差异样例 19（System #39：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
+## 差异样例 19（System #482：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
 
-- 基线 EventID=98 Provider=Microsoft-Windows-Ntfs Date=2026-08-21T05:02:15.2430000Z
-- 基线 Message（前300字）：卷 \\?\Volume{903de723-f029-45cf-a8ab-3d4195bc9b92} (\Device\HarddiskVolume5) 运行状况良好。无需执行任何操作。
-- 新解析zh EventID=98 Provider=Microsoft-Windows-Ntfs Time=2026-08-21 05:02:15.243994
-- 新解析zh Message（前300字）：卷 \\?\Volume{903de723-f029-45cf-a8ab-3d4195bc9b92} (\Device\HarddiskVolume5) is healthy. No action is needed.
+- 基线 EventID=6008 Provider=EventLog Date=2026-08-21T09:31:08.4640000Z
+- 基线 Message（前300字）：上一次系统的 9:16:12 在 ?2026/?8/?21 上的关闭是意外的。
+- 新解析zh EventID=6008 Provider=EventLog Time=2026-08-21 09:31:08.464621
+- 新解析zh Message（前300字）：上一次系统的 9:16:12 在 ‎2026/‎8/‎21 上的关闭是意外的。
 
-## 差异样例 20（System #60：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
+## 差异样例 20（System #516：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
 
-- 基线 EventID=98 Provider=Microsoft-Windows-Ntfs Date=2026-08-21T05:02:59.4100000Z
-- 基线 Message（前300字）：卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume8) 运行状况良好。无需执行任何操作。
-- 新解析zh EventID=98 Provider=Microsoft-Windows-Ntfs Time=2026-08-21 05:02:59.410638
-- 新解析zh Message（前300字）：卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume8) is healthy. No action is needed.
+- 基线 EventID=36 Provider=VMnetAdapter Date=2026-08-21T09:30:50.1560000Z
+- 基线 Message（前300字）：() Starting up the Adapter Driver for VMware Virtual Networks.
+- 新解析zh EventID=36 Provider=VMnetAdapter Time=2026-08-21 09:30:50.156278
+- 新解析zh Message（前300字）：一个用户已达到卷 上的配额阈值。
 
-还有 137 条差异未展示，见 report.diff。
+还有 62 条差异未展示，见 report.diff。

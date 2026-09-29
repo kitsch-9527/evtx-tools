@@ -10,18 +10,21 @@ import (
 
 // BuildProviderVariantGroups builds Provider-center variant groups (Q2=A).
 // Each Provider gets isolated Variants per language via per-GUID WEVT extraction.
-func BuildProviderVariantGroups(dllResults []*DLLResult, langCodes []string) ([]ProviderVariantGroup, map[string]map[string]string, []ParamMapRef, []ParamTypeRef) {
+// v9 (2026-09-30): also returns per-language value maps
+// (lang → "Provider.MapName" → value → display).
+func BuildProviderVariantGroups(dllResults []*DLLResult, langCodes []string) ([]ProviderVariantGroup, map[string]map[string]string, map[string]map[string]map[string]string, []ParamMapRef, []ParamTypeRef) {
 	var groups []ProviderVariantGroup
 	allValueMaps := make(map[string]map[string]string)
+	allValueMapsByLang := make(map[string]map[string]map[string]string)
 	var allParamRefs []ParamMapRef
 	var allParamTypes []ParamTypeRef
 
 	for _, res := range dllResults {
 		for _, prov := range res.Providers {
-			variantsByLang, vmaps, pRefs, tRefs, err := ExtractProviderVariants(res.DLLPath, prov, nil, langCodes)
+			variantsByLang, vmaps, vmapsByLang, pRefs, tRefs, err := ExtractProviderVariants(res.DLLPath, prov, nil, langCodes)
 			if err != nil || len(variantsByLang) == 0 {
 				// Fallback: try raw RT_MESSAGETABLE path for providers without CRIM
-				variantsByLang, vmaps, pRefs, tRefs, _ = extractVariantsFallback(res, prov, langCodes)
+				variantsByLang, vmaps, vmapsByLang, pRefs, tRefs, _ = extractVariantsFallback(res, prov, langCodes)
 				if len(variantsByLang) == 0 {
 					continue
 				}
@@ -35,6 +38,19 @@ func BuildProviderVariantGroups(dllResults []*DLLResult, langCodes []string) ([]
 					allValueMaps[k][ek] = ev
 				}
 			}
+			for lang, byMap := range vmapsByLang {
+				if allValueMapsByLang[lang] == nil {
+					allValueMapsByLang[lang] = make(map[string]map[string]string)
+				}
+				for k, v := range byMap {
+					if _, ok := allValueMapsByLang[lang][k]; !ok {
+						allValueMapsByLang[lang][k] = make(map[string]string)
+					}
+					for ek, ev := range v {
+						allValueMapsByLang[lang][k][ek] = ev
+					}
+				}
+			}
 			allParamRefs = append(allParamRefs, pRefs...)
 			allParamTypes = append(allParamTypes, tRefs...)
 			groups = append(groups, ProviderVariantGroup{
@@ -46,10 +62,10 @@ func BuildProviderVariantGroups(dllResults []*DLLResult, langCodes []string) ([]
 			})
 		}
 	}
-	return groups, allValueMaps, allParamRefs, allParamTypes
+	return groups, allValueMaps, allValueMapsByLang, allParamRefs, allParamTypes
 }
 
-func extractVariantsFallback(res *DLLResult, prov ProviderInfo, langCodes []string) (map[string][]VariantRow, map[string]map[string]string, []ParamMapRef, []ParamTypeRef, error) {
+func extractVariantsFallback(res *DLLResult, prov ProviderInfo, langCodes []string) (map[string][]VariantRow, map[string]map[string]string, map[string]map[string]map[string]string, []ParamMapRef, []ParamTypeRef, error) {
 	// Use existing RT_MESSAGETABLE extraction (flat) as single-variant fallback
 	byLang := make(map[string][]VariantRow)
 	for _, code := range langCodes {
@@ -75,9 +91,9 @@ func extractVariantsFallback(res *DLLResult, prov ProviderInfo, langCodes []stri
 		byLang[code] = classicVariantRows(prov, code, msgs)
 	}
 	if len(byLang) == 0 {
-		return nil, nil, nil, nil, fmt.Errorf("no fallback messages")
+		return nil, nil, nil, nil, nil, fmt.Errorf("no fallback messages")
 	}
-	return byLang, nil, nil, nil, nil
+	return byLang, nil, nil, nil, nil, nil
 }
 
 // classicVariantRows builds flat RT_MESSAGETABLE variant rows for classic
@@ -243,6 +259,6 @@ func mergeDuplicateProvidersVariants(groups []ProviderVariantGroup) []ProviderVa
 
 // Helper to keep ordered provider extraction for variant pipeline
 // extractAndBuildVariantGroups helper for legacy callers
-func extractAndBuildVariantGroups(dllResults []*DLLResult, langCodes []string) ([]ProviderVariantGroup, map[string]map[string]string, []ParamMapRef, []ParamTypeRef) {
+func extractAndBuildVariantGroups(dllResults []*DLLResult, langCodes []string) ([]ProviderVariantGroup, map[string]map[string]string, map[string]map[string]map[string]string, []ParamMapRef, []ParamTypeRef) {
 	return BuildProviderVariantGroups(dllResults, langCodes)
 }

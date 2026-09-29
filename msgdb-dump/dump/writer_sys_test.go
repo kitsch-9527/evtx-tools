@@ -143,13 +143,13 @@ func TestCreateSystemDB_Schema(t *testing.T) {
 		t.Error("dll_messages table/view must not exist in v7 single-file DB")
 	}
 
-	// schema_version metadata must be 8.
+	// schema_version metadata must be 9 (v9, 2026-09-30: value_maps lang).
 	var sv string
 	if err := db.QueryRow("SELECT value FROM metadata WHERE key = 'schema_version'").Scan(&sv); err != nil {
 		t.Fatalf("failed to query schema_version: %v", err)
 	}
-	if sv != "8" {
-		t.Errorf("schema_version = %s, want 8", sv)
+	if sv != "9" {
+		t.Errorf("schema_version = %s, want 9", sv)
 	}
 }
 
@@ -233,8 +233,8 @@ func TestCreateSystemDB_Roundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to query schema_version: %v", err)
 	}
-	if sv != "8" {
-		t.Errorf("schema_version = %s, want 8", sv)
+	if sv != "9" {
+		t.Errorf("schema_version = %s, want 9", sv)
 	}
 
 	// Verify indexes exist (v7 schema indexes)
@@ -447,9 +447,9 @@ func TestInsertValueMap(t *testing.T) {
 	}
 	defer db.Close()
 
-	db.Exec("CREATE TABLE IF NOT EXISTS value_maps (provider_name TEXT, map_name TEXT, entry_value TEXT, display_name TEXT, is_bitmap INTEGER, PRIMARY KEY (provider_name, map_name, entry_value))")
+	db.Exec("CREATE TABLE IF NOT EXISTS value_maps (provider_name TEXT, map_name TEXT, entry_value TEXT, display_name TEXT, is_bitmap INTEGER, lang TEXT NOT NULL DEFAULT 'en-US', PRIMARY KEY (provider_name, map_name, entry_value, lang))")
 
-	err = InsertValueMap(db, "Test-Provider", "Level", "2", "Error", false)
+	err = InsertValueMap(db, "Test-Provider", "Level", "2", "Error", false, "en-US")
 	if err != nil {
 		t.Fatalf("InsertValueMap failed: %v", err)
 	}
@@ -478,9 +478,9 @@ func TestInsertValueMap_Bitmap(t *testing.T) {
 	}
 	defer db.Close()
 
-	db.Exec("CREATE TABLE IF NOT EXISTS value_maps (provider_name TEXT, map_name TEXT, entry_value TEXT, display_name TEXT, is_bitmap INTEGER, PRIMARY KEY (provider_name, map_name, entry_value))")
+	db.Exec("CREATE TABLE IF NOT EXISTS value_maps (provider_name TEXT, map_name TEXT, entry_value TEXT, display_name TEXT, is_bitmap INTEGER, lang TEXT NOT NULL DEFAULT 'en-US', PRIMARY KEY (provider_name, map_name, entry_value, lang))")
 
-	err = InsertValueMap(db, "Test-Provider", "Keywords", "0x8020000000000000", "Audit Success", true)
+	err = InsertValueMap(db, "Test-Provider", "Keywords", "0x8020000000000000", "Audit Success", true, "en-US")
 	if err != nil {
 		t.Fatalf("InsertValueMap (bitmap) failed: %v", err)
 	}

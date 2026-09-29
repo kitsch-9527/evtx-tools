@@ -110,54 +110,6 @@
     Time=2026-09-29 10:23:06.686255
     Msg=[10116:38528:0929/102306.685:INFO:chrome\browser\extensions\extension_garbage_collector.cc:212] Garbage collection for extensions on file thread is complete.!S!
 
-[System #17] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:12.2920000Z
-    Msg=卷 C: (\Device\HarddiskVolume4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:12.292166
-    Msg=卷 C: (\Device\HarddiskVolume4) is healthy. No action is needed.
-
-[System #36] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:13.8180000Z
-    Msg=卷 D: (\Device\HarddiskVolume7) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:13.818907
-    Msg=卷 D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-
-[System #37] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:14.4290000Z
-    Msg=卷 F: (\Device\HarddiskVolume6) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:14.429749
-    Msg=卷 F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-
-[System #38] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:15.0580000Z
-    Msg=卷 E: (\Device\HarddiskVolume1) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:15.058621
-    Msg=卷 E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-
-[System #39] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:15.2430000Z
-    Msg=卷 \\?\Volume{903de723-f029-45cf-a8ab-3d4195bc9b92} (\Device\HarddiskVolume5) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:15.243994
-    Msg=卷 \\?\Volume{903de723-f029-45cf-a8ab-3d4195bc9b92} (\Device\HarddiskVolume5) is healthy. No action is needed.
-
-[System #60] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:02:59.4100000Z
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume8) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:02:59.410638
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume8) is healthy. No action is needed.
-
 [System #132] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
     Date=2026-08-21T05:03:38.7900000Z
@@ -174,14 +126,6 @@
     Time=2026-08-21 05:03:47.962030
     Msg=Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
 
-[System #258] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:05:51.5160000Z
-    Msg=卷 C: (\Device\HarddiskVolume4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:05:51.516051
-    Msg=卷 C: (\Device\HarddiskVolume4) is healthy. No action is needed.
-
 [System #273] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
     Date=2026-08-21T05:05:54.8680000Z
@@ -189,38 +133,6 @@
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-08-21 05:05:54.868527
     Msg=一个用户已达到卷 上的配额阈值。
-
-[System #287] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:05:56.5490000Z
-    Msg=卷 D: (\Device\HarddiskVolume7) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:05:56.549342
-    Msg=卷 D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-
-[System #288] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:05:57.1470000Z
-    Msg=卷 F: (\Device\HarddiskVolume6) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:05:57.147966
-    Msg=卷 F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-
-[System #289] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:05:57.7450000Z
-    Msg=卷 E: (\Device\HarddiskVolume1) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:05:57.745148
-    Msg=卷 E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-
-[System #290] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:05:57.8980000Z
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:05:57.898299
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) is healthy. No action is needed.
 
 [System #292] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -230,22 +142,6 @@
     Time=2026-08-21 05:05:58.657466
     Msg=Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
 
-[System #446] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:35:07.0920000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy1) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:35:07.092943
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy1) is healthy. No action is needed.
-
-[System #449] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T05:35:17.5170000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy2) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 05:35:17.517383
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy2) is healthy. No action is needed.
-
 [System #482] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6008 Provider=EventLog
     Date=2026-08-21T09:31:08.4640000Z
@@ -253,14 +149,6 @@
   new-zh:   EventID=6008 Provider=EventLog
     Time=2026-08-21 09:31:08.464621
     Msg=上一次系统的 9:16:12 在 ‎2026/‎8/‎21 上的关闭是意外的。
-
-[System #500] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T09:30:46.7140000Z
-    Msg=卷 C: (\Device\HarddiskVolume4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 09:30:46.714435
-    Msg=卷 C: (\Device\HarddiskVolume4) is healthy. No action is needed.
 
 [System #516] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
@@ -270,38 +158,6 @@
     Time=2026-08-21 09:30:50.156278
     Msg=一个用户已达到卷 上的配额阈值。
 
-[System #530] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T09:30:51.8670000Z
-    Msg=卷 D: (\Device\HarddiskVolume7) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 09:30:51.867007
-    Msg=卷 D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-
-[System #531] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T09:30:52.5000000Z
-    Msg=卷 F: (\Device\HarddiskVolume6) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 09:30:52.500031
-    Msg=卷 F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-
-[System #532] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T09:30:53.1700000Z
-    Msg=卷 E: (\Device\HarddiskVolume1) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 09:30:53.170089
-    Msg=卷 E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-
-[System #533] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-21T09:30:53.3310000Z
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-21 09:30:53.331661
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) is healthy. No action is needed.
-
 [System #535] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
     Date=2026-08-21T09:30:53.9610000Z
@@ -309,14 +165,6 @@
   new-zh:   EventID=32 Provider=e1dexpress
     Time=2026-08-21 09:30:53.961913
     Msg=Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
-
-[System #748] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-22T22:42:16.9250000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy3) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-22 22:42:16.925223
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy3) is healthy. No action is needed.
 
 [System #842] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=4311 Provider=NetBT
@@ -334,38 +182,6 @@
     Time=2026-08-24 09:33:03.811085
     Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
 
-[System #1038] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-25T19:10:11.2590000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-25 19:10:11.259648
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy4) is healthy. No action is needed.
-
-[System #1044] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-25T19:10:30.8890000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy5) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-25 19:10:30.889254
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy5) is healthy. No action is needed.
-
-[System #1280] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-26T20:34:45.1460000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy6) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-26 20:34:45.146548
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy6) is healthy. No action is needed.
-
-[System #1377] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-27T15:54:35.8940000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy7) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-27 15:54:35.894724
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy7) is healthy. No action is needed.
-
 [System #1384] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=4311 Provider=NetBT
     Date=2026-08-27T17:14:57.2820000Z
@@ -382,70 +198,6 @@
     Time=2026-08-27 17:14:57.282142
     Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
 
-[System #1496] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-29T05:31:19.0870000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy8) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-29 05:31:19.087157
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy8) is healthy. No action is needed.
-
-[System #1499] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-29T05:31:40.7920000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy9) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-29 05:31:40.792219
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy9) is healthy. No action is needed.
-
-[System #1502] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=140 Provider=Microsoft-Windows-Ntfs
-    Date=2026-08-29T05:31:50.7470000Z
-    Msg=系统无法将数据刷新到事务日志。可能发生损坏: VolumeId: 系统，DeviceName: \Device\HarddiskVolumeShadowCopy9。;;;; 故障状态: 指定不存在的设备。;;;; 设备 GUID: {00000000-0000-0000-0000-000000000000};; 设备制造商: ;; 设备型号: ;; 设备版本: ;; 设备序列号: ;; 总线类型: <未知>;;;; 适配器序列号:
-  new-zh:   EventID=140 Provider=Microsoft-Windows-Ntfs
-    Time=2026-08-29 05:31:50.747352
-    Msg=系统无法将数据刷新到事务日志。可能发生损坏: VolumeId: 系统，DeviceName: \Device\HarddiskVolumeShadowCopy9。 故障状态: 指定不存在的设备。 设备 GUID: {00000000-0000-0000-0000-000000000000} 设备制造商: 设备型号: 设备版本: 设备序列号: 总线类型: <unknown> 适配器序列号:
-
-[System #2443] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-02T05:53:30.3670000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy10) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-02 05:53:30.367766
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy10) is healthy. No action is needed.
-
-[System #2448] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-02T05:53:44.2680000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy11) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-02 05:53:44.268611
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy11) is healthy. No action is needed.
-
-[System #2455] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-02T05:54:00.2840000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy12) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-02 05:54:00.284314
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy12) is healthy. No action is needed.
-
-[System #2626] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-03T14:54:27.1890000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy13) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-03 14:54:27.189826
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy13) is healthy. No action is needed.
-
-[System #2672] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T00:02:47.9250000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy14) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 00:02:47.925983
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy14) is healthy. No action is needed.
-
 [System #2725] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6008 Provider=EventLog
     Date=2026-09-04T09:36:51.6170000Z
@@ -453,14 +205,6 @@
   new-zh:   EventID=6008 Provider=EventLog
     Time=2026-09-04 09:36:51.617668
     Msg=上一次系统的 8:56:02 在 ‎2026/‎9/‎4 上的关闭是意外的。
-
-[System #2732] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:34:54.3280000Z
-    Msg=卷 C: (\Device\HarddiskVolume4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:34:54.328724
-    Msg=卷 C: (\Device\HarddiskVolume4) is healthy. No action is needed.
 
 [System #2751] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
@@ -470,38 +214,6 @@
     Time=2026-09-04 09:34:57.833017
     Msg=一个用户已达到卷 上的配额阈值。
 
-[System #2765] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:34:58.9830000Z
-    Msg=卷 F: (\Device\HarddiskVolume6) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:34:58.983676
-    Msg=卷 F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-
-[System #2766] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:35:00.0390000Z
-    Msg=卷 E: (\Device\HarddiskVolume1) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:35:00.039571
-    Msg=卷 E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-
-[System #2769] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:35:00.9360000Z
-    Msg=卷 D: (\Device\HarddiskVolume7) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:35:00.936142
-    Msg=卷 D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-
-[System #2775] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:35:00.9640000Z
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:35:00.964708
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) is healthy. No action is needed.
-
 [System #2779] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
     Date=2026-09-04T09:35:01.6380000Z
@@ -510,22 +222,6 @@
     Time=2026-09-04 09:35:01.638642
     Msg=Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
 
-[System #2816] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:36:19.7030000Z
-    Msg=卷 C: (\Device\HarddiskVolume4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:36:19.703671
-    Msg=卷 C: (\Device\HarddiskVolume4) is healthy. No action is needed.
-
-[System #2817] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:36:20.3140000Z
-    Msg=卷 E: (\Device\HarddiskVolume1) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:36:20.314599
-    Msg=卷 E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-
 [System #2833] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
     Date=2026-09-04T09:36:23.7890000Z
@@ -533,30 +229,6 @@
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-09-04 09:36:23.789167
     Msg=一个用户已达到卷 上的配额阈值。
-
-[System #2834] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:36:24.3780000Z
-    Msg=卷 F: (\Device\HarddiskVolume6) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:36:24.378364
-    Msg=卷 F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-
-[System #2848] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:36:25.5220000Z
-    Msg=卷 D: (\Device\HarddiskVolume7) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:36:25.522068
-    Msg=卷 D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-
-[System #2849] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:36:25.5490000Z
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:36:25.549441
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) is healthy. No action is needed.
 
 [System #2851] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -574,14 +246,6 @@
     Time=2026-09-04 09:37:05.327925
     Msg=更新 Orchestrator 服务 服务因下列错误而停止: %0x8024a120
 
-[System #2966] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:37:58.5810000Z
-    Msg=卷 C: (\Device\HarddiskVolume4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:37:58.581654
-    Msg=卷 C: (\Device\HarddiskVolume4) is healthy. No action is needed.
-
 [System #2982] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
     Date=2026-09-04T09:38:01.9990000Z
@@ -589,38 +253,6 @@
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-09-04 09:38:01.999169
     Msg=一个用户已达到卷 上的配额阈值。
-
-[System #2983] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:38:02.5760000Z
-    Msg=卷 F: (\Device\HarddiskVolume6) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:38:02.576162
-    Msg=卷 F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-
-[System #2997] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:38:03.3210000Z
-    Msg=卷 E: (\Device\HarddiskVolume1) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:38:03.321111
-    Msg=卷 E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-
-[System #2998] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:38:04.1910000Z
-    Msg=卷 D: (\Device\HarddiskVolume7) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:38:04.191843
-    Msg=卷 D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-
-[System #2999] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-04T09:38:04.2220000Z
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-04 09:38:04.222943
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) is healthy. No action is needed.
 
 [System #3001] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -654,14 +286,6 @@
     Time=2026-09-04 14:55:05.998103
     Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
 
-[System #3219] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-05T12:20:41.6580000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy2) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-05 12:20:41.658943
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy2) is healthy. No action is needed.
-
 [System #3334] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=4311 Provider=NetBT
     Date=2026-09-07T10:18:18.6230000Z
@@ -693,22 +317,6 @@
   new-zh:   EventID=4311 Provider=NetBT
     Time=2026-09-07 15:52:41.703512
     Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #3498] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-09T00:53:39.9880000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy3) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-09 00:53:39.988767
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy3) is healthy. No action is needed.
-
-[System #3502] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-09T00:53:49.5110000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-09 00:53:49.511853
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy4) is healthy. No action is needed.
 
 [System #3581] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=4311 Provider=NetBT
@@ -798,14 +406,6 @@
     Time=2026-09-10 01:36:01.043092
     Msg=Windows 成功诊断出虚拟内存不足的情况。以下程序使用了大部分虚拟内存: () 使用了 字节； () 使用了 字节； () 使用了 字节。
 
-[System #3765] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T09:49:46.7760000Z
-    Msg=卷 C: (\Device\HarddiskVolume4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 09:49:46.776547
-    Msg=卷 C: (\Device\HarddiskVolume4) is healthy. No action is needed.
-
 [System #3780] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
     Date=2026-09-10T09:49:50.1940000Z
@@ -813,38 +413,6 @@
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-09-10 09:49:50.194739
     Msg=一个用户已达到卷 上的配额阈值。
-
-[System #3781] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T09:49:50.7910000Z
-    Msg=卷 F: (\Device\HarddiskVolume6) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 09:49:50.791879
-    Msg=卷 F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-
-[System #3795] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T09:49:51.5880000Z
-    Msg=卷 E: (\Device\HarddiskVolume1) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 09:49:51.588557
-    Msg=卷 E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-
-[System #3796] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T09:49:53.1750000Z
-    Msg=卷 D: (\Device\HarddiskVolume7) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 09:49:53.175433
-    Msg=卷 D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-
-[System #3797] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T09:49:53.2070000Z
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 09:49:53.207326
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) is healthy. No action is needed.
 
 [System #3799] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -862,22 +430,6 @@
     Time=2026-09-10 09:51:35.131611
     Msg=更新 Orchestrator 服务 服务因下列错误而停止: %0x8024a120
 
-[System #3930] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T09:51:57.7680000Z
-    Msg=卷 C: (\Device\HarddiskVolume4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 09:51:57.768782
-    Msg=卷 C: (\Device\HarddiskVolume4) is healthy. No action is needed.
-
-[System #3931] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T09:51:58.3520000Z
-    Msg=卷 E: (\Device\HarddiskVolume1) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 09:51:58.352724
-    Msg=卷 E: (\Device\HarddiskVolume1) is healthy. No action is needed.
-
 [System #3947] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
     Date=2026-09-10T09:52:01.7930000Z
@@ -886,30 +438,6 @@
     Time=2026-09-10 09:52:01.793567
     Msg=一个用户已达到卷 上的配额阈值。
 
-[System #3948] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T09:52:02.3490000Z
-    Msg=卷 F: (\Device\HarddiskVolume6) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 09:52:02.349835
-    Msg=卷 F: (\Device\HarddiskVolume6) is healthy. No action is needed.
-
-[System #3962] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T09:52:03.5620000Z
-    Msg=卷 D: (\Device\HarddiskVolume7) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 09:52:03.562569
-    Msg=卷 D: (\Device\HarddiskVolume7) is healthy. No action is needed.
-
-[System #3963] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T09:52:03.5920000Z
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 09:52:03.592754
-    Msg=卷 \\?\Volume{d849e7c4-ff65-481b-aba4-7db8188d6758} (\Device\HarddiskVolume5) is healthy. No action is needed.
-
 [System #3965] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
     Date=2026-09-10T09:52:05.5720000Z
@@ -917,14 +445,6 @@
   new-zh:   EventID=32 Provider=e1dexpress
     Time=2026-09-10 09:52:05.572972
     Msg=Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
-
-[System #4079] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-10T11:53:38.2840000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy2) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-10 11:53:38.284840
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy2) is healthy. No action is needed.
 
 [System #4214] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=4311 Provider=NetBT
@@ -941,30 +461,6 @@
   new-zh:   EventID=4311 Provider=NetBT
     Time=2026-09-11 10:37:35.883936
     Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4286] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-12T02:34:07.3680000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy3) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-12 02:34:07.368789
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy3) is healthy. No action is needed.
-
-[System #4289] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-12T02:34:18.7890000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy4) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-12 02:34:18.789701
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy4) is healthy. No action is needed.
-
-[System #4464] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-14T09:42:55.7020000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy5) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-14 09:42:55.702742
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy5) is healthy. No action is needed.
 
 [System #4501] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=4311 Provider=NetBT
@@ -997,14 +493,6 @@
   new-zh:   EventID=4311 Provider=NetBT
     Time=2026-09-14 14:13:11.777325
     Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4724] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-16T09:29:34.1910000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy6) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-16 09:29:34.191041
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy6) is healthy. No action is needed.
 
 [System #4733] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=4311 Provider=NetBT
@@ -1102,30 +590,6 @@
     Time=2026-09-18 14:56:55.589185
     Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
 
-[System #5040] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-19T06:36:59.6470000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy7) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-19 06:36:59.647347
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy7) is healthy. No action is needed.
-
-[System #5043] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-19T06:37:17.6790000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy8) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-19 06:37:17.679572
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy8) is healthy. No action is needed.
-
-[System #5047] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-19T06:37:35.9220000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy9) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-19 06:37:35.922678
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy9) is healthy. No action is needed.
-
 [System #5250] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=4311 Provider=NetBT
     Date=2026-09-21T10:14:07.2430000Z
@@ -1158,30 +622,6 @@
     Time=2026-09-21 17:12:24.471084
     Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
 
-[System #5342] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-22T07:46:27.8240000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy10) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-22 07:46:27.824184
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy10) is healthy. No action is needed.
-
-[System #5346] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-22T07:46:44.6200000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy11) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-22 07:46:44.620988
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy11) is healthy. No action is needed.
-
-[System #5351] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-22T07:47:02.0800000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy12) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-22 07:47:02.080434
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy12) is healthy. No action is needed.
-
 [System #5424] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=4311 Provider=NetBT
     Date=2026-09-22T17:36:09.8050000Z
@@ -1197,46 +637,6 @@
   new-zh:   EventID=4311 Provider=NetBT
     Time=2026-09-22 17:36:09.806634
     Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #5705] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-25T08:42:09.1510000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy13) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-25 08:42:09.151853
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy13) is healthy. No action is needed.
-
-[System #5710] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-25T08:42:28.6220000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy14) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-25 08:42:28.622883
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy14) is healthy. No action is needed.
-
-[System #5716] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-25T08:42:48.6470000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy15) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-25 08:42:48.647609
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy15) is healthy. No action is needed.
-
-[System #5974] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-28T10:42:14.2210000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy16) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-28 10:42:14.221896
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy16) is healthy. No action is needed.
-
-[System #5978] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=98 Provider=Microsoft-Windows-Ntfs
-    Date=2026-09-28T10:42:32.9860000Z
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy17) 运行状况良好。无需执行任何操作。
-  new-zh:   EventID=98 Provider=Microsoft-Windows-Ntfs
-    Time=2026-09-28 10:42:32.986965
-    Msg=卷 系统 (\Device\HarddiskVolumeShadowCopy17) is healthy. No action is needed.
 
 [System #6051] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=4311 Provider=NetBT
