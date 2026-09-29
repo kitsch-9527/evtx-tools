@@ -28,6 +28,12 @@ import (
 // RT_MESSAGETABLE，返回 id→文本（文本去首尾空白）。
 func collectNtstatusMessages() (map[uint32]string, error) {
 	path := filepath.Join(os.Getenv("SystemRoot"), "System32", "ntdll.dll")
+	return collectNtstatusMessagesFromPath(path)
+}
+
+// collectNtstatusMessagesFromPath 同上，但接受任意 PE 路径（v9：供 ntdll 的
+// MUI companion 萃取臂使用；该臂自守卫——MUI 无消息表时返回空，调用方跳过）。
+func collectNtstatusMessagesFromPath(path string) (map[uint32]string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read ntdll: %w", err)

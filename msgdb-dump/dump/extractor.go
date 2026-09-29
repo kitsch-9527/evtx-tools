@@ -35,19 +35,24 @@ func ExtractSingleDLL(dllPath string, providers []ProviderInfo, langLCIDs, langC
 	}
 
 	// 1. Extract parameter messages from ParameterMessageFile (%%N expansion)
+	// v9（2026-09-29）：参数文件同样按语言萃取——基础文件为 en-US 层，非 en 语言
+	// 走 MUI companion。此前只读基础文件单语，zh 渲染时 %%1833 等永远是英文
+	// （Security-Auditing 9733 条 D 的根因；schema 的 PK 本就含 lang，无需升版）。
 	seenParamPaths := make(map[string]bool)
 	for _, p := range providers {
 		if p.ParameterFile != nil && *p.ParameterFile != "" {
 			paramPath := *p.ParameterFile
 			if !seenParamPaths[paramPath] {
 				seenParamPaths[paramPath] = true
-				if msgs := extractMessages(paramPath); msgs != nil {
-					for eid, msg := range msgs {
-						result.ParamMessages[eid] = msg
-					}
-				}
+				result.ParamMessagesByLang = mergeParamMessagesByLang(
+					result.ParamMessagesByLang,
+					extractParamMessagesByLang(paramPath, langCodes),
+				)
 			}
 		}
+	}
+	if en := result.ParamMessagesByLang["en-US"]; len(en) > 0 {
+		result.ParamMessages = en
 	}
 
 	// 2. Main PE extraction
@@ -222,6 +227,66 @@ func extractMessages(dllPath string) map[uint32]string {
 		return nil
 	}
 	return combined.Messages
+}
+
+// extractParamMessagesByLang extracts %%N parameter messages for a parameter
+// file across languages (v9): the base file is the en-US layer; each non-en
+// language comes from its MUI companion. When the base file has no message
+// table (modern MUI-only layout), the en-US MUI companion is used so param
+// refs do not silently disappear.
+func extractParamMessagesByLang(paramPath string, langCodes []string) map[string]map[uint32]string {
+	byLang := make(map[string]map[uint32]string)
+	// 注意 len 判断而非 nil：MUI-only 布局的基础文件（如 netevent.dll 28KB 无表）
+	// 会返回空非 nil map，若按 nil 判断会挡住 en-US MUI 回退臂（09-29 实测失衡根因）。
+	if msgs := extractMessages(paramPath); len(msgs) > 0 {
+		byLang["en-US"] = cloneParamMessages(msgs)
+	}
+	for _, code := range langCodes {
+		if code == "en-US" {
+			continue
+		}
+		muiPath := FindMUICompanion(paramPath, code)
+		if muiPath == nil {
+			continue
+		}
+		if msgs := extractMessages(*muiPath); len(msgs) > 0 {
+			byLang[code] = cloneParamMessages(msgs)
+		}
+	}
+	if len(byLang["en-US"]) == 0 {
+		if muiPath := FindMUICompanion(paramPath, "en-US"); muiPath != nil {
+			if msgs := extractMessages(*muiPath); len(msgs) > 0 {
+				byLang["en-US"] = cloneParamMessages(msgs)
+			}
+		}
+	}
+	return byLang
+}
+
+func cloneParamMessages(msgs map[uint32]string) map[uint32]string {
+	out := make(map[uint32]string, len(msgs))
+	for id, text := range msgs {
+		out[id] = text
+	}
+	return out
+}
+
+// mergeParamMessagesByLang merges src into dst (per-language flat maps);
+// returns dst (created when nil). Later param files override earlier rows on
+// id collision, matching the legacy flat-map semantics.
+func mergeParamMessagesByLang(dst, src map[string]map[uint32]string) map[string]map[uint32]string {
+	if dst == nil {
+		dst = make(map[string]map[uint32]string)
+	}
+	for lang, msgs := range src {
+		if dst[lang] == nil {
+			dst[lang] = make(map[uint32]string, len(msgs))
+		}
+		for id, text := range msgs {
+			dst[lang][id] = text
+		}
+	}
+	return dst
 }
 
 // ---------------------------------------------------------------------------

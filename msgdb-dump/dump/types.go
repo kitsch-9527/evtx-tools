@@ -88,6 +88,11 @@ type DLLResult struct {
 	Providers      []ProviderInfo              `json:"providers"`
 	CrimBlobs      [][]byte                    `json:"crim_blobs"`
 	ParamMessages  map[uint32]string           `json:"param_messages"`
+	// ParamMessagesByLang carries per-language %%N parameter messages (v9,
+	// 2026-09-29): lang → param_id → text. The base parameter file is the
+	// en-US layer; non-en languages come from MUI companions. Legacy
+	// ParamMessages keeps the en-US layer for existing consumers.
+	ParamMessagesByLang map[string]map[uint32]string `json:"param_messages_by_lang,omitempty"`
 	ValueMaps      map[string]map[string]string `json:"value_maps"`
 	// ParamMapRefs links event parameters to their value maps, collected
 	// from the CRIM+MUI fallback (TEMP item +8 → VMAP/BMAP association).

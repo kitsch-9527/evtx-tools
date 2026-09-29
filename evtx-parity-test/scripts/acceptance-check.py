@@ -82,6 +82,18 @@ def main():
         results.append((g, name, "PASS" if ok else "FAIL", evidence))
         return ok
 
+    # ---- G0 语言一致性门（v5, 2026-09-29 语言漂移事件）----
+    # Lua 基线（wevtutil /f:text）渲染语言随本机 UI 语言漂移；06 v5 起从基线文本
+    # 探测 baseline_lang 并让主比对随基线走。本门核对：本轮语言已知，且与上轮一致
+    # （语言翻转而不重导基线 → 全量假阳性 D，09-29 实测 matched 32020→1840）。
+    lang = r.get("baseline_lang", "unknown")
+    if prev:
+        prev_lang = prev.get("baseline_lang", "unknown")
+        gate("G0", "基线渲染语言与上轮一致", lang in ("zh-CN", "en-US") and lang == prev_lang,
+             f"baseline_lang {prev_lang}→{lang}（language drift → re-run 01/02）")
+    else:
+        gate("G0", "基线渲染语言已知", lang in ("zh-CN", "en-US"), f"baseline_lang={lang}")
+
     # ---- G1 指标门 ----
     total_cmp = sum(d["compared"] for d in r["by_channel"].values())
     total_match = sum(d["matched"] for d in r["by_channel"].values())

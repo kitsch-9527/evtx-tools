@@ -50,6 +50,11 @@ pub struct MessageDb {
     /// 系统错误码互撞（SCM %%2 要 Win32 的 2，某 provider %%2 是私有文本）。
     /// 特殊键 "Win32-System-Error" 作回退层（provider 私有缺 id 时补）。
     param_refs: HashMap<String, HashMap<u32, String>>,
+    /// en-US `%%N` fallback layer (v9, 2026-09-29): filled by
+    /// [`load_param_refs`](MessageDb::load_param_refs) when the requested
+    /// render language has no row for an id, mirroring the EvtFormatMessage
+    /// MUI fallback chain (zh-CN → en-US).
+    param_refs_fallback: HashMap<String, HashMap<u32, String>>,
     /// CRIM value map cache: map_name → {value_str → display_name}.
     /// Populated from the `value_maps` table (VMAP/BMAP blocks).
     value_maps: HashMap<String, HashMap<String, String>>,
@@ -92,6 +97,7 @@ impl MessageDb {
             conn,
             variant_cache: HashMap::new(),
             param_refs: HashMap::new(),
+            param_refs_fallback: HashMap::new(),
             value_maps: HashMap::new(),
             bitmap_names: HashSet::new(),
             registry_sources: HashSet::new(),
@@ -141,10 +147,18 @@ impl MessageDb {
     /// NTSTATUS message text (Phase E table, "NTSTATUS-System-Error" group).
     /// ntdll's RT_MESSAGETABLE extracted at dump time; used by typed
     /// rendering for OutType 0x1F (Ntfs 140 `Failure status`).
+    /// v9：目标语言层优先，缺 id 回落 en-US 层。
     pub fn lookup_ntstatus(&self, code: u32) -> Option<String> {
-        self.param_refs
-            .get("NTSTATUS-System-Error")?
-            .get(&code)
+        if let Some(text) = self
+            .param_refs
+            .get("NTSTATUS-System-Error")
+            .and_then(|m| m.get(&code))
+        {
+            return Some(text.clone());
+        }
+        self.param_refs_fallback
+            .get("NTSTATUS-System-Error")
+            .and_then(|m| m.get(&code))
             .cloned()
     }
 
@@ -188,13 +202,18 @@ impl MessageDb {
     /// This populates the in-memory `param_refs` cache used by
     /// [`expand_message`](MessageDb::expand_message). Single-file v7 always
     /// has this table; a missing table is a hard error.
-    pub fn load_param_refs(&mut self) -> Result<()> {
+    ///
+    /// v9（2026-09-29）：语言感知加载。`lang` 行进首选层（param_refs），
+    /// en-US 行进回退层（param_refs_fallback）；expand_message 按层补缺，
+    /// 镜像 EvtFormatMessage 的 MUI 回退链（zh-CN → en-US）。旧库全为
+    /// en-US 行：zh 目标下首选层为空、回退层承载全部行为，语义不变。
+    pub fn load_param_refs(&mut self, lang: &str) -> Result<()> {
         // R17（2026-09-04）：按 provider 分组加载。R15 的 Win32-System-Error 全局行
         // 与 provider 私有 %%N 同 param_id 互撞（SCM %%2 要 Win32 的 2，私有 %%2 是别的文本），
         // 平铺无法区分。Win32-System-Error 单独成组作回退层。
         let mut stmt = self
             .conn
-            .prepare("SELECT provider_name, param_id, message FROM parameter_refs")
+            .prepare("SELECT provider_name, param_id, message, lang FROM parameter_refs")
             .map_err(|e| format!("failed to prepare param_refs query: {e}"))?;
 
         let rows = stmt
@@ -202,13 +221,24 @@ impl MessageDb {
                 let provider: String = row.get(0)?;
                 let param_id: i64 = row.get(1)?;
                 let message: String = row.get(2)?;
-                Ok((provider, param_id as u32, message))
+                let row_lang: String = row.get(3)?;
+                Ok((provider, param_id as u32, message, row_lang))
             })
             .map_err(|e| format!("failed to query parameter_refs: {e}"))?;
 
         for row in rows {
-            if let Ok((provider, param_id, message)) = row {
-                self.param_refs.entry(provider).or_default().insert(param_id, message);
+            if let Ok((provider, param_id, message, row_lang)) = row {
+                if row_lang == lang {
+                    self.param_refs
+                        .entry(provider)
+                        .or_default()
+                        .insert(param_id, message);
+                } else if row_lang == "en-US" {
+                    self.param_refs_fallback
+                        .entry(provider)
+                        .or_default()
+                        .insert(param_id, message);
+                }
             }
         }
 
@@ -218,9 +248,10 @@ impl MessageDb {
     /// Expand `%%N` parameter references in a message string.
     ///
     /// R17：provider 私有 %%N 优先，Win32-System-Error 作回退（仅补私有缺失的 id）。
-    /// If the cache is empty, the message is returned unchanged.
+    /// v9：每层先目标语言、缺 id 落 en-US 回退层（EvtFormatMessage MUI 回退链）。
+    /// If both caches are empty, the message is returned unchanged.
     pub fn expand_message(&self, message: &str, provider_name: &str) -> String {
-        if self.param_refs.is_empty() {
+        if self.param_refs.is_empty() && self.param_refs_fallback.is_empty() {
             return message.to_string();
         }
         if !message.contains("%%") {
@@ -230,8 +261,18 @@ impl MessageDb {
         if let Some(priv_map) = self.param_refs.get(provider_name) {
             merged.extend(priv_map.iter().map(|(k, v)| (*k, v.clone())));
         }
+        if let Some(priv_fb) = self.param_refs_fallback.get(provider_name) {
+            for (k, v) in priv_fb {
+                merged.entry(*k).or_insert_with(|| v.clone());
+            }
+        }
         if let Some(sys) = self.param_refs.get("Win32-System-Error") {
             for (k, v) in sys {
+                merged.entry(*k).or_insert_with(|| v.clone());
+            }
+        }
+        if let Some(sys_fb) = self.param_refs_fallback.get("Win32-System-Error") {
+            for (k, v) in sys_fb {
                 merged.entry(*k).or_insert_with(|| v.clone());
             }
         }
@@ -498,7 +539,7 @@ impl MessageDb {
 
     /// Returns true when `%%N` parameter references are loaded and available.
     pub fn has_param_refs(&self) -> bool {
-        !self.param_refs.is_empty()
+        !self.param_refs.is_empty() || !self.param_refs_fallback.is_empty()
     }
 
     /// Return a reference to the underlying SQLite connection.
@@ -1023,7 +1064,7 @@ mod tests {
             drop(conn);
         }
         let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
-        assert!(db.load_param_refs().is_err());
+        assert!(db.load_param_refs("en-US").is_err());
         let _ = std::fs::remove_file(&tmp);
     }
 
@@ -1108,6 +1149,63 @@ mod tests {
         }
     }
 
+    /// v9 fixture: en-US + zh-CN parameter_refs rows for lang preference tests.
+    /// 1833 exists in both languages; 8448 only in en-US (fallback case).
+    fn setup_param_refs_lang_db(path: &Path) {
+        let _ = std::fs::remove_file(path);
+        let conn = Connection::open(path).unwrap();
+        create_v8_schema(&conn);
+        insert_metadata_8(&conn);
+        conn.execute(
+            "INSERT INTO parameter_refs(provider_name, param_id, message, lang) VALUES('Microsoft-Windows-Security-Auditing', 1833, 'Impersonation', 'en-US')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO parameter_refs(provider_name, param_id, message, lang) VALUES('Microsoft-Windows-Security-Auditing', 1833, '模拟', 'zh-CN')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO parameter_refs(provider_name, param_id, message, lang) VALUES('Microsoft-Windows-Security-Auditing', 8448, 'No', 'en-US')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+    }
+
+    #[test]
+    fn test_param_refs_lang_preference_and_fallback() {
+        // v9（2026-09-29）：%%N 参数引用语言优先 + en-US 回退（镜像 EvtFormatMessage
+        // 的 MUI 回退链）。zh 渲染 1833 命中 zh 行；8448 无 zh 行回落 en 行；
+        // en 渲染全部命中 en 行。
+        let tmp = tmp_path("param_refs_lang_pref");
+        setup_param_refs_lang_db(&tmp);
+
+        let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db.load_param_refs("zh-CN").unwrap();
+        assert_eq!(
+            db.expand_message("%%1833", "Microsoft-Windows-Security-Auditing"),
+            "模拟",
+            "zh target should prefer the zh-CN row"
+        );
+        assert_eq!(
+            db.expand_message("%%8448", "Microsoft-Windows-Security-Auditing"),
+            "No",
+            "missing zh row should fall back to the en-US row"
+        );
+
+        let mut db_en = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db_en.load_param_refs("en-US").unwrap();
+        assert_eq!(
+            db_en.expand_message("%%1833", "Microsoft-Windows-Security-Auditing"),
+            "Impersonation",
+            "en target should use the en-US row"
+        );
+
+        let _ = std::fs::remove_file(&tmp);
+    }
+
     #[test]
     fn test_expand_param_refs_before_substitute() {
         // Regression test for the bug where %%N expansion happened AFTER
@@ -1118,7 +1216,7 @@ mod tests {
         setup_param_refs_db(&tmp, true);
 
         let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
-        db.load_param_refs().unwrap();
+        db.load_param_refs("zh-CN").unwrap();
         db.warmup(&[key_security_4624()], "zh-CN").unwrap();
 
         // Get the message row via the v7 variant ladder.
@@ -1188,7 +1286,7 @@ mod tests {
         setup_param_refs_db(&tmp, false);
 
         let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
-        db.load_param_refs().unwrap();
+        db.load_param_refs("en-US").unwrap();
         assert!(!db.has_param_refs(), "cache should be empty with no data rows");
         db.warmup(&[key_security_4624()], "zh-CN").unwrap();
 

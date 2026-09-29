@@ -54,7 +54,7 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
     })?;
     eprintln!("[info] loading messages db: {db_path}");
     let mut db = MessageDb::open(&db_path)?;
-    db.load_param_refs()?;
+    db.load_param_refs(&target_lang)?;
     db.load_value_maps()?;
     db.load_registry_sources()?;
     db.load_param_types()?;
@@ -1631,7 +1631,7 @@ mod r10_typed_tests {
             .unwrap();
         }
         let mut db = MessageDb::open(db_path.to_str().unwrap()).unwrap();
-        db.load_param_refs().unwrap();
+        db.load_param_refs("en-US").unwrap();
         let msg_db: Option<Arc<Mutex<MessageDb>>> = Some(Arc::new(Mutex::new(db)));
 
         let types = HashMap::from([("1".to_string(), "14:1f".to_string())]);
@@ -1987,7 +1987,7 @@ mod debug_live_db {
         let _ = db_for_types;
         // run apply_param_types against a fresh db handle loaded with param refs
         let mut db2 = MessageDb::open(LIVE_DB).unwrap();
-        db2.load_param_refs().unwrap();
+        db2.load_param_refs("en-US").unwrap();
         db2.load_param_types().unwrap();
         db2.warmup(std::slice::from_ref(&key), "en-US").unwrap();
         let row2 = db2.resolve_variant(&key).unwrap().clone();

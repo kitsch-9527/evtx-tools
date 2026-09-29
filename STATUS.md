@@ -1,7 +1,8 @@
 # evet 项目现状说明
 
-> 生成时间：2026-09-07，**2026-09-15 阶段 H 定稿更新**（数字口径以
-> `evtx-parity-test/report.json` 为准，术语见 `CONTEXT.md`）。
+> 生成时间：2026-09-07，**2026-09-29 语言漂移重基线更新**（G0 事件：本机 UI 语言
+> en-US→zh-CN，主比对随基线翻到 zh；数字口径以 `evtx-parity-test/report.json` 为准，
+> 术语见 `CONTEXT.md`）。
 
 ## 1. 项目是什么
 
@@ -50,23 +51,28 @@ Message）。
 4. 枚举启发式（R11）→ CRIM 值映射（Layer 2/2b）→ LUID 大写 hex（R14）。
 5. `%1-%99` 位置代入 → 展示格式化。取值层含 JSON 原生 Bool 修复（R18）。
 
-## 5. 当前基线（2026-09-15 终态，verdict=DIFF）
+## 5. 当前基线（2026-09-29 zh 轮重基线，verdict=DIFF）
 
-| 通道 | 比对 | 一致 | 差异构成（默认口径） |
+> **G0 语言漂移事件**：本机显示语言 2026-09 下旬由 en-US 切为 zh-CN，Lua 基线
+> （wevtutil 真值）渲染语言随之翻转；06 v5 起主比对语言随基线自动探测
+> （`baseline_lang`），acceptance-check 新增 G0 语言一致性门。历史 en 口径见下文。
+
+| 通道 | 比对 | 一致 | 差异构成（主比对=zh，默认口径） |
 |---|---|---|---|
-| Application | 3925 | 3836 | B74 + C11 + D2 + 豁免2 |
-| Setup | 222 | 222 | 全绿 |
-| Security | 26031 | 26031 | **全绿** |
-| System | 2623 | 1931 | B644 + C40 + 豁免8 |
+| Application | 10742 | 10429 | B189（经典源簇）+ D122（System-Restore 8300-8303×93，zh 新增簇） |
+| Setup | 676 | 676 | 全绿 |
+| Security | 27366 | 27366 | **全绿** |
+| System | 6106 | 4885 | B926（Ntfs50/hcmon 等历史簇）+ D278（SCM7045×111/CfgChangeMonitor×80/Ntfs98×74） |
 
-- 全量：32801 条比对，**32020 一致，diff=771**（B718 + C51 + D2），exempted=10 条/6 项，M5=761。
-- **M1 = 97.6190%**（超理想线 97.59%）；**M2 = 99.43%**（D 残留 2/348：WER 1001×2，
-  上游渲染器 hex 化 `3003916586`→`0xb30c212a`，App #2972/#3429，转后续专项）。
-  D 类轨迹：348（09-05 起点）→ 162 → **2**。
-- 关豁免口径：diff=781=771+10（白名单 10 条全额回 D，exempted=0，无意外掩盖）。
-- B/C 类为已知未覆盖场景（历史既有，见 skill 基线）；G1–G7 全量验收全过
-  （2026-09-15，`docs/phase-reports/phase-G-report.md`）；
-  单测 Rust 225 绿 + Go 125 绿。
+- 全量：44890 条比对，**43356 一致，diff=1515**，exempted=19 条/6 项（键语言无关自动生效）。
+- **M1 = 96.5828%**；G1 目标线（97.53%）为 en 时代标定，zh 轮重标定待计划变更。
+- 语言专项（本轮落地）：**v9 param_refs 双语化**——schema PK 本就含 lang；萃取端参数文件
+  按 MUI 多语言（en 118767/zh 118355 行），渲染端语言优先 + en 回退；Security 9733 条
+  枚举名 D（否/是/模拟 vs No/Yes/Impersonation）就此清零。
+- zh 新增簇（转后续）：System-Restore 8300-8303×93、SCM 7045×111、Ntfs 98×74；
+  历史簇（Ntfs 50×515、hcmon×266、CfgChangeMonitor×80 等）与语言无关、原样复现。
+- 历史 en 终态（2026-09-15）：32801 比对 / 32020 一致 / diff=771 / M1=97.6190% /
+  M2=99.43%（WER 1001×2）/ exempted=10 条/6 项 / M5=761。
 
 ## 6. 已落地修复（全部 TDD 回归测试保护，勿回退）
 
@@ -83,15 +89,20 @@ Message）。
 | R19/R20 | 09-08 | CRIM VMAP 0xDn 字符串表家族泛化（value_maps 8540→29718）、param_name 校验挂载、bool/(8,8) 接管臂 |
 | 批次 C–G | 09-14/15 | 豁免白名单+`--no-exemptions`；6013 消息表接入（netevent MUI RT_MESSAGETABLE 0x8000177D，well-known 注入）；NTSTATUS `NTSTATUS-System-Error` 全局组（ntdll 2975 条）+ (_,0x1F) hit-only 渲染臂；残余归属收口（Wininit 26 闭合） |
 
-## 7. 残留问题（2026-09-15 终态：D 类仅 2 条，归属已收口）
+## 7. 残留问题（2026-09-29 zh 轮终态）
 
-- **D 残留 2 条 = WER 1001×2**（App #2972/#3429）：上游渲染器把 WER 报告文件名 GUID
-  尾段十进制串 hex 化（`3003916586`→`0xb30c212a`，实证相等）——属上游取值层修复专项，
-  落地后 D 清零、M2=100%，比对层不动。
-- **豁免 6 项/10 条**（登记表唯一真源 `docs/residual-zeroing-plan-2026-09-07.md` §4）：
-  SPP 1004×1（PARSE）、CAPI2 4111×1（PARSE，可选专项=基线侧 CJK 日期 `?` 手术）、
-  SAM 16962×3（BIN）、disk 51×1（SRC）、WPD 24577×2 / 24579×2（PARSE）。
-- B718 / C51（含 6013 已接出后的无模板/裸参数簇）为已知未覆盖场景，历史既有。
+- **zh 新增簇（转后续专项）**：System-Restore 8300-8303×93（App，疑似 value-map 族）、
+  SCM 7045×111（System，启动类型枚举名嫌疑）、Ntfs 98×74（System，NTSTATUS zh 臂待核）、
+  Resource-Exhaustion 2004×9。
+- **历史簇（与语言无关，原样复现）**：Ntfs 50×515、hcmon×266、WXWork×63、asus×46、
+  PDFShellExt×25、igfx×20、Win32k 267×42、NetBT 4311×38、CfgChangeMonitor×80（N/A 精度缺口）
+  及若干小簇——即 en 时代 residual 计划的 B718/C51 清单在 zh 口径重现。
+- **en 时代遗留专项**：WER 1001×2 上游 hex 化（App #2972/#3429）、CAPI2 4111 基线侧 `?` 手术（可选）。
+- **豁免 6 项/19 条**（键语言无关，zh 轮自动生效；登记表唯一真源
+  `docs/residual-zeroing-plan-2026-09-07.md` §4）：SPP 1004×1（PARSE）、CAPI2 4111×1（PARSE）、
+  SAM 16962×8（BIN）、disk 51×1（SRC）、WPD 24577×4 / 24579×4（PARSE）。
+- **G1 目标线重标定待定**：M1 97.53%/M2 基线 348 为 en 时代标定值，zh 轮 96.58%/D400，
+  重标定属计划变更（用户决策）。
 
 ## 8. 验证与测试循环（使用 `evtx-parity-test/`）
 
@@ -103,9 +114,8 @@ Message）。
 ### 8.1 层次一：代码单元测试（秒级，改上游后立即跑）
 
 ```bash
-cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ -count=1   # Go 侧（2026-09-15 起 go test ./... 全包绿：
-                                                                 #  125 用例，crim-probe-566 坏括号已修）
-cd evtx-tools   && cargo test --workspace                       # Rust 侧（2026-09-15：225 绿，bin 29 + core 193 + doctest 3）
+cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ ./pe/ -count=1   # Go 侧（2026-09-29：128 用例全绿）
+cd evtx-tools   && cargo test --workspace                       # Rust 侧（2026-09-29：226 绿，bin 29 + core 194 + doctest 3）
 ```
 
 覆盖：v8 schema 契约（旧 v7 拒开、缺表硬错、空表特性关）、渲染规则

@@ -33,9 +33,11 @@
 
 - 对齐：同一文件按出现顺序逐条对齐，基线 `Event[N]` 序号顺序对应新解析 `sequence_number` 顺序。
   基线 `Event[N]` 是 wevtutil 查询序号（从 0 起），不是 `event_record_id`，不可按记录号对齐。
-- 主链：wevtutil 文本基线 vs `new-parsed/en`（同语言严格五字段：EventID / Provider /
-  Channel / TimeCreated 两边本地时间容差 2s / Message 空白归一）。
-- 对照：`new-parsed/zh` 只计覆盖率（条数 / EventID 顺序一致率 / 空消息率），不逐条比 Message。
+- 主链：wevtutil 文本基线 vs `new-parsed/` 同语言侧（06 v5 从基线文本 G0 探测 `baseline_lang`
+  ——zh 判据 `'Level: 信息'`、en 判据 `'Level: Information'`——主比对随基线语言走；
+  严格五字段：EventID / Provider / Channel / TimeCreated 两边本地时间容差 2s / Message 空白归一）。
+- 对照：另一语言侧只计覆盖率（条数 / EventID 顺序一致率 / 空消息率），不逐条比 Message；
+  report.json `baseline_lang` 供 acceptance-check G0 门核对与上轮一致。
 - Message 分类：A-渲染格式差（已豁免）/ B-裸参数未渲染 / C-无模板fallback / D-实质分歧。
 <!--P2-->
 ## 已核实的关键事实（勿回退）
@@ -94,7 +96,27 @@
 16. **EXEMPTIONS 双表（2026-09-08 起，阶段 B）**：`06-compare.py` 与
     `scripts/acceptance-check.py` 的豁免表必须**同一提交同步改动**；登记表唯一真源为
     `docs/residual-zeroing-plan-2026-09-07.md` §4（终态 6 项/10 条：SPP1004×1、
-    CAPI2 4111×1、SAM16962×3、disk51×1、WPD24577×2、WPD24579×2）。
+    CAPI2 4111×1、SAM16962×3、disk51×1、WPD24577×2、WPD24579×2）。豁免键
+    （channel, provider, eid）**语言无关**，语言翻转后白名单自动继续生效（zh 轮实测命中 19 条）。
+17. **G0 语言漂移（2026-09-29，勿回退）**：wevtutil `/f:text` 渲染语言跟随**本机 UI 语言**，
+    本机 2026-09 下旬由 en-US 切为 zh-CN（`Get-WinUILanguageOverride`=zh-Hans-CN），曾致
+    基线 vs en 主比对全量假阳性 D（matched 32020→1840）。铁律：任何重跑前先看基线渲染语言；
+    06 v5 主比对随 `baseline_lang` 走，acceptance-check 新增 **G0 门**（语言未知或与 prev
+    不一致即 FAIL）。Setup 通道全绿不受语言翻转影响的机理：其 provider 无 zh 资源，
+    EvtFormatMessage 回退 en。
+18. **parameter_refs 语言层（2026-09-29，v9 机制，勿回退）**：表 PK 本就含 lang
+    （schema 未升版）；萃取端参数文件（ParameterMessageFile）必须按语言萃取——基础文件为
+    en-US 层、非 en 语言走 MUI companion、基础文件无表时回落 en-US MUI（**必须用
+    `len(msgs)>0` 判断而非 nil**：MUI-only 布局的基础文件如 netevent.dll(28KB) 返回空非 nil
+    map，nil 判断会挡住 en-US 回退臂造成 en/zh 失衡 12252 vs 118355）；渲染端
+    `load_param_refs(lang)` 语言行进首选层、en-US 行进回退层，expand/lookup 按
+    首选→en-US 回退（镜像 EvtFormatMessage MUI 链）。Win32-System-Error 按 langCodes
+    每语言一套（`FormatMessage` langID 显式 1033/2052…）；**ntdll 的 zh-CN MUI 确有
+    NTSTATUS 表（2975 条）**——阶段 E 注释"MUI 不含此表"已过时（勿据旧注释跳过）。
+19. **管线运维坑（2026-09-29）**：①`wevtutil epl` **不覆盖已存在文件**（报"文件存在"），
+    重导前必须先删目标文件；②Security 通道导出需管理员，本会话用 UAC 提权包装
+    （`scripts/_01-security-elevated.ps1`）；③提权运行的 .ps1 必须**纯 ASCII**——无 BOM
+    UTF-8 的中文注释被 PS5.1 按 GBK 读入会吞换行（与坑位 GBK 控制台同源）。
 
 ## 已知上游缺口（首轮闭环发现；ADR 0003 单文件迁移已修 #1）
 
@@ -104,23 +126,29 @@
    而 wevtutil 现场拿到 Proof-of-Purchase，降格策略与运行时语义的真实分歧点。
 3. CSV 表头重复、`--format both` 同路径抢写（见上）。
 
-## 基线（严格口径，2026-09-15 终态，verdict=DIFF，32020/32801 一致，M1=97.6190%）
+## 基线（严格口径，2026-09-29 zh 轮重基线，verdict=DIFF，43356/44890 一致，M1=96.5828%）
 
-| 通道 | 基线 | 新解析 | 一致 | 差异构成（默认口径） |
+> 本机 UI 语言 2026-09 下旬切为 zh-CN（G0 事件），主比对随基线翻到 zh；历史 en 口径数字
+> 见下方"历史"段。G1 目标线（97.53%）为 en 时代标定，zh 轮重标定待计划变更。
+
+| 通道 | 基线 | 新解析 | 一致 | 差异构成（默认口径，主比对=zh） |
 |---|---|---|---|---|
-| Application | 3925 | 3925 | 3836 | B74 + C11 + D2 + 豁免2 |
-| Setup | 222 | 222 | 222 | 全绿 |
-| Security | 26031 | 26031 | 26031 | 全绿 |
-| System | 2623 | 2623 | 1931 | B644 + C40 + 豁免8 |
+| Application | 10742 | 10742 | 10429 | B189（WXWork63/asus46/PDFShellExt25/igfx20 等经典源）+ D122（System-Restore 8300-8303×93）|
+| Setup | 676 | 676 | 676 | 全绿 |
+| Security | 27366 | 27366 | 27366 | **全绿**（v9 param_refs 语言化清掉 9733 条 D）|
+| System | 6106 | 6106 | 4885 | B926（Ntfs50×515/hcmon×266/Win32k×42/NetBT×38）+ D278（SCM7045×111/CfgChangeMonitor×80/Ntfs98×74/ResourceExhaustion×9）|
 
-历史：2026-09-05 起点 diff=1127（App D102/Sys D246）；R12 后 1026；R18+R10 后 931；
-2026-09-08/09 批次（豁免机制）后 773；**2026-09-15 终态 771**（matched 32020，
-M1=97.6190%，超理想线 97.59%；M2=99.43%，D 残留 2/348；exempted=10 条/6 项，M5=761）。
+本轮落地（2026-09-29）：06 v5（G0 baseline_lang 主比对随基线）、v9 param_refs 双语化
+（参数文件 MUI 多语言萃取 + 渲染端语言优先/en 回退）、acceptance-check G0 门、
+`wevtutil epl` 先删后导。zh 新增簇（转后续专项）：System-Restore 8300-8303×93、
+SCM 7045×111（value-map 族嫌疑）、Ntfs 98×74；历史簇原样复现（Ntfs 50、hcmon、
+CfgChangeMonitor 等，与语言无关）。
+
+历史（en 口径，2026-09-15 终态）：diff=771（matched 32020/32801，M1=97.6190%，
+超理想线 97.59%；M2=99.43%，D 残留 2/348=WER 1001×2；exempted=10 条/6 项，M5=761）。
 会话落地：ADR 0004/0005、R18-R20、豁免白名单+`--no-exemptions`、6013 消息表接入（D）、
 NTSTATUS `NTSTATUS-System-Error` 全局组+(_,0x1F) hit-only 渲染臂（E）。
-终态 D 残留：仅 **WER 1001×2**（App #2972/#3429，上游渲染器 hex 化 `3003916586`→`0xb30c212a`，
-转后续专项）。关豁免口径：diff=781=771+10（白名单全额回 D，无意外掩盖）。
-B718 / C51 为已知未覆盖场景（历史既有，见上文事实清单）。
+2026-09-05 起点 diff=1127；R12 后 1026；R18+R10 后 931；09-08/09 批次后 773。
 
 严格口径（2026-09-04 起）：hex 大小写 / GUID 花括号 / SDDL 分号 / 基线 `?` 不再豁免，
 上游渲染必须完全一致。Security 全绿实证链：`%1843` 映射修复 + 零 GUID 加花括号 +

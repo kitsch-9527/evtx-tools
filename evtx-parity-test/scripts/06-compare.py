@@ -1,6 +1,12 @@
-"""06-compare.py v4 — 基线解析 vs 新解析归一化比对。
+"""06-compare.py v5 — 基线解析 vs 新解析归一化比对。
 
-阶段B（2026-09-09，ADR 0006）：内置豁免白名单（EXEMPTIONS，键=通道+provider+eid）。
+v5（2026-09-29）：G0 基线语言探测。Lua 基线（wevtutil /f:text）渲染语言跟随本机 UI 语言，
+主比对语言必须与基线一致，否则全量 D 类假阳性（本机 UI 语言 en→zh 翻转实测 matched
+32020→1840）。现从基线文本探测语言（zh：'Level: 信息'；en：'Level: Information'），
+主比对 = 基线 vs new-parsed/同语言，副侧只计覆盖率。report.json 新增 baseline_lang；
+覆盖率统计键由 zh_* 改名 cov_*。
+
+阶段B（2026-09-09，ADR 0006）：内置豁免白名单（EXEMPTIONS，键=通道+provider+eid，语言无关）。
 默认口径：白名单命中的 D 类 diff 计入 exempted（report.json 新增 exempted/exempted_detail/
 whitelist_diff_hits）。--no-exemptions：白名单仍按 D 计入 diff（G6 关豁免复核口径）。"""
 from __future__ import annotations
@@ -63,6 +69,19 @@ def norm_msg_time_frac(s):
     return re.sub(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6})\d*(Z?)", r"\1\2", s)
 
 
+def detect_baseline_lang(path):
+    # G0（v5）：wevtutil /f:text 的字段标签恒为英文（Log Name/Event ID/Date/Level），
+    # 字段值本地化。zh 基线 'Level: 信息'，en 基线 'Level: Information'。
+    # 主比对语言随此探测值走；探测失败必须 BLOCKED，不得静默选错语言（09-29 事故教训）。
+    try:
+        raw = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return "unknown"
+    if "Level: 信息" in raw:
+        return "zh-CN"
+    if "Level: Information" in raw:
+        return "en-US"
+    return "unknown"
 def parse_baseline(path):
     raw = path.read_text(encoding="utf-8", errors="replace").replace("\x00", "")
     raw = clean_baseline_artefacts(raw)
@@ -212,31 +231,41 @@ def cmp_pair(b, z):
         else:
             problems.append(cls + "（见明细）")
     return problems
-def compare_channel(channel):
+def compare_channel(channel, primary_lang):
     base_file = BASELINE_DIR / (channel + ".evtx.txt")
     zh_file = NEW_ZH_DIR / (channel + ".csv")
     en_file = NEW_EN_DIR / (channel + ".csv")
-    res = {"channel": channel, "status": "ok"}
+    res = {"channel": channel, "status": "ok", "primary_lang": primary_lang}
     if not base_file.exists():
         res["status"] = "缺少基线文件" + base_file.name + "（先跑02）"
         return res
-    if not en_file.exists():
+    if primary_lang == "zh-CN" and not zh_file.exists():
+        res["status"] = "缺少新解析zh " + str(zh_file) + "（先跑05）"
+        return res
+    if primary_lang == "en-US" and not en_file.exists():
         res["status"] = "缺少新解析en " + str(en_file) + "（先跑05）"
         return res
+    if primary_lang not in ("zh-CN", "en-US"):
+        res["status"] = "G0 无法识别基线渲染语言（只支持 zh-CN/en-US），先人工核 02 产物"
+        return res
     base = parse_baseline(base_file)
-    en = load_new_csv(en_file)
+    en = load_new_csv(en_file) if en_file.exists() else []
     zh = load_new_csv(zh_file) if zh_file.exists() else []
+    if primary_lang == "zh-CN":
+        primary, coverage = zh, en
+    else:
+        primary, coverage = en, zh
     res["baseline_count"] = len(base)
     res["new_en_count"] = len(en)
     res["new_zh_count"] = len(zh)
     res["zh_empty_msg"] = sum(1 for r in zh if not r["message"])
     res["en_empty_msg"] = sum(1 for r in en if not r["message"])
-    n = max(len(base), len(en))
+    n = max(len(base), len(primary))
     matched = 0
     diffs = []
     for i in range(n):
         b = base[i] if i < len(base) else None
-        z = en[i] if i < len(en) else None
+        z = primary[i] if i < len(primary) else None
         if b is None or z is None:
             diffs.append({"index": i, "kind": "缺失", "baseline": b, "new": z})
             continue
@@ -249,13 +278,13 @@ def compare_channel(channel):
     res["matched"] = matched
     res["diff_count"] = len(diffs)
     res["diffs"] = diffs
-    zn = max(len(base), len(zh))
-    zid = 0
-    for i in range(min(len(base), len(zh))):
-        if base[i]["event_id"] == zh[i]["event_id"]:
-            zid += 1
-    res["zh_compared"] = zn
-    res["zh_eventid_agree"] = zid
+    cn = max(len(base), len(coverage))
+    cid = 0
+    for i in range(min(len(base), len(coverage))):
+        if base[i]["event_id"] == coverage[i]["event_id"]:
+            cid += 1
+    res["cov_compared"] = cn
+    res["cov_eventid_agree"] = cid
     return res
 def apply_exemptions(results, enabled):
     """ADR 0006 白名单命中判定（阶段B起在比对器内完成，acceptance-check 只读 report.json）。
@@ -288,12 +317,19 @@ def apply_exemptions(results, enabled):
         r["exempted"] = ch_exempt
     return exempted_detail, whitelist_detail
 def main():
-    ap = argparse.ArgumentParser(description="基线解析 vs 新解析顺序对齐比对（主en-US，zh覆盖率）")
+    ap = argparse.ArgumentParser(description="基线解析 vs 新解析顺序对齐比对（主=基线同语言，副侧覆盖率）")
     ap.add_argument("--channels", nargs="*", default=CHANNELS)
     ap.add_argument("--no-exemptions", action="store_true",
                     help="关豁免复核口径（ADR 0006/G6）：白名单命中仍按 D 计入 diff")
     args = ap.parse_args()
-    results = [compare_channel(c) for c in args.channels]
+    # G0：主比对语言随基线渲染语言自动探测（取第一个存在的基线文件；无文件则逐通道 BLOCKED）。
+    primary_lang = "unknown"
+    for c in args.channels:
+        f = BASELINE_DIR / (c + ".evtx.txt")
+        if f.exists():
+            primary_lang = detect_baseline_lang(f)
+            break
+    results = [compare_channel(c, primary_lang) for c in args.channels]
     exemptions_on = not args.no_exemptions
     exempted_detail, whitelist_detail = apply_exemptions(results, exemptions_on)
     total_compared = sum(r.get("compared", 0) for r in results)
@@ -306,10 +342,12 @@ def main():
     a("# 对比报告（基线解析 vs 新解析）")
     a("")
     a("- 生成时间（本地）：" + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    a("- 主比对：中文wevtutil文本基线 vs new-parsed/en（同语言，严格五字段）")
+    primary_short = "zh" if primary_lang == "zh-CN" else ("en" if primary_lang == "en-US" else "?")
+    cov_short = "en" if primary_short == "zh" else "zh"
+    a("- 主比对：基线（" + primary_lang + " 渲染，G0 自动探测） vs new-parsed/" + primary_short + "（同语言，严格五字段）")
     a("- 口径：EventID / Provider / Channel / TimeCreated（两边均为本地时间，直接比，容差2s）/ Message（空白归一）")
     a("- 对齐：同一文件出现顺序逐条对齐（基线Event[N]顺序对应新解析sequence_number顺序）")
-    a("- 对照：new-parsed/zh 只计覆盖率（条数/EventID顺序一致率/空消息率），不逐条比Message")
+    a("- 对照：new-parsed/" + cov_short + " 只计覆盖率（条数/EventID顺序一致率/空消息率），不逐条比Message")
     if exemptions_on:
         a("- 豁免（ADR 0006）：开启——白名单命中 " + str(len(exempted_detail)) + " 条已移出 diff 计入 exempted（--no-exemptions 关闭复核）")
     else:
@@ -326,19 +364,19 @@ def main():
     else:
         a("- 未通过：主链（基线vs en）共比对 " + str(total_compared) + " 条，一致 " + str(total_matched) + " 条，差异 " + str(total_diff) + " 条")
     a("")
-    a("## 分通道统计（主：基线 vs en）")
+    a("## 分通道统计（主：基线 vs " + primary_short + "）")
     a("")
-    a("| 通道 | 基线数 | 新解析(en) | 比对数 | 一致 | 差异 | en空消息 | 状态 |")
+    a("| 通道 | 基线数 | 新解析(" + primary_short + ") | 比对数 | 一致 | 差异 | " + primary_short + "空消息 | 状态 |")
     a("|---|---|---|---|---|---|---|---|")
     for r in results:
-        a("| " + r["channel"] + " | " + str(r.get("baseline_count", "-")) + " | " + str(r.get("new_en_count", "-")) + " | " + str(r.get("compared", "-")) + " | " + str(r.get("matched", "-")) + " | " + str(r.get("diff_count", "-")) + " | " + str(r.get("en_empty_msg", "-")) + " | " + r["status"] + " |")
+        a("| " + r["channel"] + " | " + str(r.get("baseline_count", "-")) + " | " + str(r.get("new_" + primary_short + "_count", "-")) + " | " + str(r.get("compared", "-")) + " | " + str(r.get("matched", "-")) + " | " + str(r.get("diff_count", "-")) + " | " + str(r.get(primary_short + "_empty_msg", "-")) + " | " + r["status"] + " |")
     a("")
-    a("## 中文覆盖率对照（基线 vs zh，不比Message）")
+    a("## 副侧覆盖率对照（基线 vs " + cov_short + "，不比Message）")
     a("")
-    a("| 通道 | 新解析(zh) | zh空消息 | EventID顺序一致/比对 |")
+    a("| 通道 | 新解析(" + cov_short + ") | 空消息 | EventID顺序一致/比对 |")
     a("|---|---|---|---|")
     for r in results:
-        a("| " + r["channel"] + " | " + str(r.get("new_zh_count", "-")) + " | " + str(r.get("zh_empty_msg", "-")) + " | " + str(r.get("zh_eventid_agree", "-")) + "/" + str(r.get("zh_compared", "-")) + " |")
+        a("| " + r["channel"] + " | " + str(r.get("new_" + cov_short + "_count", "-")) + " | " + str(r.get(cov_short + "_empty_msg", "-")) + " | " + str(r.get("cov_eventid_agree", "-")) + "/" + str(r.get("cov_compared", "-")) + " |")
     a("")
     a("## 已知事项（比对中发现，非结论）")
     a("")
@@ -356,16 +394,17 @@ def main():
             a("## 差异样例 " + str(shown) + "（" + r["channel"] + " #" + str(d["index"]) + "：" + d["kind"] + "）")
             a("")
             b, z = d["baseline"], d["new"]
+            ns = "新解析" + ("zh" if r.get("primary_lang") == "zh-CN" else "en")
             if b is not None:
                 a("- 基线 EventID=" + b["event_id"] + " Provider=" + b["provider"] + " Date=" + b["date_utc"])
                 a("- 基线 Message（前300字）：" + b["message"][:300])
             else:
                 a("- 基线：缺失（新解析多出）")
             if z is not None:
-                a("- 新解析en EventID=" + z["event_id"] + " Provider=" + z["provider"] + " Time=" + z["event_time_local"])
-                a("- 新解析en Message（前300字）：" + z["message"][:300])
+                a("- " + ns + " EventID=" + z["event_id"] + " Provider=" + z["provider"] + " Time=" + z["event_time_local"])
+                a("- " + ns + " Message（前300字）：" + z["message"][:300])
             else:
-                a("- 新解析en：缺失（基线多出）")
+                a("- " + ns + "：缺失（基线多出）")
             a("")
     if total_diff > shown:
         a("还有 " + str(total_diff - shown) + " 条差异未展示，见 report.diff。")
@@ -373,13 +412,14 @@ def main():
     (TEST_ROOT / "report.md").write_text("\n".join(lines), encoding="utf-8")
     dl = []
     for r in results:
+        new_label = "new-zh" if r.get("primary_lang") == "zh-CN" else "new-en"
         for d in r.get("diffs", []):
             b, z = d["baseline"], d["new"]
             dl.append("[" + r["channel"] + " #" + str(d["index"]) + "] " + d["kind"])
             dl.append("  baseline: EventID=" + (b["event_id"] if b else "-") + " Provider=" + (b["provider"] if b else "-"))
             dl.append("    Date=" + (b["date_utc"] if b else "-"))
             dl.append("    Msg=" + (b["message"][:500] if b else "-"))
-            dl.append("  new-en:   EventID=" + (z["event_id"] if z else "-") + " Provider=" + (z["provider"] if z else "-"))
+            dl.append("  " + new_label + ":   EventID=" + (z["event_id"] if z else "-") + " Provider=" + (z["provider"] if z else "-"))
             dl.append("    Time=" + (z["event_time_local"] if z else "-"))
             dl.append("    Msg=" + (z["message"][:500] if z else "-"))
             dl.append("")
@@ -408,6 +448,7 @@ def main():
         }
     summary = {
         "generated_local": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "baseline_lang": primary_lang,
         "compared": total_compared,
         "matched": total_matched,
         "diff": total_diff,

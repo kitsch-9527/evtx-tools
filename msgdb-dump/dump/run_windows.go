@@ -24,6 +24,9 @@ import (
 type paramRefEntry struct {
 	ProviderName string
 	Messages     map[uint32]string
+	// MessagesByLang carries non-primary-language %%N rows (v9, 2026-09-29):
+	// lang → param_id → text. Written to parameter_refs with its own lang.
+	MessagesByLang map[string]map[uint32]string
 }
 
 // valueMapEntry groups a provider name with its value maps (VMAP/BMAP).
@@ -236,12 +239,13 @@ func RunDump(args *DumpArgs) error {
 			MessagesByLang: result.MessagesByLang,
 		}
 
-		// Collect param messages for %%N expansion
-		if len(result.ParamMessages) > 0 {
+		// Collect param messages for %%N expansion (v9: per-language layers)
+		if len(result.ParamMessages) > 0 || len(result.ParamMessagesByLang) > 0 {
 			for _, p := range result.Providers {
 				allParamRefs = append(allParamRefs, paramRefEntry{
-					ProviderName: p.Name,
-					Messages:     result.ParamMessages,
+					ProviderName:   p.Name,
+					Messages:       result.ParamMessages,
+					MessagesByLang: result.ParamMessagesByLang,
 				})
 			}
 		}
@@ -443,17 +447,32 @@ func RunDump(args *DumpArgs) error {
 	// 无 provider ParameterFile（SCM 注册项实测缺失），wevtapi 回退
 	// FormatMessage(FROM_SYSTEM)。parameter_refs 现只有 en-US（与现有 5732 行口径一致），
 	// 全局 provider 名写入（查询不分 provider，load_param_refs 全表加载）。
-	if sysErrs := collectSystemErrorMessages(16000, 1033); len(sysErrs) > 0 {
-		fmt.Printf("[info] Win32 system errors for %%N fallback (en-US): %d entries\n", len(sysErrs))
-		allParamRefs = append(allParamRefs, paramRefEntry{
-			ProviderName: "Win32-System-Error",
-			Messages:     sysErrs,
-		})
+	// v9（2026-09-29）：按 langCodes 每种语言各收一套——wevtapi 的系统错误文本
+	// 随渲染语言本地化（zh 基线 %%2 = "系统找不到指定的文件。"），主语言层走
+	// Messages，其余语言层走 MessagesByLang。
+	for i, code := range langCodes {
+		lcid, perr := strconv.ParseUint(strings.TrimSpace(langs[i]), 10, 32)
+		if perr != nil {
+			continue
+		}
+		sysErrs := collectSystemErrorMessages(16000, uint32(lcid))
+		if len(sysErrs) == 0 {
+			continue
+		}
+		entry := paramRefEntry{ProviderName: "Win32-System-Error"}
+		if i == 0 {
+			entry.Messages = sysErrs
+		} else {
+			entry.MessagesByLang = map[string]map[uint32]string{code: sysErrs}
+		}
+		allParamRefs = append(allParamRefs, entry)
+		fmt.Printf("[info] Win32 system errors for %%N fallback (%s): %d entries\n", code, len(sysErrs))
 	}
 
 	// 11c. NTSTATUS 消息文本（阶段 E）：Ntfs 140 `Failure status`（InType 0x14 /
 	// OutType 0x1F）基线渲染为 ntdll 消息表文本。照 R15 模式写全局 provider 组
 	// "NTSTATUS-System-Error"（渲染端查表命中才替换，未命中保持原样）。
+	// v9：非主语言从 ntdll 的 MUI companion 萃取（zh 基线 NTSTATUS 文本为中文）。
 	if ntstatus, err := collectNtstatusMessages(); err != nil {
 		fmt.Printf("[warn] NTSTATUS message table: %v\n", err)
 	} else if len(ntstatus) > 0 {
@@ -461,6 +480,25 @@ func RunDump(args *DumpArgs) error {
 		allParamRefs = append(allParamRefs, paramRefEntry{
 			ProviderName: "NTSTATUS-System-Error",
 			Messages:     ntstatus,
+		})
+	}
+	ntdllPath := filepath.Join(os.Getenv("SystemRoot"), "System32", "ntdll.dll")
+	for _, code := range langCodes {
+		if code == primaryCode || code == "en-US" {
+			continue
+		}
+		muiPath := FindMUICompanion(ntdllPath, code)
+		if muiPath == nil {
+			continue
+		}
+		nts, err := collectNtstatusMessagesFromPath(*muiPath)
+		if err != nil || len(nts) == 0 {
+			continue
+		}
+		fmt.Printf("[info] NTSTATUS messages from ntdll MUI (%s): %d entries\n", code, len(nts))
+		allParamRefs = append(allParamRefs, paramRefEntry{
+			ProviderName:   "NTSTATUS-System-Error",
+			MessagesByLang: map[string]map[uint32]string{code: nts},
 		})
 	}
 
@@ -714,6 +752,16 @@ func writeParamRefs(dbPath string, refs []paramRefEntry, primaryCode string) err
 				fmt.Printf("[warn] param_ref '%s/%%%d': %v\n", ref.ProviderName, paramID, err)
 			} else {
 				written++
+			}
+		}
+		// v9：非主语言层按各自 lang 落行（PK 已含 lang，INSERT OR IGNORE 去重）。
+		for lang, msgs := range ref.MessagesByLang {
+			for paramID, message := range msgs {
+				if err := InsertParameterRef(db, ref.ProviderName, int(paramID), message, lang); err != nil {
+					fmt.Printf("[warn] param_ref '%s/%%%d' (%s): %v\n", ref.ProviderName, paramID, lang, err)
+				} else {
+					written++
+				}
 			}
 		}
 	}
