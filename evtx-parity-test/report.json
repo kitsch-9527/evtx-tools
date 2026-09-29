@@ -1,19 +1,12 @@
 {
-  "generated_local": "2026-09-30 01:31:26",
+  "generated_local": "2026-09-30 01:59:33",
   "baseline_lang": "zh-CN",
   "compared": 44890,
-  "matched": 44837,
-  "diff": 35,
+  "matched": 44840,
+  "diff": 33,
   "exemptions_enabled": true,
-  "exempted": 18,
+  "exempted": 17,
   "exempted_detail": [
-    {
-      "channel": "Application",
-      "index": 224,
-      "provider": "Microsoft-Windows-Security-SPP",
-      "event_id": "1004",
-      "root_cause": "PARSE"
-    },
     {
       "channel": "Application",
       "index": 2636,
@@ -134,15 +127,8 @@
       "root_cause": "PARSE"
     }
   ],
-  "whitelist_diff_hits": 18,
+  "whitelist_diff_hits": 17,
   "whitelist_diff_detail": [
-    {
-      "channel": "Application",
-      "index": 224,
-      "provider": "Microsoft-Windows-Security-SPP",
-      "event_id": "1004",
-      "root_cause": "PARSE"
-    },
     {
       "channel": "Application",
       "index": 2636,
@@ -270,14 +256,14 @@
       "new_en": 10742,
       "new_zh": 10742,
       "compared": 10742,
-      "matched": 10726,
-      "diff": 14,
+      "matched": 10729,
+      "diff": 12,
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
       "categories": {
-        "D-实质分歧（含渲染格式差：hex大小写/GUI": 14
+        "D-实质分歧（含渲染格式差：hex大小写/GUI": 12
       },
-      "exempted": 2,
+      "exempted": 1,
       "status": "ok"
     },
     "Setup": {

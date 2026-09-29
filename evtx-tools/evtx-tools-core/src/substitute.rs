@@ -157,15 +157,50 @@ pub fn format_for_display_protected(message: &str, protect: &std::collections::H
                 && (result.as_bytes()[start_byte - 1].is_ascii_hexdigit() || result.as_bytes()[start_byte - 1] == b'-')
                 && chars[ci].1.is_ascii_hexdigit();
             if !is_sid_context && !is_sid_direct && !is_guid_context && !protect.contains(num_str) {
-                if let Ok(val) = num_str.parse::<u64>() {
-                    // Only convert 32-bit HRESULT/status codes (≥0x80000000 to
-                    // ≤0xFFFFFFFF). Larger values are file sizes, counters, URL
-                    // segments, etc. and must NOT be hex-converted (e.g. a URL
-                    // path '161390740451' would otherwise become '0x2590BDB026').
-                    // Lowercase hex (wevtutil gold standard).
-                    if val >= 0x80000000 && val <= 0xFFFFFFFF {
-                        hex_result.push_str(&format!("0x{:08x}", val));
-                        continue;
+                // Night P5 (2026-09-30): a digit run forming the tail segment
+                // of a GUID-shaped token (WER 1001 `AttachedFiles` filenames,
+                // e.g. `WER.c1438389-d2df-48d1-a9f7-ae3003916586.tmp.xml`,
+                // tail 3003916586 = 0xB30C212A) must stay decimal — wevtapi
+                // renders parameter text verbatim. `is_guid_context` misses
+                // it because the char after the run is '.' (segment end).
+                // Scan back over [0-9a-fA-F-] (at most one GUID length) and
+                // reuse Step 2's scan_guid recognition (32 hex + 4 dashes):
+                // if a GUID span covers the run, leave the number alone.
+                // Standalone decimals (TS35 TimeSourceRefId `3077760820.`
+                // preceded by a space) never enter this path.
+                let prev_is_guid_char = start_byte > 0 && {
+                    let pb = result.as_bytes()[start_byte - 1];
+                    pb.is_ascii_hexdigit() || pb == b'-'
+                };
+                let mut in_guid_token = false;
+                if prev_is_guid_char {
+                    let mut p = start_byte;
+                    let floor = start_byte.saturating_sub(36);
+                    while p > floor {
+                        let pb = result.as_bytes()[p - 1];
+                        if !(pb.is_ascii_hexdigit() || pb == b'-') {
+                            break;
+                        }
+                        p -= 1;
+                        if let Some(end) = scan_guid(&result, p) {
+                            if end >= end_byte {
+                                in_guid_token = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if !in_guid_token {
+                    if let Ok(val) = num_str.parse::<u64>() {
+                        // Only convert 32-bit HRESULT/status codes (≥0x80000000 to
+                        // ≤0xFFFFFFFF). Larger values are file sizes, counters, URL
+                        // segments, etc. and must NOT be hex-converted (e.g. a URL
+                        // path '161390740451' would otherwise become '0x2590BDB026').
+                        // Lowercase hex (wevtutil gold standard).
+                        if val >= 0x80000000 && val <= 0xFFFFFFFF {
+                            hex_result.push_str(&format!("0x{:08x}", val));
+                            continue;
+                        }
                     }
                 }
             }
@@ -1718,4 +1753,40 @@ fn format_for_display_protected_skips_typed_decimal() {
     protect.insert("3077760820".to_string());
     let kept = format_for_display_protected(msg, &protect);
     assert!(kept.contains("3077760820"), "got: {kept}");
+}
+
+#[test]
+fn format_for_display_keeps_guid_tail_decimal_in_wer_filename() {
+    // Night P5 (2026-09-30): WER 1001 (Application) AttachedFiles — WER temp
+    // filenames embed GUID-shaped tokens whose last segment is all-decimal
+    // and in HRESULT range. wevtapi renders the filename verbatim; the
+    // trailing '.' (not a hexdigit) defeated the is_guid_context guard, so
+    // the decimal tail was rewritten to hex (3003916586 = 0xB30C212A,
+    // 2978423997 = 0xB18724BD). Both real samples from baseline
+    // Application.evtx.txt (record 2973 / 3430).
+    let f1 = "\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\\
+              WER.c1438389-d2df-48d1-a9f7-ae3003916586.tmp.xml";
+    let out1 = format_for_display(f1);
+    assert!(out1.contains("ae3003916586.tmp.xml"), "got: {out1}");
+    assert!(!out1.contains("0xb30c212a"), "got: {out1}");
+
+    let f2 = "\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\\
+              WER.ee97f142-ee2d-48b0-8349-ab2978423997.tmp.xml";
+    let out2 = format_for_display(f2);
+    assert!(out2.contains("ab2978423997.tmp.xml"), "got: {out2}");
+    assert!(!out2.contains("0xb18724bd"), "got: {out2}");
+
+    // Same contract end-to-end through substitute_format_message (covers the
+    // internal pass1 normalization call site); the final-formatting call site
+    // in cmd_parse.rs routes through the same Step 3 implementation.
+    let params = vec!["\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\\
+                       WER.c1438389-d2df-48d1-a9f7-ae3003916586.tmp.xml"];
+    let msg = substitute_format_message("附加文件:;%1", &params);
+    assert!(msg.contains("ae3003916586.tmp.xml"), "got: {msg}");
+    assert!(!msg.contains("0xb30c212a"), "got: {msg}");
+
+    // Red-line: standalone decimals in HRESULT range still convert (TS35 and
+    // the whole historical hex family must not regress).
+    assert_eq!(format_for_display("code 2147954407"), "code 0x80072ee7");
+    assert_eq!(format_for_display("code 3003916586"), "code 0xb30c212a");
 }

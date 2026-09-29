@@ -6,22 +6,6 @@
     Time=2026-08-21 09:33:59.892664
     Msg=[11024:16136:0821/093359.890:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.!S!
 
-[Application #2972] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1001 Provider=Windows Error Reporting
-    Date=2026-08-30T09:46:53.8230000Z
-    Msg=故障存储段 2202004278532310831，类型 5;;事件名称: crashpad_log;;响应: 不可用;;Cab ID: 0;;;;问题签名:;;P1: msedgewebview2setup.exe;;P2: 153.0.4234.8;;P3: EdgeInstallerError|msedgewebview;;P4: 0x39;;P5: ;;P6: ;;P7: ;;P8: ;;P9: ;;P10: ;;;;附加文件:;;\\?\C:\Windows\SystemTemp\msedge_installer.log;;\\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.310a2edd-c1d9-4e46-9826-e677a3aa7fa2.tmp.WERInternalMetadata.xml;;WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260821_1_EC_0_inject.etl;;\\?\C:\ProgramData\Microsoft\Wi
-  new-zh:   EventID=1001 Provider=Windows Error Reporting
-    Time=2026-08-30 09:46:53.823052
-    Msg=故障存储段 2202004278532310831，类型 5 事件名称: crashpad_log 响应: 不可用 Cab ID: 0 问题签名: P1: msedgewebview2setup.exe P2: 153.0.4234.8 P3: EdgeInstallerError|msedgewebview P4: 0x39 P5: P6: P7: P8: P9: P10: 附加文件: \\?\C:\Windows\SystemTemp\msedge_installer.log \\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.310a2edd-c1d9-4e46-9826-e677a3aa7fa2.tmp.WERInternalMetadata.xml WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260821_1_EC_0_inject.etl \\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.bcda019b-f
-
-[Application #3429] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=1001 Provider=Windows Error Reporting
-    Date=2026-09-01T12:46:10.9150000Z
-    Msg=故障存储段 1584263963967378820，类型 5;;事件名称: crashpad_log;;响应: 不可用;;Cab ID: 0;;;;问题签名:;;P1: msedgewebview2setup.exe;;P2: 153.0.4234.13;;P3: EdgeInstallerError|msedgewebview;;P4: 0x1f7;;P5: ;;P6: ;;P7: ;;P8: ;;P9: ;;P10: ;;;;附加文件:;;\\?\C:\Windows\SystemTemp\msedge_installer.log;;\\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.4ea2ce66-fc54-494a-9da2-917dfdbd9b99.tmp.WERInternalMetadata.xml;;WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260821_1_EC_0_inject.etl;;\\?\C:\ProgramData\Microsoft\
-  new-zh:   EventID=1001 Provider=Windows Error Reporting
-    Time=2026-09-01 12:46:10.915606
-    Msg=故障存储段 1584263963967378820，类型 5 事件名称: crashpad_log 响应: 不可用 Cab ID: 0 问题签名: P1: msedgewebview2setup.exe P2: 153.0.4234.13 P3: EdgeInstallerError|msedgewebview P4: 0x1f7 P5: P6: P7: P8: P9: P10: 附加文件: \\?\C:\Windows\SystemTemp\msedge_installer.log \\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.4ea2ce66-fc54-494a-9da2-917dfdbd9b99.tmp.WERInternalMetadata.xml WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260821_1_EC_0_inject.etl \\?\C:\ProgramData\Microsoft\Windows\WER\Temp\WER.dbb332fe
-
 [Application #3675] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=256 Provider=Chrome
     Date=2026-09-02T11:07:12.9710000Z
