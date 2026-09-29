@@ -625,10 +625,13 @@ fn process_parallel_batch(
         // Step 2: Substitute %1–%99 positional parameters.
         let mut owned_values: std::collections::HashSet<String> = std::collections::HashSet::new();
         if template.contains('%') {
-            let params = extract_subst_params(
+            // P3：模板命中路径开启 classic Binary→%n+1（NetBT 4311 hex 参数）。
+            // miss fallback 路径保持 false（evtx2csv 兼容 ;;-join 语义不变）。
+            let params = extract_subst_params_ext(
                 &event.event_data,
                 event_data_value.as_ref(),
                 &row.row.parameters,
+                true,
             );
             let prov = event.provider_name.as_deref().unwrap_or("");
             // R10: typed rendering first. Fields with a TDH (InType, OutType)
@@ -762,6 +765,23 @@ fn extract_subst_params(
     event_data_value: Option<&Value>,
     param_map: &Option<HashMap<String, String>>,
 ) -> Vec<String> {
+    extract_subst_params_ext(event_data_str, event_data_value, param_map, false)
+}
+
+/// P3（2026-09-30）：classic Binary hex 参数化。`include_binary=true` 时，EventData
+/// 携带非空 `<Binary>` 的经典事件把其十六进制文本（wevtutil 原样大写、无 0x 无分隔）
+/// 作为追加位置参数 `%n+1`（n=Data 值个数）暴露给模板。wevtapi 实证：NetBT 4311
+/// 模板 `Use the string "%2" ...` 渲染 Binary hex（raw XML `<Data/>+<Binary>`，
+/// Data=[""]→%1，Binary→%2）；e1dexpress 32（`%2%n…`，Binary=%3 未引用）同构佐证。
+/// 全量回归面排查（baseline Binary 事件 1017+580 条 × msgdb 模板 max_param）：
+/// 仅有 NetBT 4311 与 VMnetAdapter 36 模板引用 %n+1 槽位，其余簇 max_param<=data
+/// 不受影响；substitute 对越界参数空替换，追加对未引用模板无输出差。
+fn extract_subst_params_ext(
+    event_data_str: &Option<String>,
+    event_data_value: Option<&Value>,
+    param_map: &Option<HashMap<String, String>>,
+    include_binary: bool,
+) -> Vec<String> {
     // Use the pre-parsed Value if available (avoids round-trip), otherwise
     // fall back to parsing the serialised JSON string.
     let owned_value;
@@ -863,6 +883,18 @@ fn extract_subst_params(
         }
     }
 
+    // P3：classic Binary hex → %n+1。仅 include_binary（模板命中路径）时追加；
+    // wevtapi 语义：Data 值占 %1..%n，Binary hex 追加为 %n+1（NetBT 4311 %2 实证）。
+    let binary_hex: Option<String> = if include_binary {
+        parsed.as_object()
+            .and_then(|o| o.get("Binary"))
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string())
+    } else {
+        None
+    };
+
     // Strategy 1.5: Classic EventLog #text array nested under "Data".
     // Format: {"Data": {"#text": [val1, val2, ...]}, "Binary": null}
     // Classic providers (MsiInstaller, MSSQLSERVER, etc.) store substitution
@@ -872,7 +904,7 @@ fn extract_subst_params(
     if let Some(obj) = parsed.as_object() {
         if let Some(data_obj) = obj.get("Data").and_then(|v| v.as_object()) {
             if let Some(text_val) = data_obj.get("#text") {
-                let values: Vec<String> = match text_val {
+                let mut values: Vec<String> = match text_val {
                     Value::Array(arr) => arr.iter().map(|v| match v {
                         Value::String(s) => s.clone(),
                         Value::Number(n) => n.to_string(),
@@ -882,6 +914,9 @@ fn extract_subst_params(
                     _ => Vec::new(),
                 };
                 if !values.is_empty() {
+                    if let Some(hex) = &binary_hex {
+                        values.push(hex.clone());
+                    }
                     return values;
                 }
             }
@@ -926,7 +961,7 @@ fn extract_subst_params(
                 }
             } else {
                 // Without param_map: extract positionally (by array index)
-                let values: Vec<String> = data_arr.iter().map(|item| {
+                let mut values: Vec<String> = data_arr.iter().map(|item| {
                     // Each item: {"$": "value"} or {"#text": "value"}
                     if let Some(val) = item.get("$").or_else(|| item.get("#text")) {
                         match val {
@@ -939,6 +974,9 @@ fn extract_subst_params(
                     }
                 }).collect();
                 if !values.is_empty() {
+                    if let Some(hex) = &binary_hex {
+                        values.push(hex.clone());
+                    }
                     return values;
                 }
             }
@@ -1198,6 +1236,85 @@ mod tests {
         ]));
         let result = extract_subst_params(&None, ed_val.as_ref(), &param_map);
         assert_eq!(result, vec!["S-1-5-21-...", "admin"]);
+    }
+
+    // ── P3: classic Binary → %n+1（wevtapi 实证：NetBT 4311 模板 %2=Binary hex）──
+
+    #[test]
+    fn test_binary_appended_after_hash_text_when_gated_on() {
+        // NetBT 4311 实证形态：Data=[""] + Binary hex → ["", hex]（hex 落 %2）
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": {"#text": [""]},
+            "Binary": "000000000100320000000000D710004013010000250200C000000000000000000000000000000000"
+        }));
+        let result = extract_subst_params_ext(&None, ed_val.as_ref(), &None, true);
+        assert_eq!(result.len(), 2, "Binary hex must be appended as %2");
+        assert_eq!(result[0], "");
+        assert_eq!(
+            result[1],
+            "000000000100320000000000D710004013010000250200C000000000000000000000000000000000"
+        );
+    }
+
+    #[test]
+    fn test_binary_not_appended_when_gated_off() {
+        // miss fallback 路径（include=false）语义不变：Binary 不进参数表
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": {"#text": [""]},
+            "Binary": "0A0B"
+        }));
+        let result = extract_subst_params_ext(&None, ed_val.as_ref(), &None, false);
+        assert_eq!(result, vec![""], "gate off must keep legacy behavior");
+        // 旧入口（wrapper）等价于 gate off
+        let result2 = extract_subst_params(&None, ed_val.as_ref(), &None);
+        assert_eq!(result2, vec![""]);
+    }
+
+    #[test]
+    fn test_binary_appended_after_data_array_positional() {
+        // e1dexpress 32 同构佐证：Data=["", NIC] + Binary → 第3参（模板 %2 未引用 %3）
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": [
+                {"#attributes": {"Name": "Param1"}, "$": ""},
+                {"#attributes": {"Name": "Param2"}, "$": "Intel(R) I219-V"}
+            ],
+            "Binary": "0000040002003000"
+        }));
+        let result = extract_subst_params_ext(&None, ed_val.as_ref(), &None, true);
+        assert_eq!(result, vec!["", "Intel(R) I219-V", "0000040002003000"]);
+    }
+
+    #[test]
+    fn test_binary_null_or_empty_not_appended() {
+        use serde_json::json;
+        let null_bin: Option<serde_json::Value> = Some(json!({
+            "Data": {"#text": ["a"]},
+            "Binary": null
+        }));
+        let result = extract_subst_params_ext(&None, null_bin.as_ref(), &None, true);
+        assert_eq!(result, vec!["a"], "null Binary must not append");
+        let empty_bin: Option<serde_json::Value> = Some(json!({
+            "Data": {"#text": ["a"]},
+            "Binary": ""
+        }));
+        let result = extract_subst_params_ext(&None, empty_bin.as_ref(), &None, true);
+        assert_eq!(result, vec!["a"], "empty Binary must not append");
+    }
+
+    #[test]
+    fn test_binary_appended_values_keep_position_for_unreferenced_slots() {
+        // 追加不得挤占既有参数位置：模板 %1 引用不变（VSS 8224 形态：Data=[""]，%1=""）
+        use serde_json::json;
+        let ed_val: Option<serde_json::Value> = Some(json!({
+            "Data": {"#text": [""]},
+            "Binary": "CAFE"
+        }));
+        let params = extract_subst_params_ext(&None, ed_val.as_ref(), &None, true);
+        let refs: Vec<&str> = params.iter().map(|s| s.as_str()).collect();
+        assert_eq!(evtx_tools_core::substitute::substitute("v=%1 h=%2", &refs), "v= h=CAFE");
     }
 
     #[test]

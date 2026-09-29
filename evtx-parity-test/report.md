@@ -1,6 +1,6 @@
 # 对比报告（基线解析 vs 新解析）
 
-- 生成时间（本地）：2026-09-30 00:37:44
+- 生成时间（本地）：2026-09-30 01:04:38
 - 主比对：基线（zh-CN 渲染，G0 自动探测） vs new-parsed/zh（同语言，严格五字段）
 - 口径：EventID / Provider / Channel / TimeCreated（两边均为本地时间，直接比，容差2s）/ Message（空白归一）
 - 对齐：同一文件出现顺序逐条对齐（基线Event[N]顺序对应新解析sequence_number顺序）
@@ -9,7 +9,7 @@
 
 ## 结论
 
-- 未通过：主链（基线vs en）共比对 44890 条，一致 44790 条，差异 82 条
+- 未通过：主链（基线vs en）共比对 44890 条，一致 44828 条，差异 44 条
 
 ## 分通道统计（主：基线 vs zh）
 
@@ -18,7 +18,7 @@
 | Application | 10742 | 10742 | 10742 | 10726 | 14 | 0 | ok |
 | Setup | 676 | 676 | 676 | 676 | 0 | 0 | ok |
 | Security | 27366 | 27366 | 27366 | 27366 | 0 | 0 | ok |
-| System | 6106 | 6106 | 6106 | 6022 | 68 | 0 | ok |
+| System | 6106 | 6106 | 6106 | 6060 | 30 | 0 | ok |
 
 ## 副侧覆盖率对照（基线 vs en，不比Message）
 
@@ -137,7 +137,7 @@
 - 基线 EventID=36 Provider=VMnetAdapter Date=2026-08-21T05:03:38.7900000Z
 - 基线 Message（前300字）：() Starting up the Adapter Driver for VMware Virtual Networks.
 - 新解析zh EventID=36 Provider=VMnetAdapter Time=2026-08-21 05:03:38.790802
-- 新解析zh Message（前300字）：一个用户已达到卷 上的配额阈值。
+- 新解析zh Message（前300字）：一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
 ## 差异样例 16（System #159：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
 
@@ -151,7 +151,7 @@
 - 基线 EventID=36 Provider=VMnetAdapter Date=2026-08-21T05:05:54.8680000Z
 - 基线 Message（前300字）：() Starting up the Adapter Driver for VMware Virtual Networks.
 - 新解析zh EventID=36 Provider=VMnetAdapter Time=2026-08-21 05:05:54.868527
-- 新解析zh Message（前300字）：一个用户已达到卷 上的配额阈值。
+- 新解析zh Message（前300字）：一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
 ## 差异样例 18（System #292：D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细））
 
@@ -172,6 +172,6 @@
 - 基线 EventID=36 Provider=VMnetAdapter Date=2026-08-21T09:30:50.1560000Z
 - 基线 Message（前300字）：() Starting up the Adapter Driver for VMware Virtual Networks.
 - 新解析zh EventID=36 Provider=VMnetAdapter Time=2026-08-21 09:30:50.156278
-- 新解析zh Message（前300字）：一个用户已达到卷 上的配额阈值。
+- 新解析zh Message（前300字）：一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
-还有 62 条差异未展示，见 report.diff。
+还有 24 条差异未展示，见 report.diff。

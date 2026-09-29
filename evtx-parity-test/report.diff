@@ -116,7 +116,7 @@
     Msg=() Starting up the Adapter Driver for VMware Virtual Networks.
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-08-21 05:03:38.790802
-    Msg=一个用户已达到卷 上的配额阈值。
+    Msg=一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
 [System #159] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -132,7 +132,7 @@
     Msg=() Starting up the Adapter Driver for VMware Virtual Networks.
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-08-21 05:05:54.868527
-    Msg=一个用户已达到卷 上的配额阈值。
+    Msg=一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
 [System #292] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -156,7 +156,7 @@
     Msg=() Starting up the Adapter Driver for VMware Virtual Networks.
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-08-21 09:30:50.156278
-    Msg=一个用户已达到卷 上的配额阈值。
+    Msg=一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
 [System #535] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -165,38 +165,6 @@
   new-zh:   EventID=32 Provider=e1dexpress
     Time=2026-08-21 09:30:53.961913
     Msg=Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
-
-[System #842] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-08-24T09:33:03.8110000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C000000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-08-24 09:33:03.811085
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #843] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-08-24T09:33:03.8110000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C001000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-08-24 09:33:03.811085
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #1384] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-08-27T17:14:57.2820000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C002000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-08-27 17:14:57.282142
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #1385] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-08-27T17:14:57.2820000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C003000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-08-27 17:14:57.282142
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
 
 [System #2725] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=6008 Provider=EventLog
@@ -212,7 +180,7 @@
     Msg=() Starting up the Adapter Driver for VMware Virtual Networks.
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-09-04 09:34:57.833017
-    Msg=一个用户已达到卷 上的配额阈值。
+    Msg=一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
 [System #2779] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -228,7 +196,7 @@
     Msg=() Starting up the Adapter Driver for VMware Virtual Networks.
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-09-04 09:36:23.789167
-    Msg=一个用户已达到卷 上的配额阈值。
+    Msg=一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
 [System #2851] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -252,7 +220,7 @@
     Msg=() Starting up the Adapter Driver for VMware Virtual Networks.
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-09-04 09:38:01.999169
-    Msg=一个用户已达到卷 上的配额阈值。
+    Msg=一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
 [System #3001] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -269,70 +237,6 @@
   new-zh:   EventID=23 Provider=Microsoft-Windows-Wininit
     Time=2026-09-04 09:38:13.940522
     Msg=启动应用反回滚： 初始化已完成，状态为： HRESULT： 0x10000000 需要新计时器： true 等待系统更新完成的新计时器： true 以前的闩锁计时器存在，但被注册表禁用： false
-
-[System #3130] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-04T14:55:05.9980000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C000000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-04 14:55:05.998103
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #3131] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-04T14:55:05.9980000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C001000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-04 14:55:05.998103
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #3334] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-07T10:18:18.6230000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C002000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-07 10:18:18.623343
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #3335] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-07T10:18:18.6240000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C003000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-07 10:18:18.624597
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #3365] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-07T15:52:41.7020000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C004000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-07 15:52:41.702483
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #3366] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-07T15:52:41.7030000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C005000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-07 15:52:41.703512
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #3581] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-09T09:32:39.6480000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C006000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-09 09:32:39.648331
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #3582] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-09T09:32:39.6480000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C007000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-09 09:32:39.648331
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
 
 [System #3613] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=2004 Provider=Microsoft-Windows-Resource-Exhaustion-Detector
@@ -412,7 +316,7 @@
     Msg=() Starting up the Adapter Driver for VMware Virtual Networks.
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-09-10 09:49:50.194739
-    Msg=一个用户已达到卷 上的配额阈值。
+    Msg=一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
 [System #3799] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -436,7 +340,7 @@
     Msg=() Starting up the Adapter Driver for VMware Virtual Networks.
   new-zh:   EventID=36 Provider=VMnetAdapter
     Time=2026-09-10 09:52:01.793567
-    Msg=一个用户已达到卷 上的配额阈值。
+    Msg=一个用户已达到卷 00000000010000000000000024000840240008400000000000000000000000000000000000000000 上的配额阈值。
 
 [System #3965] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=32 Provider=e1dexpress
@@ -445,211 +349,3 @@
   new-zh:   EventID=32 Provider=e1dexpress
     Time=2026-09-10 09:52:05.572972
     Msg=Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
-
-[System #4214] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-11T10:37:35.8830000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C000000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-11 10:37:35.883936
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4215] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-11T10:37:35.8830000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C001000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-11 10:37:35.883936
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4501] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-14T13:34:40.6650000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C002000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-14 13:34:40.665922
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4502] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-14T13:34:40.6650000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C003000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-14 13:34:40.665922
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4505] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-14T14:13:11.7770000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C004000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-14 14:13:11.777325
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4506] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-14T14:13:11.7770000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C005000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-14 14:13:11.777325
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4733] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-16T10:10:06.7700000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C006000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-16 10:10:06.770255
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4734] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-16T10:10:06.7700000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C007000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-16 10:10:06.770255
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4740] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-16T10:13:51.3550000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C008000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-16 10:13:51.355170
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4741] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-16T10:13:51.3560000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C009000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-16 10:13:51.356362
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4742] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-16T10:20:20.4530000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C00A000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-16 10:20:20.453811
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4743] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-16T10:20:20.4530000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C00B000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-16 10:20:20.453811
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4761] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-16T13:36:17.9440000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C00C000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-16 13:36:17.944525
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4762] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-16T13:36:17.9440000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C00D000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-16 13:36:17.944525
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4806] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-17T09:59:36.9540000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C00E000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-17 09:59:36.954816
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4807] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-17T09:59:36.9540000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C00F000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-17 09:59:36.954816
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4991] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-18T14:56:55.5890000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C010000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-18 14:56:55.589185
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #4992] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-18T14:56:55.5890000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C011000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-18 14:56:55.589185
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #5250] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-21T10:14:07.2430000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C012000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-21 10:14:07.243802
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #5251] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-21T10:14:07.2430000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C013000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-21 10:14:07.243802
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #5295] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-21T17:12:24.4710000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C014000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-21 17:12:24.471084
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #5296] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-21T17:12:24.4710000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C015000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-21 17:12:24.471084
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #5424] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-22T17:36:09.8050000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C016000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-22 17:36:09.805128
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #5425] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-22T17:36:09.8060000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C017000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-22 17:36:09.806634
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #6051] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-29T09:47:21.7150000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004013010000250200C018000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-29 09:47:21.715580
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-
-[System #6052] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=4311 Provider=NetBT
-    Date=2026-09-29T09:47:21.7150000Z
-    Msg=Initialization failed because the driver device could not be created. Use the string "000000000100320000000000D710004011010000250200C019000000000000000000000000000000" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
-  new-zh:   EventID=4311 Provider=NetBT
-    Time=2026-09-29 09:47:21.715580
-    Msg=Initialization failed because the driver device could not be created. Use the string "" to identify the interface for which initialization failed. It represents the MAC address of the failed interface or the Globally Unique Interface Identifier (GUID) if NetBT was unable to map from GUID to MAC address. If neither the MAC address nor the GUID were available, the string represents a cluster device name.
