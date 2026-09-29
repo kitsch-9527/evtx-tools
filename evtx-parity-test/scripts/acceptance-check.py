@@ -33,10 +33,8 @@ EXEMPTIONS = {
     # 根因码登记表（ADR 0006）：通道/provider/event_id/根因码。
     # 条目变化必须同步 docs/residual-zeroing-plan-2026-09-07.md §4。
     "entries": [
-        ("Application", "Microsoft-Windows-Security-SPP", "1004", "PARSE"),
         ("Application", "Microsoft-Windows-CAPI2", "4111", "PARSE"),
         ("System", "Microsoft-Windows-Directory-Services-SAM", "16962", "BIN"),
-        ("System", "disk", "51", "SRC"),
         ("System", "Microsoft-Windows-WPDClassInstaller", "24577", "PARSE"),
         ("System", "Microsoft-Windows-WPDClassInstaller", "24579", "PARSE"),
     ],

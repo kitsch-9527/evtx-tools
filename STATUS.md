@@ -1,8 +1,7 @@
 # evet 项目现状说明
 
-> 生成时间：2026-09-07，**2026-09-29 语言漂移重基线更新**（G0 事件：本机 UI 语言
-> en-US→zh-CN，主比对随基线翻到 zh；数字口径以 `evtx-parity-test/report.json` 为准，
-> 术语见 `CONTEXT.md`）。
+> 生成时间：2026-09-07，**2026-09-30 夜间计划定稿更新**（P1–P7 把 diff 237→21；数字口径以
+> `evtx-parity-test/report.json` 为准，术语见 `CONTEXT.md`）。
 
 ## 1. 项目是什么
 
@@ -20,7 +19,7 @@ Message）。
 
 | 目录 | 内容 | 说明 |
 |---|---|---|
-| `msgdb-dump/` | Go 萃取器 | PE/CRIM/MUI/注册表 → 单文件 SQLite 消息库（schema v8） |
+| `msgdb-dump/` | Go 萃取器 | PE/CRIM/MUI/注册表 → 单文件 SQLite 消息库（schema v9） |
 | `evtx-tools/` | Rust 渲染器 | EVTX 解析 + 消息库查询 + 模板代入（parity 被测端） |
 | `evtx-parity-test/` | 比对闭环台 | 01-export … 06-compare 管线脚本 + 报告产物 |
 | `msys64-Tools/` | 基线解析器 | `evtx2text.lua`（路径 A，只跟踪顶层脚本，工具链本体不入库） |
@@ -28,18 +27,19 @@ Message）。
 | `skills/`（+`.agents/`、`.dsh/` 三镜像） | 工程技能基线 | `parity-test-skill.md` 含"勿回退"事实清单 |
 | `.agent-teams/` | 历史 agent 协作档案 | 只读归档 |
 
-## 3. 消息库（Single-File MessageDB，schema_version = 8）
+## 3. 消息库（Single-File MessageDB，schema_version = 9）
 
 `msgdb-dump` 一次运行产出唯一 SQLite 文件（`hotech-msg-<系统>-<build>.db`，约 300MB，
-不入版本库——由管线 03 随时重建）。v8 = v7 的 7 张实体表 + 2 张出处表（ADR 0004/0005，
-不做新旧库兼容：读端 `MessageDb::open` 硬校验版本，缺表即错）：
+不入版本库——由管线 03 随时重建）。v9 = v7 的 7 张实体表 + 2 张出处表（ADR 0004/0005）
++ value_maps 双语化（lang 入 PK，2026-09-30 P2，不做新旧库兼容：读端 `MessageDb::open`
+硬校验版本，缺表即错）：
 
 | 表 | 职责 |
 |---|---|
 | `provider_message_variants` | 唯一消息表：8 元组 Variant Identity（ADR 0001）精确匹配，约 158 万行 |
 | `providers` / `dll_entries` | Provider 归属与来源 DLL |
 | `parameter_refs` | `%%N` 参数引用（含 `Win32-System-Error` 回退层，9813 行） |
-| `value_maps` / `param_value_maps` | 枚举/位图值映射及其与事件参数的链接 |
+| `value_maps` / `param_value_maps` | 枚举/位图值映射及其与事件参数的链接（v9 起 `value_maps` 带 lang 维度，PK 含 lang） |
 | `eventlog_sources`（0004） | 注册源快照（1272 行）：classic EventLog ∪ WINEVT Publishers |
 | `param_types`（0005） | 参数 TDH InType/OutType 字节（71598 行）：类型化渲染依据 |
 
@@ -51,28 +51,26 @@ Message）。
 4. 枚举启发式（R11）→ CRIM 值映射（Layer 2/2b）→ LUID 大写 hex（R14）。
 5. `%1-%99` 位置代入 → 展示格式化。取值层含 JSON 原生 Bool 修复（R18）。
 
-## 5. 当前基线（2026-09-29 zh 轮终态，verdict=DIFF）
+## 5. 当前基线（2026-09-30 夜间计划终态，verdict=DIFF）
 
-> **G0 语言漂移事件**：本机显示语言 2026-09 下旬由 en-US 切为 zh-CN，Lua 基线
-> （wevtutil 真值）渲染语言随之翻转；06 v5 起主比对语言随基线自动探测
-> （`baseline_lang`），acceptance-check 新增 G0 语言一致性门。历史 en 口径见下文。
+> **G0 语言漂移事件**（2026-09-29）：本机显示语言由 en-US 切为 zh-CN，主比对语言随基线
+> 自动探测（`baseline_lang`），acceptance-check G0 语言一致性门把关。历史 en 口径见下文。
 
-| 通道 | 比对 | 一致 | 差异构成（主比对=zh，默认口径） |
+| 通道 | 比对 | 一致 | 差异构成（主比对=zh，默认口径；diff 全部为已定性转出簇） |
 |---|---|---|---|
-| Application | 10742 | 10728 | D14（Chrome/Edge 256、WER 1001×2 上游 hex 化、豁免 2） |
+| Application | 10742 | 10739 | D2（CodexSandboxService×2 UNREG-FALLBACK）；豁免命中 1（CAPI2 4111） |
 | Setup | 676 | 676 | 全绿 |
 | Security | 27366 | 27366 | **全绿** |
-| System | 6106 | 5855 | D223（CfgChangeMonitor×80、Ntfs 98×74、NetBT 4311×38 等） |
+| System | 6106 | 6071 | D19 转出（e1dexpress×8、VMnetAdapter×8、EventLog 6008×2、Wininit 23×1）；豁免命中 16（SAM/WPD） |
 
-- 全量：44890 条比对，**44635 一致，diff=237**，exempted=18 条/5 项（disk/51 经典映射后
-  不再命中豁免），M5=219。
-- **M1 = 99.4319%**（超 en 时代 97.6190%，超 G1 目标线 97.53%）；**B/C 类全场清零**
-  （en 时代 B718/C51 历史包袱闭环）；M2 的 D 基线（348）为 en 时代标定，重标定待计划变更。
-- 本轮 R21 四修复：①经典源 eid 映射（rawID & 0xFFFF，Ntfs 50←0x80010032 等）；②变体预热
-  跨语言回落（空 cohort 回落 en-US）；③classic eid=0 miss → FormatMessage(0)；④06 canon
-  帐户≡账户（译文 servicing 漂移）。前置：v5 G0 主比对随基线 + v9 param_refs 双语化
-  （Security 9733 条枚举名 D 清零）。
-- 残留 237 条全部 D 类、根因已诊断（见 §7）。
+- 全量：44890 条比对，**44852 一致，diff=21**（App 2 + System 19），**exempted=17 条/4 项**
+  （SPP 1004 转绿、disk 51 脱离后 EXEMPTIONS 已同步摘除为 4 项），M5≈4，baseline_lang=zh-CN。
+- **M1 = 99.9153%**；**M2 = 93.97%**（D 残留 21/348，en 时代标定）；**B/C 类全场清零**。
+- acceptance `--prev` 总体 PASS（exit=0）；G6 关豁免 diff=38=21+17；确定性门两次全链路全等。
+- 单测：Go 134（四包；全仓 135）+ Rust 245 全绿。
+- 逐阶段战绩（diff 237→21）：P1 −80（R12b）→ P2 −75（schema v9）→ P3 −38（Binary %n+1）→
+  P4 −9（UserData 展平）→ P5 −2（WER hex 保护）→ P6 −12（`!S!`+`%%`）。
+- 残留 21 条全部 D 类且逐条定性完毕（见 §7 / skill"已知上游缺口" #4–#8）。
 - 历史 en 终态（2026-09-15）：32801 比对 / 32020 一致 / diff=771 / M1=97.6190%。
 
 ## 6. 已落地修复（全部 TDD 回归测试保护，勿回退）
@@ -88,24 +86,34 @@ Message）。
 | R14/R15/R15b/R16/R17 | 09-04/05 | LUID 大写、Win32 系统错误 %%N、provider 维度隔离、MUI companion、参数引用按 provider 分组 |
 | R18 | 09-07 | JSON 原生布尔参数取值（此前被吃成空串） |
 | R19/R20 | 09-08 | CRIM VMAP 0xDn 字符串表家族泛化（value_maps 8540→29718）、param_name 校验挂载、bool/(8,8) 接管臂 |
+| R21 | 09-29 | 经典源四修复：eid 映射（rawID & 0xFFFF）、预热跨语言回落、eid=0 FormatMessage(0)、06 canon 帐户≡账户 |
+| R12b | 09-30 | N/A 精度：registered-but-no-resources（`providers_with_variants`/`has_any_variant`，空表=未知=保守 true）——CfgChangeMonitor×80 清零 |
+| R21b（v9） | 09-30 | value_maps 双语化 schema v9：lang 入 PK、per-lang stringTable 主 DLL 为底 + MUI 同键全覆盖 overlay、渲染端 `load_value_maps(lang)` 双层首选+en 回退——Ntfs 98×74 清零 |
+| R22 | 09-30 | classic `<Binary>` 大写 hex 追加 `%n+1`（仅模板命中路径，miss fallback 不动）——NetBT 4311×38 清零 |
+| R23 | 09-30 | UserData 嵌套展平（形态门控；深度 2 裸名/深度 3 `结构体_字段` 前缀）——Resource-Exhaustion 2004×9 清零 |
+| R24 | 09-30 | 大十进制 hex 化收窄：GUID-span 回扫跳过转换（WER 1001×2 清零；TS35 孤立十进制零回退） |
+| R25 | 09-30 | `!S!` 字符串族 specifier 消费 + `%%` verbatim（pass2 不塌缩）——Chrome/Edge 256×10、SCM 7023×2 清零 |
 | 批次 C–G | 09-14/15 | 豁免白名单+`--no-exemptions`；6013 消息表接入（netevent MUI RT_MESSAGETABLE 0x8000177D，well-known 注入）；NTSTATUS `NTSTATUS-System-Error` 全局组（ntdll 2975 条）+ (_,0x1F) hit-only 渲染臂；残余归属收口（Wininit 26 闭合） |
 
-## 7. 残留问题（2026-09-29 zh 轮终态：B/C 清零，残留 237 条全 D 且根因已诊断）
+## 7. 残留问题（2026-09-30 夜间终态：diff=21 全部已定性转出，无一"未知"）
 
-- **value_maps 0xDn 字符串表 en 偏置**（Ntfs 98×74 + 潜在面）：value_maps 无 lang 列，
-  d2Strings 合并 en（主 DLL）先填。下一专项 = schema v9 双语化（萃取端 per-lang stringTable
-  + 渲染端语言优先/en 回退，照 param_refs v9 先例）。
-- **CfgChangeMonitor eid=1×80**：R12 N/A 精度缺口——registered-but-no-resources 的 provider
-  应判 N/A（基线渲染 N/A，我方走 fallback 长文）。en 时代 N1 专项的同一问题。
-- **NetBT 4311×38 / VMnetAdapter 36×8 / e1dexpress 32×8**：经典映射后模板已命中，剩余为
-  参数 hex 格式族（"长 hex 串"），需 InType/OutType 逐簇取证。
-- **Resource-Exhaustion 2004×9**：我方参数全空（nested/complex EventData 取值层）。
-- **WER 1001×2**：上游渲染器 hex 化 `3003916586`→`0xb30c212a`（en 时代遗留专项）。
-- **EventLog 6008×2 / Chrome、Edge 256×10 / CodexSandboxService×2**：小簇待逐条定性。
-- **豁免 5 项/18 条**（disk/51 经典映射后脱离豁免；登记表真源
-  `docs/residual-zeroing-plan-2026-09-07.md` §4 待同步）：SPP 1004×1、CAPI2 4111×1、
-  SAM 16962×8（BIN）、WPD 24577×4 / 24579×4（PARSE）。
-- **M2 D 基线（348）重标定待定**：zh 轮 D 构成已完全不同（237 条含 80+74 的机制性簇）。
+- **EventLog 6008×2（System）**：BASE-ARTEFACT——我方文本逐字节正确（真实 LRM U+200E），
+  基线管线 iconv 把 LRM 变 `?`（斜杠形日期未被 R5 手术覆盖）。上游不可修；建议白名单
+  System/EventLog/6008/PARSE（须豁免双表+登记表三处同步，待授权）。
+- **CodexSandboxService 1001/1002×2（App）**：UNREG-FALLBACK——源未注册，基线把 eid 当
+  Win32 错误码回退渲染；我方 N/A。需 resolver"无模板→Win32 错误表"回退，牵动 N/A-parity 谓词。
+- **e1dexpress 32×8（System）**：MUI-WRONGLANG——DriverStore 语言中立 e1dmsg.dll 的 MUI
+  目录解析错选 es-ES，msgdb zh/en 键下均存西语文案。msgdb-dump MUI 解析重写。
+- **VMnetAdapter 36×8（System）**：EID-QUALIFIER——classic 消息 id=qualifiers<<16|eid，
+  msgdb 变体键缺 qualifiers 致链首 IoLogMsg.dll 裸 id 首中（错库）。msgdb-dump qualifier
+  感知链式查找（与 e1dexpress 同管线，可合并一个专项）。
+- **Wininit 23×1（System）**：TDH-SYMBOL——0x10000000 经 wevtutil TDH 内建符号表渲染
+  "STATUS_SUCCESS"；需内建 NTSTATUS/HRESULT 符号表。
+- **豁免 4 项/17 条**（登记表真源 `docs/residual-zeroing-plan-2026-09-07.md` §4）：
+  CAPI2 4111×1、SAM 16962×8（BIN）、WPD 24577×4 / 24579×4（PARSE）。SPP 1004（转绿）与
+  disk 51（脱命中）已于 2026-09-30 摘除。
+- **M2 D 基线（348）重标定待定**：zh 轮 D 残留 21 条全部为上述功能缺口簇，与 en 时代
+  348 的构成已完全不同。
 
 ## 8. 验证与测试循环（使用 `evtx-parity-test/`）
 
@@ -117,8 +125,8 @@ Message）。
 ### 8.1 层次一：代码单元测试（秒级，改上游后立即跑）
 
 ```bash
-cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ ./pe/ -count=1   # Go 侧（2026-09-29：130 用例全绿）
-cd evtx-tools   && cargo test --workspace                       # Rust 侧（2026-09-29：226 绿，bin 29 + core 194 + doctest 3）
+cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ ./pe/ -count=1   # Go 侧（2026-09-30：134 用例四包全绿；全仓含探针包 135）
+cd evtx-tools   && cargo test --workspace                       # Rust 侧（2026-09-30：245 绿，bin 35 + core 207 + doctest 3）
 ```
 
 覆盖：v8 schema 契约（旧 v7 拒开、缺表硬错、空表特性关）、渲染规则
@@ -168,5 +176,5 @@ cd evtx-tools   && cargo test --workspace                       # Rust 侧（202
 
 - 术语基线：`CONTEXT.md`、`evtx-parity-test/CONTEXT.md`
 - 架构决策：`docs/adr/0001`（Variant Identity）→ `0005`（TDH 类型化渲染）
-- 操作手册：`evtx-parity-test/README.md`、`skills/parity-test-skill.md`（勿回退事实 #1-#9）
+- 操作手册：`evtx-parity-test/README.md`、`skills/parity-test-skill.md`（勿回退事实 #1-#23）
 - 下轮工作清单：`C:\msys64\tmp\evet-handoff-2026-09-07.md`（会话交接文档）

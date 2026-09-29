@@ -40,10 +40,8 @@ TRAIL_RE = re.compile(r"[;\s]+$")
 # 登记表唯一真源：docs/residual-zeroing-plan-2026-09-07.md §4。
 EXEMPTIONS = {
     "entries": [
-        ("Application", "Microsoft-Windows-Security-SPP", "1004", "PARSE"),
         ("Application", "Microsoft-Windows-CAPI2", "4111", "PARSE"),
         ("System", "Microsoft-Windows-Directory-Services-SAM", "16962", "BIN"),
-        ("System", "disk", "51", "SRC"),
         ("System", "Microsoft-Windows-WPDClassInstaller", "24577", "PARSE"),
         ("System", "Microsoft-Windows-WPDClassInstaller", "24579", "PARSE"),
     ],

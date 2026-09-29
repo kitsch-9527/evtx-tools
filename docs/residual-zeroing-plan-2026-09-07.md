@@ -34,15 +34,25 @@
 
 | 簇 | 条数 | 根因码 | 根因描述 | 关闭条件 |
 |---|---|---|---|---|
-| SPP 1004 | 1 | PARSE | 参数值本身异常（`0d0xea98a6e5`），evtx crate 值读取层 | evtx crate 修复该值解析 |
+| ~~SPP 1004~~ | ~~1~~ | ~~PARSE~~ | ~~参数值本身异常（`0d0xea98a6e5`），evtx crate 值读取层~~ | **已关闭（2026-09-30，夜间 P5/P7/P8）**：P5 重排后连带转绿，P7 确定性门两次复跑均稳定全匹配；EXEMPTIONS 双表同步摘除 |
 | CAPI2 4111 | 1 | PARSE | 基线侧 CJK 日期被基线管线打成 `?`（LRM 关联），需 R5 层 `clean_baseline_artefacts` 基线侧手术（阶段A 2026-09-08 归因） | 基线侧 `?` 手术实施（须编排者授权） |
-| SAM 16962 | 3 | BIN | 二进制 security_descriptor → SDDL 文本转换机制未建 | 实现 SDDL 转换（可与 B 类专项合并） |
-| disk 51 | 1 | SRC | 经典源二进制 EventData，模板源未定位 | 定位 disk 51 消息源 |
-| WER 1001 | 2 | 专项（非豁免） | 上游渲染器把 WER 报告文件名 GUID 尾段十进制串 hex 化（`3003916586`→`0xb30c212a`，阶段A 2026-09-08 实证；App #2972/#3429）——TS35 同域，比对层不修（2026-09-15 阶段F 登记） | 上游渲染器 format_for_display 保护名单/取值层修复 |
+| SAM 16962 | 8 | BIN | 二进制 security_descriptor → SDDL 文本转换机制未建（zh 轮实际命中 8 条） | 实现 SDDL 转换（可与 B 类专项合并） |
+| ~~disk 51~~ | ~~1~~ | ~~SRC~~ | ~~经典源二进制 EventData，模板源未定位~~ | **已关闭（2026-09-30，夜间 P8）**：R21 经典映射后该簇不再命中豁免（自然脱豁免）；EXEMPTIONS 双表同步摘除 |
+| ~~WER 1001~~ | ~~2~~ | ~~专项（非豁免）~~ | ~~上游渲染器把 WER 报告文件名 GUID 尾段十进制串 hex 化（`3003916586`→`0xb30c212a`）~~ | **已关闭（2026-09-30，夜间 P5）**：Step3 GUID-span 回扫保护（R24），2→0 清零 |
 | ~~Wininit 26~~ | ~~1~~ | ~~待归属~~ | **已修（2026-09-15 阶段F 核实）**：LocalStatus（in 0x14/out 0x1F）经阶段E NTSTATUS 渲染臂命中 `parameter_refs` 组 code 0 字面文本 `STATUS_SUCCESS`，与基线逐字符一致，已出 diff | 无（已闭环） |
 | ~~EventLog 6013~~ | ~~16~~ | ~~SRC（条件性）~~ | ~~消息源未定位（netevent MUI 已排除）~~（2026-09-14 阶段C证伪：源=netevent.dll.mui RT_MESSAGETABLE 0x8000177D） | **已关闭（2026-09-14，阶段D）：定位到源并接入（msgdb-dump well-known 注入 6013 真实表文本 `%5` 槽位对齐），16 条全部 matched，EXEMPTIONS 白名单两处同步摘除 |
-| WPD 24577/24579 | 4 | PARSE（条件性→已转正） | 取值层 Named-Data 对齐失败 | 批次 3 取证超一轮则转正式豁免（2026-09-15 阶段F 核实：已正式豁免并生效，命中 24577×2+24579×2） |
+| WPD 24577/24579 | 4+4 | PARSE（已转正） | 取值层 Named-Data 对齐失败（2026-09-15 阶段F 转正式豁免生效；zh 轮命中 24577×4+24579×4） | 取值层 Named-Data 对齐修复 |
+| EventLog 6008（System） | 2 | BASE-ARTEFACT（转出登记，2026-09-30 夜间 P6） | 我方文本逐字节正确（真实 LRM U+200E），基线管线 iconv 把 LRM 变 `?`（斜杠形日期未被 R5 手术覆盖） | 基线侧手术扩斜杠形，或白名单 System/EventLog/6008/PARSE（须三处同步+授权） |
+| CodexSandboxService 1001/1002（App） | 2 | UNREG-FALLBACK（转出登记，2026-09-30 夜间 P6） | 源未注册，基线把 eid 当 Win32 错误码回退渲染；我方 N/A | resolver 加"无模板→Win32 系统错误表"回退（牵动 N/A-parity 谓词） |
+| e1dexpress 32（System） | 8 | MUI-WRONGLANG（转出登记，2026-09-30 夜间 P3/P6） | DriverStore 语言中立 e1dmsg.dll 的 MUI 目录解析错选 es-ES，msgdb zh/en 键下均存西语文案 | msgdb-dump MUI 解析重写（GetSystemMUILanguages/RC 常量） |
+| VMnetAdapter 36（System） | 8 | EID-QUALIFIER（转出登记，2026-09-30 夜间 P6） | classic 消息 id=qualifiers<<16\|eid（raw Qualifiers='16392'→0x40080024），msgdb 变体键缺 qualifiers 致链首 IoLogMsg.dll 裸 id 首中（错库） | msgdb-dump qualifier 感知链式查找（与 e1dexpress 同管线可合并） |
+| Wininit 23（System） | 1 | TDH-SYMBOL（转出登记，2026-09-30 夜间 P6） | HRESULT 0x10000000 经 wevtutil TDH 内建符号表渲染 "STATUS_SUCCESS"；我方 typed 渲染 0x10000000 | 内建 NTSTATUS/HRESULT 符号表 |
 | （预留） | — | — | 批次 1/2 取证中发现的真不可修项 | 逐条登记 |
+
+> 2026-09-30 夜间计划（P1–P7）终态：diff 237→21（全部为上表转出登记簇），exempted=17 条/4 项
+> （CAPI2 4111×1、SAM 16962×8、WPD 24577×4/24579×4）；SPP 1004 与 disk 51 两行经验证
+> 零命中后 EXEMPTIONS 双表同步摘除（`06-compare.py` + `acceptance-check.py` 同一提交，
+> 复跑 diff=21 不变）。
 
 ## 5. 方法论约束（全程有效）
 

@@ -14,7 +14,8 @@
 - 四通道本机导出（应用=Application / 补丁安装=Setup / 安全=Security / 系统=System）
 - 原脚本中转解析（`evtx2text.lua` 不动，复制到 `msys64-Tools/evtx/` 跑完搬回）
 - 双源码重编（`msgdb-dump` 用 `go build`，`evtx-tools` 用 `cargo build --release`）
-- 同一双语单文件 en-US / zh-CN 各跑一遍（`--msg-db` 显式指向 `hotech-msg-*.db`，v8 = v7 + eventlog_sources + param_types，ADR 0003/0004/0005）
+- 同一双语单文件 en-US / zh-CN 各跑一遍（`--msg-db` 显式指向 `hotech-msg-*.db`，
+  v9 = v7 + eventlog_sources + param_types + value_maps.lang 双语化，ADR 0003/0004/0005）
 - 顺序对齐 + 五字段归一化比对（标准库 Python，uv-ready）
 - 机器可读汇总 `report.json`（verdict + 分通道 categories，供下轮回归对比）
 
@@ -95,9 +96,10 @@
     勿以"零命中"为由删除。
 16. **EXEMPTIONS 双表（2026-09-08 起，阶段 B）**：`06-compare.py` 与
     `scripts/acceptance-check.py` 的豁免表必须**同一提交同步改动**；登记表唯一真源为
-    `docs/residual-zeroing-plan-2026-09-07.md` §4（终态 6 项/10 条：SPP1004×1、
-    CAPI2 4111×1、SAM16962×3、disk51×1、WPD24577×2、WPD24579×2）。豁免键
-    （channel, provider, eid）**语言无关**，语言翻转后白名单自动继续生效（zh 轮实测命中 19 条）。
+    `docs/residual-zeroing-plan-2026-09-07.md` §4。终态（2026-09-30 P8 同步后）**4 项**：
+    CAPI2 4111、SAM 16962、WPD 24577/24579；SPP 1004（P5 起稳定转绿）与 disk 51
+    （R21 经典映射后不再命中）已同步摘除。豁免键（channel, provider, eid）**语言无关**，
+    语言翻转后白名单自动继续生效（zh 轮实测命中 17 条）。
 17. **G0 语言漂移（2026-09-29，勿回退）**：wevtutil `/f:text` 渲染语言跟随**本机 UI 语言**，
     本机 2026-09 下旬由 en-US 切为 zh-CN（`Get-WinUILanguageOverride`=zh-Hans-CN），曾致
     基线 vs en 主比对全量假阳性 D（matched 32020→1840）。铁律：任何重跑前先看基线渲染语言；
@@ -127,6 +129,34 @@
     文本（`lookup_win32_error0`，孤儿 ISV provider 177 条 100% 实证；事件 Data 参数不参与
     渲染）；④06 canon `帐户`→`账户` 归一（SCM 7045 译文 servicing 漂移：磁盘唯一载体
     zh-CN\services.exe.mui 是"帐户"版，wevtapi 渲染"账户"版且文件不在盘上，不可萃取）。
+21. **R12b N/A 精度：registered-but-no-resources（2026-09-30 夜间 P1，勿回退）**：miss 臂
+    N/A 判定在既有"未注册 ∧ EID≠0"之外追加 **"已注册但零消息资源"** 同判 N/A
+    （CfgChangeMonitor×80 实证：`eventlog_sources` 有行、`provider_message_variants` 0 行，
+    wevtapi 同样渲染 N/A，fallback 长文全错）。实现：open 时加载
+    `providers_with_variants: HashSet`（`SELECT DISTINCT provider_name`，**空表=未知=保守
+    true**）+ `pub fn has_any_variant(name)`；miss 臂追加 `&& has_any_variant(prov)`；
+    既有"未注册→N/A"语义原样保留，全量 dry-run 实证该规则仅命中 CfgChangeMonitor 一簇。
+22. **value_maps schema v9 双语化（2026-09-30 夜间 P2，勿回退）**：`value_maps` 加
+    `lang TEXT NOT NULL DEFAULT 'en-US'` 并**列入 PK**；metadata `schema_version=9`
+    （Rust `open()` 硬校验，旧库拒开）。萃取端 per-lang stringTable：主 DLL
+    RTStrings+D2Strings 为底、该语言 MUI D2Strings **同键全覆盖 overlay**（非补缺——镜像
+    MUI 整族本地化语义，旧"主 DLL 先填、MUI 只补缺"即 en 偏置根因）；两条写入路径
+    （CRIM `InsertValueMap`/`writeValueMaps` 与 WELM import Step 6）都带 lang。
+    渲染端 `load_value_maps(lang)` 目标 lang 行进首选层 + en-US 行进回退层（镜像
+    param_refs v9 双层），`get_value_map`/`resolve_value`/param_value_maps merge 一律
+    首选→回退。行为红线：R19/R20 既有 value-map 修复零回退（System D 只减不增实证）。
+23. **渲染层四修复（2026-09-30 夜间 P3–P6，勿回退）**：①classic `<Binary>` hex blob 以
+    **大写、无 0x、无分隔**追加为末位参数 `%n+1`——**仅模板命中路径**（include_binary=true），
+    miss fallback 不追加（NetBT 4311 模板 `%2` 引 Binary、Data 值占 %1 实证；全 corpus
+    50 簇排查仅 2 簇模板引用 %n+1，追加对未引用模板无输出差）；②UserData 嵌套展平带
+    **形态门控**：仅根子节点=无 `#text`/`$` 叶子的 Object 触发，深度 2 丢容器名、
+    深度 3 用 `结构体_字段` 前缀（`ProcessInfo.Process_1.Name`→`Process_1_Name`，msgdb
+    命名规则同构；RE-Detector 2004×9 实证）；③大十进制 hex 化（Step 3，≥0x80000000）新增
+    **GUID-span 回扫 guard**：数字串被 `scan_guid` 识别为 GUID 形 token 尾段时跳过转换
+    （WER 1001 文件名 `3003916586` 实证；孤立十进制 TS35 历史修复不回退）；④substitute
+    消费 `%N` 后的 **`!S!` 字符串族 specifier**（s/S/hs/ws/ls；`!x!`/`!d!` 不消费）且
+    **pass2（参数值侧）不做 `%%`→`%` 塌缩**——`%%2149884192` verbatim（SCM 7023 实证，
+    与 EvtFormatMessage 两遍语义对齐；pass1 模板侧塌缩保留）。
 
 ## 已知上游缺口（首轮闭环发现；ADR 0003 单文件迁移已修 #1）
 
@@ -135,42 +165,63 @@
 2. Variant 降格分歧实例（Application#309，SPP 1016）：事件实例 opcode=0 时阶梯选了 Grace-timer，
    而 wevtutil 现场拿到 Proof-of-Purchase，降格策略与运行时语义的真实分歧点。
 3. CSV 表头重复、`--format both` 同路径抢写（见上）。
+4. [2026-09-30 夜间转出] **EventLog 6008×2（BASE-ARTEFACT）**：我方文本逐字节正确（真实 LRM
+   U+200E `‎2026/‎8/‎21`），基线管线 iconv 把 LRM 变 `?`（`?2026/?8/?21`），R5 手术只清 `-` 形
+   日期未覆盖斜杠形——上游不可修（我方无错），**建议白名单 System/EventLog/6008/PARSE**
+   （CAPI2 4111 同构；动豁免表须双表同步+登记表同步，超夜间阶段授权未动）。
+5. [2026-09-30 夜间转出] **CodexSandboxService 1001/1002×2（UNREG-FALLBACK）**：源未注册
+   （注册表无键、无 ETW manifest），基线把 eid 当 Win32 错误码回退渲染（1001→"递归太深；
+   堆栈溢出。"）；我方 N/A。修复需 resolver 加"无模板→eid 走 Win32 系统错误表"回退，
+   牵动 N/A-parity 谓词，非机械。
+6. [2026-09-30 夜间转出] **e1dexpress 32×8（MUI-WRONGLANG）**：链接 netevent.dll;DriverStore\…
+   \e1dmsg.dll（语言中立）；msgdb 该 provider 全部 14 条变体 zh-CN/en-US 键下存的都是西语文案
+   → DriverStore MUI 目录解析错选 es-ES 且双语同文错存。msgdb-dump（Go）MUI 解析重写
+   （GetSystemMUILanguages/RC 常量，非目录枚举序）。
+7. [2026-09-30 夜间转出] **VMnetAdapter 36×8（EID-QUALIFIER）**：classic 消息 id =
+   **qualifiers<<16 | eid**（raw `EventID Qualifiers='16392'`→0x40080024），msgdb 变体键缺
+   qualifiers 维度 → 按裸 eid 36 首中链首 IoLogMsg.dll 配额文案（错库）。msgdb-dump 补
+   qualifier 维度 + "链序+带 qualifier id"查找（与 #6 同管线可合并实施）。
+8. [2026-09-30 夜间转出] **Wininit 23×1（TDH-SYMBOL）**：HRESULT 0x10000000（XML 实证
+   268435456），wevtutil 经 TDH 内建符号表渲染 "STATUS_SUCCESS"；我方 typed 渲染 0x10000000。
+   需内建 NTSTATUS/HRESULT 符号表，非机械。
 
-## 基线（严格口径，2026-09-29 zh 轮终态，verdict=DIFF，44635/44890 一致，M1=99.4319%）
+## 基线（严格口径，2026-09-30 夜间计划终态，verdict=DIFF，44852/44890 一致，M1=99.9153%）
 
-> 本机 UI 语言 2026-09 下旬切为 zh-CN（G0 事件），主比对随基线翻到 zh；历史 en 口径数字
-> 见下方"历史"段。M2 的 D 基线（348）为 en 时代标定，zh 轮重标定待计划变更。
+> 主比对 zh-CN（G0）。2026-09-30 夜间计划 P1–P7 把 diff 237→21，逐阶段战绩：
+> 起点 237 → P1 −80（R12b N/A 精度，CfgChangeMonitor 清零）→ P2 −75（value_maps schema v9
+> 双语化，Ntfs 98×74 清零）→ P3 −38（NetBT Binary %n+1 清零）→ P4 −9（UserData 嵌套展平，
+> Resource-Exhaustion 2004 清零）→ P5 −2（WER GUID-span hex 保护清零；SPP 1004 连带转绿）→
+> P6 −12（`!S!` specifier + `%%` verbatim，Chrome/Edge/SCM7023 清零）。M2=93.97%（D 残留
+> 21/348，en 基线标定）；M5≈4；acceptance `--prev` 总体 PASS（exit=0）。
 
-| 通道 | 基线 | 新解析 | 一致 | 差异构成（主比对=zh，默认口径） |
+| 通道 | 基线 | 新解析 | 一致 | 差异构成（主比对=zh，默认口径；diff 全部为已定性转出簇，见"已知上游缺口" #4–#8） |
 |---|---|---|---|---|
-| Application | 10742 | 10742 | 10728 | D14（Chrome/Edge 256×10、WER 1001×2 上游 hex 化、SPP1004/CAPI2 4111 豁免） |
+| Application | 10742 | 10742 | 10739 | D2（CodexSandboxService×2 UNREG-FALLBACK）；豁免命中 1（CAPI2 4111） |
 | Setup | 676 | 676 | 676 | 全绿 |
 | Security | 27366 | 27366 | 27366 | **全绿** |
-| System | 6106 | 6106 | 5855 | D223（CfgChangeMonitor×80、Ntfs 98×74、NetBT 4311×38、ResExhaustion×9、VMnet/e1d×16、WPD/SAM 豁免 16、EventLog 6008×2）|
+| System | 6106 | 6106 | 6071 | D19 转出（e1dexpress×8、VMnetAdapter×8、EventLog 6008×2、Wininit 23×1）；豁免命中 16（SAM 16962×8、WPD 24577×4/24579×4）|
 
-**B/C 类全场清零**（en 时代 B718/C51 的历史包袱就此闭环）。本轮 R21 落地四修复：
-①经典源 eid 映射（`classicVariantRows`：event_id = 原始消息表 ID & 0xFFFF——Ntfs 50←0x80010032、
-6013←0x8000177D，6013 的 well-known 注入即此机制的手工前例）；②变体预热跨语言回落
-（`warmup_variants` 空 cohort 回落 en-US 行——System-Restore 8300 族，Setup 通道的 en 基线
-即 wevtapi 对无 zh 资源 provider 的 MUI 回退形态）；③classic eid=0 miss → FormatMessage(0)
-（"操作成功完成。"，孤儿 provider WXWork/asus/PDFShellExt/igfx 等 177 条 100% 实证）；
-④06 canon 帐户≡账户（SCM 7045 zh 译文 servicing 漂移：磁盘唯一载体是"帐户"版，
-wevtapi 渲染"账户"版且该文件不在文件系统上）。残留 237 条全部 D 类、根因已诊断：
-value_maps 0xDn 字符串表 en 偏置（Ntfs 98×74，schema v9 双语化=下一专项）、
-CfgChangeMonitor×80（R12 N/A 精度规则：registered-but-no-resources）、NetBT/VMnet/e1d×54
-（模板已中、参数 hex 格式族）、Resource-Exhaustion×9（参数空置，nested EventData）、
-WER 1001×2（上游 hex 化，en 时代遗留）。
+**exempted = 17 条 / 4 项**（CAPI2 4111×1、SAM 16962×8、WPD 24577×4/24579×4）；SPP 1004
+（P5 起稳定转绿）与 disk 51（R21 经典映射后不再命中）已出豁免（EXEMPTIONS 双表 2026-09-30
+同步摘除，登记表同撤）。**B/C 类全场清零**维持（红线基线）。P7 全量验收：G6 关豁免
+diff=38=21+17；确定性门两次全链路全等（compared/matched/diff/exempted/逐通道逐字段一致，
+仅 generated_local 时间戳不同）；单测 Go 134（四包；全仓 135）/Rust 245 全绿。
+残留 21 条全部 D 类且逐条定性完毕（无一"未知"）：2 条上游无错（6008 BASE-ARTEFACT）、
+19 条功能缺口（msgdb-dump 提取侧 16 = e1d/VMnet、resolver 回退 2 = Codex、TDH 符号表 1
+= Wininit 23）——修复路径见"已知上游缺口" #4–#8。
 
 历史（en 口径，2026-09-15 终态）：diff=771（matched 32020/32801，M1=97.6190%）；
 2026-09-29 语言翻转事故（matched 1840）→ v5 主比对随基线 + v9 param_refs 双语化 →
-zh 重基线 43356/96.58% → R21 四修复 → **44635/99.4319%**。
+zh 重基线 43356/96.58% → R21 四修复 44635/99.4319%（diff=237，构成：CfgChangeMonitor×80、
+Ntfs 98×74、NetBT×38、NetBT/VMnet/e1d hex 族、ResExhaustion×9、WER×2、Chrome/Edge×10 等）
+→ 2026-09-30 夜间六阶段 → **44852/99.9153%（diff=21）**。
 
 严格口径（2026-09-04 起）：hex 大小写 / GUID 花括号 / SDDL 分号 / 基线 `?` 不再豁免，
 上游渲染必须完全一致。Security 全绿实证链：`%1843` 映射修复 + 零 GUID 加花括号 +
 `*LogonId/Status/SubStatus/EventSourceId` 大写 + SDDL `S:ARAI(` 扩展。R1（hex 统一小写）证伪回退：
 基线同消息内大小写混杂（`0x3E7` vs `0xC20`），大小写来自参数值本身。R2（GUID 去花括号）证伪回退：
 花括号 GUID 仅零 GUID 特殊，其余 passthrough（路径 `{A73E…}` 大写 vs SDDL `{cb4…}` 小写为两源）。
-B（裸参数1029）/ C（无模板53）为已知未覆盖场景。历史：v6 双写轮 22692/32801；v7 豁免轮 30387/32801。
+B（裸参数）/ C（无模板）为已知未覆盖场景，当前全场 0。历史：v6 双写轮 22692/32801；v7 豁免轮 30387/32801。
 
 ## 循环闭合用法
 
