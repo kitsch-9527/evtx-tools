@@ -148,15 +148,26 @@ pub fn format_for_display_protected(message: &str, protect: &std::collections::H
             }
             let end_byte = if ci < chars.len() { chars[ci].0 } else { result.len() };
             let num_str = &result[start_byte..end_byte];
-            // Check SID context
-            let is_sid_context = start_byte > 0
-                && result.as_bytes()[start_byte - 1] == b'-'
-                && result[..start_byte].contains("S-");
-            let is_sid_direct = start_ci >= 2 && chars[start_ci - 2].1 == 'S' && chars[start_ci - 1].1 == '-';
-            let is_guid_context = start_byte > 0 && ci < chars.len()
-                && (result.as_bytes()[start_byte - 1].is_ascii_hexdigit() || result.as_bytes()[start_byte - 1] == b'-')
-                && chars[ci].1.is_ascii_hexdigit();
-            if !is_sid_context && !is_sid_direct && !is_guid_context && !protect.contains(num_str) {
+                // Check SID context
+                let is_sid_context = start_byte > 0
+                    && result.as_bytes()[start_byte - 1] == b'-'
+                    && result[..start_byte].contains("S-");
+                let is_sid_direct = start_ci >= 2 && chars[start_ci - 2].1 == 'S' && chars[start_ci - 1].1 == '-';
+                let is_guid_context = start_byte > 0 && ci < chars.len()
+                    && (result.as_bytes()[start_byte - 1].is_ascii_hexdigit() || result.as_bytes()[start_byte - 1] == b'-')
+                    && chars[ci].1.is_ascii_hexdigit();
+                // Night P6 (2026-09-30): `%%<decimal>` error-code escape
+                // (SCM 7023 param2, e.g. `%%2149884192` = 0x8024A120) passes
+                // through wevtutil verbatim — a digit run directly preceded
+                // by `%` is part of the escape, not a standalone code.
+                let is_percent_context =
+                    start_byte > 0 && result.as_bytes()[start_byte - 1] == b'%';
+                if !is_sid_context
+                    && !is_sid_direct
+                    && !is_guid_context
+                    && !is_percent_context
+                    && !protect.contains(num_str)
+                {
                 // Night P5 (2026-09-30): a digit run forming the tail segment
                 // of a GUID-shaped token (WER 1001 `AttachedFiles` filenames,
                 // e.g. `WER.c1438389-d2df-48d1-a9f7-ae3003916586.tmp.xml`,
@@ -309,6 +320,16 @@ fn scan_guid(s: &str, start: usize) -> Option<usize> {
 /// * `%1` – `%99` → `params[N-1]` (empty string if index out of bounds)
 /// * Lone `%` not followed by a recognised code → emitted as-is
 pub fn substitute(template: &str, params: &[&str]) -> String {
+    substitute_opts(template, params, true)
+}
+
+/// Night P6 (2026-09-30): `unescape_double_percent=false` keeps `%%` verbatim.
+/// Real `EvtFormatMessage` applies the second (param-side) pass without the
+/// FormatMessage `%%`→`%` escape processing: SCM 7023 param2 `%%2149884192`
+/// renders verbatim in the baseline, while our two-pass path collapsed it to
+/// a single `%` (then hex-converted the digits). Pass 1 (template-level)
+/// keeps the escape; only pass 2 (parameter-value side) bypasses it.
+fn substitute_opts(template: &str, params: &[&str], unescape_double_percent: bool) -> String {
     let mut result = String::with_capacity(template.len());
     let mut chars = template.chars().peekable();
 
@@ -319,7 +340,13 @@ pub fn substitute(template: &str, params: &[&str]) -> String {
         }
 
         match chars.next() {
-            Some('%') => result.push('%'),
+            Some('%') => {
+                if unescape_double_percent {
+                    result.push('%');
+                } else {
+                    result.push_str("%%");
+                }
+            }
             Some('n') => result.push_str("\r\n"),
             Some('r') => result.push('\r'),
             Some('t') => result.push('\t'),
@@ -338,6 +365,41 @@ pub fn substitute(template: &str, params: &[&str]) -> String {
                     result.push_str(params[index - 1]);
                 }
                 // index == 0 or out of bounds → emit nothing (empty substitution)
+
+                // Night P6 (2026-09-30): FormatMessage format specifier
+                // `!fmt!` attached to the placeholder (Chrome/Edge
+                // eventlog_provider.dll template `%1!S!\r\n`). wevtapi
+                // consumes it; leaving it verbatim appended a literal `!S!`
+                // to every Chrome/Edge message. Our params are plain strings,
+                // so the string-format family (s/S/hs/ws/ls) is a rendering
+                // no-op → consume and drop. Numeric specifiers (x/d/…) are
+                // NOT consumed: no proven parity, kept verbatim.
+                if chars.peek() == Some(&'!') {
+                    chars.next(); // consume the opening `!`
+                    let mut spec = String::new();
+                    let mut closed = false;
+                    while let Some(&nc) = chars.peek() {
+                        if nc == '!' {
+                            chars.next();
+                            closed = true;
+                            break;
+                        }
+                        if spec.len() >= 15 || !(nc.is_ascii_alphanumeric() || nc == '.') {
+                            break;
+                        }
+                        spec.push(nc);
+                        chars.next();
+                    }
+                    let drop = closed
+                        && matches!(spec.to_ascii_lowercase().as_str(), "s" | "hs" | "ws" | "ls");
+                    if !drop {
+                        result.push('!');
+                        result.push_str(&spec);
+                        if closed {
+                            result.push('!');
+                        }
+                    }
+                }
             }
             Some(other) => {
                 // Unrecognised escape — emit both the `%` and the following char
@@ -389,7 +451,7 @@ pub fn substitute_format_message_protected(
     // GUIDs (e.g. %7B430FD4D0-...%7D) are recognized and braced before
     // being split apart by the second pass's %N substitutions.
     let normalized = format_for_display_protected(&pass1, protect);
-    substitute(&normalized, params)
+    substitute_opts(&normalized, params, false)
 }
 
 // ---------------------------------------------------------------------------
@@ -1789,4 +1851,59 @@ fn format_for_display_keeps_guid_tail_decimal_in_wer_filename() {
     // the whole historical hex family must not regress).
     assert_eq!(format_for_display("code 2147954407"), "code 0x80072ee7");
     assert_eq!(format_for_display("code 3003916586"), "code 0xb30c212a");
+}
+
+#[test]
+fn substitute_consumes_string_format_specifier_after_placeholder() {
+    // Night P6 (2026-09-30): Chrome/Edge 256 (Application) — the provider's
+    // eventlog_provider.dll template is `%1!S!\r\n` (real msgdb variant,
+    // both langs). wevtapi consumes the FormatMessage `!S!` string-format
+    // specifier; we rendered it verbatim, appending a literal `!S!` after
+    // every Chrome/Edge message (baseline sample record idx 547).
+    let line = concat!(
+        "[11024:16136:0821/093359.890:INFO:chrome\\browser\\extensions\\",
+        "extension_garbage_collector.cc:188] Garbage collection for ",
+        "extensions on file thread is complete."
+    );
+    let out = substitute_format_message("%1!S!\r\n", &[line]);
+    // format_for_display Step 1 strips \r (Event Viewer convention), so the
+    // trailing CRLF of the template shows up as \n in the final message.
+    assert_eq!(out, format!("{line}\n"), "got: {out}");
+
+    // String-format family is a rendering no-op for our string params.
+    for spec in ["!s!", "!S!", "!ws!", "!hs!"] {
+        let t = format!("%1{spec}");
+        assert_eq!(substitute(&t, &["x"]), "x", "spec {spec}");
+    }
+    // Narrowness: numeric/unknown specifiers are NOT consumed (no proven
+    // parity — e.g. `!x!` would change the radix, we render decimal XML
+    // values verbatim).
+    assert_eq!(substitute("%1!x!", &["255"]), "255!x!");
+    assert_eq!(substitute("%1!d!", &["255"]), "255!d!");
+}
+
+#[test]
+fn format_for_display_keeps_double_percent_error_code_verbatim() {
+    // Night P6 (2026-09-30): SCM 7023 (System) — raw param2 is `%%<decimal>`
+    // (e.g. `%%2149884192` = 0x8024A120, baseline record idx 2923/3901).
+    // wevtutil renders it verbatim; we unescaped `%%`→`%` on the second
+    // substitution pass AND hex-converted the digits → `%0x8024a120`.
+    let out = format_for_display("停止: %%2149884192");
+    assert!(out.contains("%%2149884192"), "got: {out}");
+    assert!(!out.contains("0x8024a120"), "got: {out}");
+
+    // End-to-end through the two-pass path (SCM 7023 template, real msgdb
+    // zh-CN variant `%1 服务因下列错误而停止: %n%2\r\n`).
+    let msg = substitute_format_message(
+        "%1 服务因下列错误而停止: %n%2\r\n",
+        &["更新 Orchestrator 服务", "%%2149884192"],
+    );
+    assert!(msg.contains("%%2149884192"), "got: {msg}");
+    assert!(!msg.contains("0x8024a120"), "got: {msg}");
+    assert!(!msg.contains("%0x"), "got: {msg}");
+
+    // Red-line: template-level `%%` (real FormatMessage escape) still yields
+    // a literal `%` on the first pass, and standalone decimals still convert.
+    assert_eq!(substitute("50%% off", &[]), "50% off");
+    assert_eq!(format_for_display("code 2147954407"), "code 0x80072ee7");
 }

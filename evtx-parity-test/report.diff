@@ -1,67 +1,3 @@
-[Application #547] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=256 Provider=Chrome
-    Date=2026-08-21T09:33:59.8920000Z
-    Msg=[11024:16136:0821/093359.890:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.
-  new-zh:   EventID=256 Provider=Chrome
-    Time=2026-08-21 09:33:59.892664
-    Msg=[11024:16136:0821/093359.890:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.!S!
-
-[Application #3675] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=256 Provider=Chrome
-    Date=2026-09-02T11:07:12.9710000Z
-    Msg=[15004:15088:0902/110712.971:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.
-  new-zh:   EventID=256 Provider=Chrome
-    Time=2026-09-02 11:07:12.971972
-    Msg=[15004:15088:0902/110712.971:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.!S!
-
-[Application #3676] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=256 Provider=Chrome
-    Date=2026-09-02T11:07:28.4420000Z
-    Msg=[27712:30628:0902/110728.441:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.
-  new-zh:   EventID=256 Provider=Chrome
-    Time=2026-09-02 11:07:28.442776
-    Msg=[27712:30628:0902/110728.441:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.!S!
-
-[Application #4281] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=256 Provider=Chrome
-    Date=2026-09-04T09:41:41.6530000Z
-    Msg=[20816:21360:0904/094141.651:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.
-  new-zh:   EventID=256 Provider=Chrome
-    Time=2026-09-04 09:41:41.653063
-    Msg=[20816:21360:0904/094141.651:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.!S!
-
-[Application #5841] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=256 Provider=Chrome
-    Date=2026-09-10T09:56:16.3300000Z
-    Msg=[15680:4604:0910/095616.329:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.
-  new-zh:   EventID=256 Provider=Chrome
-    Time=2026-09-10 09:56:16.330736
-    Msg=[15680:4604:0910/095616.329:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.!S!
-
-[Application #7768] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=256 Provider=Chrome
-    Date=2026-09-17T11:51:04.5630000Z
-    Msg=[38300:48632:0917/115104.562:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.
-  new-zh:   EventID=256 Provider=Chrome
-    Time=2026-09-17 11:51:04.563219
-    Msg=[38300:48632:0917/115104.562:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.!S!
-
-[Application #7769] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=256 Provider=Chrome
-    Date=2026-09-17T11:51:59.1400000Z
-    Msg=[43076:50516:0917/115159.139:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.
-  new-zh:   EventID=256 Provider=Chrome
-    Time=2026-09-17 11:51:59.140383
-    Msg=[43076:50516:0917/115159.139:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.!S!
-
-[Application #7770] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=256 Provider=Chrome
-    Date=2026-09-17T11:56:11.8890000Z
-    Msg=[2396:12344:0917/115611.888:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.
-  new-zh:   EventID=256 Provider=Chrome
-    Time=2026-09-17 11:56:11.889913
-    Msg=[2396:12344:0917/115611.888:INFO:chrome\browser\extensions\extension_garbage_collector.cc:188] Garbage collection for extensions on file thread is complete.!S!
-
 [Application #9751] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=1001 Provider=CodexSandboxService.OpenAI.Codex
     Date=2026-09-25T09:42:16.0230000Z
@@ -77,22 +13,6 @@
   new-zh:   EventID=1002 Provider=CodexSandboxService.OpenAI.Codex
     Time=2026-09-25 09:42:16.024189
     Msg=N/A
-
-[Application #10663] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=256 Provider=Edge
-    Date=2026-09-29T09:23:02.8750000Z
-    Msg=[42052:40148:0929/092302.874:INFO:chrome\browser\extensions\extension_garbage_collector.cc:212] Garbage collection for extensions on file thread is complete.
-  new-zh:   EventID=256 Provider=Edge
-    Time=2026-09-29 09:23:02.875115
-    Msg=[42052:40148:0929/092302.874:INFO:chrome\browser\extensions\extension_garbage_collector.cc:212] Garbage collection for extensions on file thread is complete.!S!
-
-[Application #10689] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=256 Provider=Edge
-    Date=2026-09-29T10:23:06.6860000Z
-    Msg=[10116:38528:0929/102306.685:INFO:chrome\browser\extensions\extension_garbage_collector.cc:212] Garbage collection for extensions on file thread is complete.
-  new-zh:   EventID=256 Provider=Edge
-    Time=2026-09-29 10:23:06.686255
-    Msg=[10116:38528:0929/102306.685:INFO:chrome\browser\extensions\extension_garbage_collector.cc:212] Garbage collection for extensions on file thread is complete.!S!
 
 [System #132] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
@@ -190,14 +110,6 @@
     Time=2026-09-04 09:36:27.561395
     Msg=Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
 
-[System #2923] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=7023 Provider=Service Control Manager
-    Date=2026-09-04T09:37:05.3270000Z
-    Msg=更新 Orchestrator 服务 服务因下列错误而停止: ;;%%2149884192
-  new-zh:   EventID=7023 Provider=Service Control Manager
-    Time=2026-09-04 09:37:05.327925
-    Msg=更新 Orchestrator 服务 服务因下列错误而停止: %0x8024a120
-
 [System #2982] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
     Date=2026-09-04T09:38:01.9990000Z
@@ -237,14 +149,6 @@
   new-zh:   EventID=32 Provider=e1dexpress
     Time=2026-09-10 09:49:53.968015
     Msg=Intel(R) Ethernet Connection (12) I219-V Se ha establecido el enlace de red en 1 Gbps dúplex completo.
-
-[System #3901] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
-  baseline: EventID=7023 Provider=Service Control Manager
-    Date=2026-09-10T09:51:35.1310000Z
-    Msg=更新 Orchestrator 服务 服务因下列错误而停止: ;;%%2149884192
-  new-zh:   EventID=7023 Provider=Service Control Manager
-    Time=2026-09-10 09:51:35.131611
-    Msg=更新 Orchestrator 服务 服务因下列错误而停止: %0x8024a120
 
 [System #3947] D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）（见明细）
   baseline: EventID=36 Provider=VMnetAdapter
