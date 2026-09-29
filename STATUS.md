@@ -51,7 +51,7 @@ Message）。
 4. 枚举启发式（R11）→ CRIM 值映射（Layer 2/2b）→ LUID 大写 hex（R14）。
 5. `%1-%99` 位置代入 → 展示格式化。取值层含 JSON 原生 Bool 修复（R18）。
 
-## 5. 当前基线（2026-09-29 zh 轮重基线，verdict=DIFF）
+## 5. 当前基线（2026-09-29 zh 轮终态，verdict=DIFF）
 
 > **G0 语言漂移事件**：本机显示语言 2026-09 下旬由 en-US 切为 zh-CN，Lua 基线
 > （wevtutil 真值）渲染语言随之翻转；06 v5 起主比对语言随基线自动探测
@@ -59,20 +59,21 @@ Message）。
 
 | 通道 | 比对 | 一致 | 差异构成（主比对=zh，默认口径） |
 |---|---|---|---|
-| Application | 10742 | 10429 | B189（经典源簇）+ D122（System-Restore 8300-8303×93，zh 新增簇） |
+| Application | 10742 | 10728 | D14（Chrome/Edge 256、WER 1001×2 上游 hex 化、豁免 2） |
 | Setup | 676 | 676 | 全绿 |
 | Security | 27366 | 27366 | **全绿** |
-| System | 6106 | 4885 | B926（Ntfs50/hcmon 等历史簇）+ D278（SCM7045×111/CfgChangeMonitor×80/Ntfs98×74） |
+| System | 6106 | 5855 | D223（CfgChangeMonitor×80、Ntfs 98×74、NetBT 4311×38 等） |
 
-- 全量：44890 条比对，**43356 一致，diff=1515**，exempted=19 条/6 项（键语言无关自动生效）。
-- **M1 = 96.5828%**；G1 目标线（97.53%）为 en 时代标定，zh 轮重标定待计划变更。
-- 语言专项（本轮落地）：**v9 param_refs 双语化**——schema PK 本就含 lang；萃取端参数文件
-  按 MUI 多语言（en 118767/zh 118355 行），渲染端语言优先 + en 回退；Security 9733 条
-  枚举名 D（否/是/模拟 vs No/Yes/Impersonation）就此清零。
-- zh 新增簇（转后续）：System-Restore 8300-8303×93、SCM 7045×111、Ntfs 98×74；
-  历史簇（Ntfs 50×515、hcmon×266、CfgChangeMonitor×80 等）与语言无关、原样复现。
-- 历史 en 终态（2026-09-15）：32801 比对 / 32020 一致 / diff=771 / M1=97.6190% /
-  M2=99.43%（WER 1001×2）/ exempted=10 条/6 项 / M5=761。
+- 全量：44890 条比对，**44635 一致，diff=237**，exempted=18 条/5 项（disk/51 经典映射后
+  不再命中豁免），M5=219。
+- **M1 = 99.4319%**（超 en 时代 97.6190%，超 G1 目标线 97.53%）；**B/C 类全场清零**
+  （en 时代 B718/C51 历史包袱闭环）；M2 的 D 基线（348）为 en 时代标定，重标定待计划变更。
+- 本轮 R21 四修复：①经典源 eid 映射（rawID & 0xFFFF，Ntfs 50←0x80010032 等）；②变体预热
+  跨语言回落（空 cohort 回落 en-US）；③classic eid=0 miss → FormatMessage(0)；④06 canon
+  帐户≡账户（译文 servicing 漂移）。前置：v5 G0 主比对随基线 + v9 param_refs 双语化
+  （Security 9733 条枚举名 D 清零）。
+- 残留 237 条全部 D 类、根因已诊断（见 §7）。
+- 历史 en 终态（2026-09-15）：32801 比对 / 32020 一致 / diff=771 / M1=97.6190%。
 
 ## 6. 已落地修复（全部 TDD 回归测试保护，勿回退）
 
@@ -89,20 +90,22 @@ Message）。
 | R19/R20 | 09-08 | CRIM VMAP 0xDn 字符串表家族泛化（value_maps 8540→29718）、param_name 校验挂载、bool/(8,8) 接管臂 |
 | 批次 C–G | 09-14/15 | 豁免白名单+`--no-exemptions`；6013 消息表接入（netevent MUI RT_MESSAGETABLE 0x8000177D，well-known 注入）；NTSTATUS `NTSTATUS-System-Error` 全局组（ntdll 2975 条）+ (_,0x1F) hit-only 渲染臂；残余归属收口（Wininit 26 闭合） |
 
-## 7. 残留问题（2026-09-29 zh 轮终态）
+## 7. 残留问题（2026-09-29 zh 轮终态：B/C 清零，残留 237 条全 D 且根因已诊断）
 
-- **zh 新增簇（转后续专项）**：System-Restore 8300-8303×93（App，疑似 value-map 族）、
-  SCM 7045×111（System，启动类型枚举名嫌疑）、Ntfs 98×74（System，NTSTATUS zh 臂待核）、
-  Resource-Exhaustion 2004×9。
-- **历史簇（与语言无关，原样复现）**：Ntfs 50×515、hcmon×266、WXWork×63、asus×46、
-  PDFShellExt×25、igfx×20、Win32k 267×42、NetBT 4311×38、CfgChangeMonitor×80（N/A 精度缺口）
-  及若干小簇——即 en 时代 residual 计划的 B718/C51 清单在 zh 口径重现。
-- **en 时代遗留专项**：WER 1001×2 上游 hex 化（App #2972/#3429）、CAPI2 4111 基线侧 `?` 手术（可选）。
-- **豁免 6 项/19 条**（键语言无关，zh 轮自动生效；登记表唯一真源
-  `docs/residual-zeroing-plan-2026-09-07.md` §4）：SPP 1004×1（PARSE）、CAPI2 4111×1（PARSE）、
-  SAM 16962×8（BIN）、disk 51×1（SRC）、WPD 24577×4 / 24579×4（PARSE）。
-- **G1 目标线重标定待定**：M1 97.53%/M2 基线 348 为 en 时代标定值，zh 轮 96.58%/D400，
-  重标定属计划变更（用户决策）。
+- **value_maps 0xDn 字符串表 en 偏置**（Ntfs 98×74 + 潜在面）：value_maps 无 lang 列，
+  d2Strings 合并 en（主 DLL）先填。下一专项 = schema v9 双语化（萃取端 per-lang stringTable
+  + 渲染端语言优先/en 回退，照 param_refs v9 先例）。
+- **CfgChangeMonitor eid=1×80**：R12 N/A 精度缺口——registered-but-no-resources 的 provider
+  应判 N/A（基线渲染 N/A，我方走 fallback 长文）。en 时代 N1 专项的同一问题。
+- **NetBT 4311×38 / VMnetAdapter 36×8 / e1dexpress 32×8**：经典映射后模板已命中，剩余为
+  参数 hex 格式族（"长 hex 串"），需 InType/OutType 逐簇取证。
+- **Resource-Exhaustion 2004×9**：我方参数全空（nested/complex EventData 取值层）。
+- **WER 1001×2**：上游渲染器 hex 化 `3003916586`→`0xb30c212a`（en 时代遗留专项）。
+- **EventLog 6008×2 / Chrome、Edge 256×10 / CodexSandboxService×2**：小簇待逐条定性。
+- **豁免 5 项/18 条**（disk/51 经典映射后脱离豁免；登记表真源
+  `docs/residual-zeroing-plan-2026-09-07.md` §4 待同步）：SPP 1004×1、CAPI2 4111×1、
+  SAM 16962×8（BIN）、WPD 24577×4 / 24579×4（PARSE）。
+- **M2 D 基线（348）重标定待定**：zh 轮 D 构成已完全不同（237 条含 80+74 的机制性簇）。
 
 ## 8. 验证与测试循环（使用 `evtx-parity-test/`）
 
@@ -114,7 +117,7 @@ Message）。
 ### 8.1 层次一：代码单元测试（秒级，改上游后立即跑）
 
 ```bash
-cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ ./pe/ -count=1   # Go 侧（2026-09-29：128 用例全绿）
+cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ ./pe/ -count=1   # Go 侧（2026-09-29：130 用例全绿）
 cd evtx-tools   && cargo test --workspace                       # Rust 侧（2026-09-29：226 绿，bin 29 + core 194 + doctest 3）
 ```
 

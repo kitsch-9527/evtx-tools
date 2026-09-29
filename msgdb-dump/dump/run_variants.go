@@ -68,29 +68,53 @@ func extractVariantsFallback(res *DLLResult, prov ProviderInfo, langCodes []stri
 			if len(msgs) == 0 {
 				continue
 			}
-			sort.Slice(msgs, func(i, j int) bool { return msgs[i].EventID < msgs[j].EventID })
 		}
 		if len(msgs) == 0 {
 			continue
 		}
-		var rows []VariantRow
-		for _, m := range msgs {
-			rows = append(rows, VariantRow{
-				ProviderName: prov.Name,
-				Lang:         code,
-				EventID:      m.EventID,
-				Message:      m.Message,
-			})
-			if prov.GUID != nil {
-				rows[len(rows)-1].ProviderGUID = *prov.GUID
-			}
-		}
-		byLang[code] = rows
+		byLang[code] = classicVariantRows(prov, code, msgs)
 	}
 	if len(byLang) == 0 {
 		return nil, nil, nil, nil, fmt.Errorf("no fallback messages")
 	}
 	return byLang, nil, nil, nil, nil
+}
+
+// classicVariantRows builds flat RT_MESSAGETABLE variant rows for classic
+// providers (R21, 2026-09-29): event_id = rawID & 0xFFFF — the classic
+// EventLog convention (severity/facility occupy the high bits; the event
+// record carries the low 16 bits, e.g. Ntfs 50 ← 0x80010032, EventLog
+// 6013 ← 0x8000177D). Storing the raw full-format ID as event_id made every
+// classic-source cohort unreachable for the renderer (the classic B
+// clusters). message_identifier stays 0 = wildcard for the resolve ladder.
+// Deterministic first-wins dedup on the mapped eid (ascending raw ID).
+func classicVariantRows(provider ProviderInfo, lang string, msgs []PeMessage) []VariantRow {
+	sorted := make([]PeMessage, len(msgs))
+	copy(sorted, msgs)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].EventID < sorted[j].EventID })
+	var rows []VariantRow
+	seen := make(map[uint32]bool)
+	for _, m := range sorted {
+		eid := m.EventID
+		if eid > 0xFFFF {
+			eid &= 0xFFFF
+		}
+		if seen[eid] {
+			continue
+		}
+		seen[eid] = true
+		row := VariantRow{
+			ProviderName: provider.Name,
+			Lang:         lang,
+			EventID:      eid,
+			Message:      m.Message,
+		}
+		if provider.GUID != nil {
+			row.ProviderGUID = *provider.GUID
+		}
+		rows = append(rows, row)
+	}
+	return rows
 }
 
 // wellKnownEventLog6013 — phase D (2026-09-14) variant injection source.

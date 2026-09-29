@@ -206,21 +206,13 @@ func ExtractProviderVariants(dllPath string, provider ProviderInfo, langs, langC
 		if len(muiMsgs) == 0 {
 			continue
 		}
-		var rows []VariantRow
+		// R21（2026-09-29）：经典源 eid 映射（rawID & 0xFFFF）+ 确定性去重，
+		// 见 classicVariantRows —— 原始全格式 ID 直接落库导致经典 B 簇全量 miss。
+		var msgs []PeMessage
 		for eid, msg := range muiMsgs {
-			row := VariantRow{
-				ProviderName: provider.Name,
-				Lang:         langCode,
-				EventID:      eid,
-				Message:      msg,
-			}
-			if provider.GUID != nil {
-				row.ProviderGUID = *provider.GUID
-			}
-			rows = append(rows, row)
+			msgs = append(msgs, PeMessage{EventID: eid, Message: msg})
 		}
-		sort.Slice(rows, func(i, j int) bool { return rows[i].EventID < rows[j].EventID })
-		variantsByLang[langCode] = rows
+		variantsByLang[langCode] = classicVariantRows(provider, langCode, msgs)
 	}
 	return variantsByLang, valueMaps, paramMapRefs, paramTypes, nil
 }

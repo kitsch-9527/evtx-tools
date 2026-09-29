@@ -162,6 +162,25 @@ impl MessageDb {
             .cloned()
     }
 
+    /// Win32 system-error text for code 0 (R21, classic eid=0 fallback).
+    ///
+    /// wevtapi classic rendering with no resolvable template renders the
+    /// system message for the event id; eid=0 → FormatMessage(0) →
+    /// "The operation completed successfully." / "操作成功完成。" (orphaned
+    /// ISV providers WXWorkUpgrader/asus/PDFShellExt/igfx: 100% live parity).
+    pub fn lookup_win32_error0(&self) -> Option<String> {
+        self.param_refs
+            .get("Win32-System-Error")
+            .and_then(|m| m.get(&0))
+            .cloned()
+            .or_else(|| {
+                self.param_refs_fallback
+                    .get("Win32-System-Error")
+                    .and_then(|m| m.get(&0))
+                    .cloned()
+            })
+    }
+
     /// Load the registered event source snapshot from the `eventlog_sources`
     /// table (R12 / ADR 0004). The table is part of the v8 schema — absence
     /// is a hard error (re-run msgdb-dump). An empty snapshot (collection
@@ -1172,6 +1191,99 @@ mod tests {
         )
         .unwrap();
         drop(conn);
+    }
+
+    /// R21 fixture: an en-US-only variant cohort (System-Restore 8300 shape:
+    /// specific keywords/opcode, no zh resources at all).
+    fn setup_en_only_variant_db(path: &Path) {
+        let _ = std::fs::remove_file(path);
+        let conn = Connection::open(path).unwrap();
+        create_v8_schema(&conn);
+        insert_metadata_8(&conn);
+        conn.execute(
+            "INSERT INTO dll_entries(dll_id, dll_name, dll_path) VALUES(1, 'SrEvents.dll', 'C:/SrEvents.dll')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id, message) VALUES('SR', '{SR-GUID}', 'en-US', 8300, 0, 4, 1, 0, '9223372036854775808', 9, 8300, 1, 'Scoping started for shadowcopy %1.')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+    }
+
+    #[test]
+    fn test_warmup_cross_language_fallback() {
+        // R21（2026-09-29）：变体预热跨语言回落。只有 en-US 行的 provider（如
+        // System-Restore 8300-8303，无 zh MUI）在 zh 轮此前预热全空（WHERE lang=?1
+        // 硬过滤）→ 渲染占位文本假阳性；wevtapi 在 zh 机器上同样渲染 en（MUI 回退链），
+        // 空 cohort 必须回落加载 en-US 行。
+        let tmp = tmp_path("warmup_lang_fallback");
+        setup_en_only_variant_db(&tmp);
+
+        let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        let key = VariantKey {
+            provider_name: "SR".into(),
+            event_id: 8300,
+            version: 0,
+            level: 4,
+            opcode: 1,
+            task: 0,
+            keywords: 0x8001000000000001, // 事件实际 keywords（≠ 行值 → 走梯子打分）
+            channel: 9,
+            message_id: 0,
+        };
+        db.warmup(std::slice::from_ref(&key), "zh-CN").unwrap();
+        let row = db
+            .resolve_variant(&key)
+            .expect("zh warmup must fall back to the en-US rows for empty cohorts");
+        assert!(
+            row.template.contains("Scoping started"),
+            "got: {}",
+            row.template
+        );
+
+        // en 目标不受影响。
+        let mut db_en = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db_en.warmup(std::slice::from_ref(&key), "en-US").unwrap();
+        assert!(db_en.resolve_variant(&key).is_some());
+
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn test_lookup_win32_error0_lang_layers() {
+        // R21：eid=0 classic fallback 的数据层——zh 首选层命中 zh 文本，
+        // en 目标命中 en 文本；语言层缺失时回落 en 行。
+        let tmp = tmp_path("win32_error0");
+        let conn = Connection::open(&tmp).unwrap();
+        create_v8_schema(&conn);
+        insert_metadata_8(&conn);
+        conn.execute(
+            "INSERT INTO parameter_refs(provider_name, param_id, message, lang) VALUES('Win32-System-Error', 0, 'The operation completed successfully.', 'en-US')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO parameter_refs(provider_name, param_id, message, lang) VALUES('Win32-System-Error', 0, '操作成功完成。', 'zh-CN')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+
+        let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db.load_param_refs("zh-CN").unwrap();
+        assert_eq!(db.lookup_win32_error0().as_deref(), Some("操作成功完成。"));
+
+        let mut db_en = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db_en.load_param_refs("en-US").unwrap();
+        assert_eq!(
+            db_en.lookup_win32_error0().as_deref(),
+            Some("The operation completed successfully.")
+        );
+
+        let _ = std::fs::remove_file(&tmp);
     }
 
     #[test]

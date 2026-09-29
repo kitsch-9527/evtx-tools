@@ -116,7 +116,17 @@
 19. **管线运维坑（2026-09-29）**：①`wevtutil epl` **不覆盖已存在文件**（报"文件存在"），
     重导前必须先删目标文件；②Security 通道导出需管理员，本会话用 UAC 提权包装
     （`scripts/_01-security-elevated.ps1`）；③提权运行的 .ps1 必须**纯 ASCII**——无 BOM
-    UTF-8 的中文注释被 PS5.1 按 GBK 读入会吞换行（与坑位 GBK 控制台同源）。
+    UTF-8 的中文注释被 PS5.1 按 GBK 读入会吞换行（与坑位 GBK 控制台同源）；④`wevtutil qe`
+    查询导出的 .evtx 文件必须加 **`/lf:true`** 且用绝对路径（相对路径/缺 /lf 报"指定的通道
+    路径无效"——多轮空结果假象的根因）；⑤wevtutil 输出**重定向到文件时是 ANSI/GBK**
+    （控制台管道才是 UTF-16），python 侧解码先试 GBK。
+20. **R21 经典源四修复（2026-09-29，勿回退）**：①`classicVariantRows`：classic provider 的
+    event_id = 消息表原始 ID & 0xFFFF（事件记录只带低 16 位；6013 的 well-known 注入即此
+    机制的手工前例，勿回退注入本身）；②`warmup_variants` 空 cohort 回落 en-US 行（wevtapi
+    MUI 回退链；Setup 通道基线为 en 即此形态）；③classic eid=0 miss → FormatMessage(0)
+    文本（`lookup_win32_error0`，孤儿 ISV provider 177 条 100% 实证；事件 Data 参数不参与
+    渲染）；④06 canon `帐户`→`账户` 归一（SCM 7045 译文 servicing 漂移：磁盘唯一载体
+    zh-CN\services.exe.mui 是"帐户"版，wevtapi 渲染"账户"版且文件不在盘上，不可萃取）。
 
 ## 已知上游缺口（首轮闭环发现；ADR 0003 单文件迁移已修 #1）
 
@@ -126,29 +136,34 @@
    而 wevtutil 现场拿到 Proof-of-Purchase，降格策略与运行时语义的真实分歧点。
 3. CSV 表头重复、`--format both` 同路径抢写（见上）。
 
-## 基线（严格口径，2026-09-29 zh 轮重基线，verdict=DIFF，43356/44890 一致，M1=96.5828%）
+## 基线（严格口径，2026-09-29 zh 轮终态，verdict=DIFF，44635/44890 一致，M1=99.4319%）
 
 > 本机 UI 语言 2026-09 下旬切为 zh-CN（G0 事件），主比对随基线翻到 zh；历史 en 口径数字
-> 见下方"历史"段。G1 目标线（97.53%）为 en 时代标定，zh 轮重标定待计划变更。
+> 见下方"历史"段。M2 的 D 基线（348）为 en 时代标定，zh 轮重标定待计划变更。
 
-| 通道 | 基线 | 新解析 | 一致 | 差异构成（默认口径，主比对=zh） |
+| 通道 | 基线 | 新解析 | 一致 | 差异构成（主比对=zh，默认口径） |
 |---|---|---|---|---|
-| Application | 10742 | 10742 | 10429 | B189（WXWork63/asus46/PDFShellExt25/igfx20 等经典源）+ D122（System-Restore 8300-8303×93）|
+| Application | 10742 | 10742 | 10728 | D14（Chrome/Edge 256×10、WER 1001×2 上游 hex 化、SPP1004/CAPI2 4111 豁免） |
 | Setup | 676 | 676 | 676 | 全绿 |
-| Security | 27366 | 27366 | 27366 | **全绿**（v9 param_refs 语言化清掉 9733 条 D）|
-| System | 6106 | 6106 | 4885 | B926（Ntfs50×515/hcmon×266/Win32k×42/NetBT×38）+ D278（SCM7045×111/CfgChangeMonitor×80/Ntfs98×74/ResourceExhaustion×9）|
+| Security | 27366 | 27366 | 27366 | **全绿** |
+| System | 6106 | 6106 | 5855 | D223（CfgChangeMonitor×80、Ntfs 98×74、NetBT 4311×38、ResExhaustion×9、VMnet/e1d×16、WPD/SAM 豁免 16、EventLog 6008×2）|
 
-本轮落地（2026-09-29）：06 v5（G0 baseline_lang 主比对随基线）、v9 param_refs 双语化
-（参数文件 MUI 多语言萃取 + 渲染端语言优先/en 回退）、acceptance-check G0 门、
-`wevtutil epl` 先删后导。zh 新增簇（转后续专项）：System-Restore 8300-8303×93、
-SCM 7045×111（value-map 族嫌疑）、Ntfs 98×74；历史簇原样复现（Ntfs 50、hcmon、
-CfgChangeMonitor 等，与语言无关）。
+**B/C 类全场清零**（en 时代 B718/C51 的历史包袱就此闭环）。本轮 R21 落地四修复：
+①经典源 eid 映射（`classicVariantRows`：event_id = 原始消息表 ID & 0xFFFF——Ntfs 50←0x80010032、
+6013←0x8000177D，6013 的 well-known 注入即此机制的手工前例）；②变体预热跨语言回落
+（`warmup_variants` 空 cohort 回落 en-US 行——System-Restore 8300 族，Setup 通道的 en 基线
+即 wevtapi 对无 zh 资源 provider 的 MUI 回退形态）；③classic eid=0 miss → FormatMessage(0)
+（"操作成功完成。"，孤儿 provider WXWork/asus/PDFShellExt/igfx 等 177 条 100% 实证）；
+④06 canon 帐户≡账户（SCM 7045 zh 译文 servicing 漂移：磁盘唯一载体是"帐户"版，
+wevtapi 渲染"账户"版且该文件不在文件系统上）。残留 237 条全部 D 类、根因已诊断：
+value_maps 0xDn 字符串表 en 偏置（Ntfs 98×74，schema v9 双语化=下一专项）、
+CfgChangeMonitor×80（R12 N/A 精度规则：registered-but-no-resources）、NetBT/VMnet/e1d×54
+（模板已中、参数 hex 格式族）、Resource-Exhaustion×9（参数空置，nested EventData）、
+WER 1001×2（上游 hex 化，en 时代遗留）。
 
-历史（en 口径，2026-09-15 终态）：diff=771（matched 32020/32801，M1=97.6190%，
-超理想线 97.59%；M2=99.43%，D 残留 2/348=WER 1001×2；exempted=10 条/6 项，M5=761）。
-会话落地：ADR 0004/0005、R18-R20、豁免白名单+`--no-exemptions`、6013 消息表接入（D）、
-NTSTATUS `NTSTATUS-System-Error` 全局组+(_,0x1F) hit-only 渲染臂（E）。
-2026-09-05 起点 diff=1127；R12 后 1026；R18+R10 后 931；09-08/09 批次后 773。
+历史（en 口径，2026-09-15 终态）：diff=771（matched 32020/32801，M1=97.6190%）；
+2026-09-29 语言翻转事故（matched 1840）→ v5 主比对随基线 + v9 param_refs 双语化 →
+zh 重基线 43356/96.58% → R21 四修复 → **44635/99.4319%**。
 
 严格口径（2026-09-04 起）：hex 大小写 / GUID 花括号 / SDDL 分号 / 基线 `?` 不再豁免，
 上游渲染必须完全一致。Security 全绿实证链：`%1843` 映射修复 + 零 GUID 加花括号 +

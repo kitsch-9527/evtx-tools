@@ -9,6 +9,36 @@ impl MessageDb {
         let mut cohorts: HashSet<(String, u32)> = HashSet::new();
         for k in keys { cohorts.insert((k.provider_name.clone(), k.event_id)); }
         let cohorts: Vec<(String, u32)> = cohorts.into_iter().collect();
+        let mut variant_rows = self.load_variant_rows_for_cohorts(lang, &cohorts)?;
+        // R21（2026-09-29）：跨语言回落（MUI 回退链 zh-CN → en-US）。目标语言无行的
+        // cohort 回落加载 en-US 行——wevtapi 在 zh 机器上对无 zh 资源的 provider 同样
+        // 渲染 en（Setup 通道即此形态），此前 WHERE lang=?1 硬过滤使这类 cohort 在
+        // zh 轮全空 → 占位文本假阳性（System-Restore 8300 族根因）。
+        if lang != "en-US" {
+            let loaded: HashSet<(String, u32)> = variant_rows
+                .iter()
+                .map(|(k, _)| (k.provider_name.clone(), k.event_id))
+                .collect();
+            let missing: Vec<(String, u32)> = cohorts
+                .iter()
+                .filter(|c| !loaded.contains(*c))
+                .cloned()
+                .collect();
+            if !missing.is_empty() {
+                let fallback_rows = self.load_variant_rows_for_cohorts("en-US", &missing)?;
+                variant_rows.extend(fallback_rows);
+            }
+        }
+        for (k, r) in variant_rows { self.variant_cache.insert(k, r); }
+        Ok(())
+    }
+
+    fn load_variant_rows_for_cohorts(
+        &mut self,
+        lang: &str,
+        cohorts: &[(String, u32)],
+    ) -> crate::Result<Vec<(VariantKey, MessageRow)>> {
+        if cohorts.is_empty() { return Ok(Vec::new()); }
         let mut conditions = Vec::with_capacity(cohorts.len());
         let mut params: Vec<rusqlite::types::Value> = Vec::with_capacity(cohorts.len()*2+1);
         params.push(rusqlite::types::Value::Text(lang.to_string()));
@@ -50,8 +80,7 @@ impl MessageDb {
             }).map_err(|e| format!("query variant warmup: {e}"))?;
             for row in rows { if let Ok(pair) = row { variant_rows.push(pair); } }
         }
-        for (k, r) in variant_rows { self.variant_cache.insert(k, r); }
-        Ok(())
+        Ok(variant_rows)
     }
     pub fn get_variant(&self, key: &VariantKey) -> Option<&MessageRow> { self.variant_cache.get(key) }
     pub fn resolve_variant(&self, key: &VariantKey) -> Option<&MessageRow> {

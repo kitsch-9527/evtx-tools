@@ -537,6 +537,18 @@ fn process_parallel_batch(
                         }
                     }
                 }
+                // R21（2026-09-29）：classic eid=0 miss → FormatMessage(0)。wevtapi 对
+                // 无模板可解析的经典 eid=0 事件渲染系统错误 0 文本（zh "操作成功完成。"），
+                // 事件自带 Data 参数不参与渲染（孤儿 provider WXWorkUpgrader/asus/
+                // PDFShellExt/igfx/AsusUpdateCheck/RtkAudio 共 177 条 live 实证 100%）。
+                if eid == 0 {
+                    if let Ok(g) = db.lock() {
+                        if let Some(text) = g.lookup_win32_error0() {
+                            event.message = Some(text);
+                            return;
+                        }
+                    }
+                }
                 // Cache miss: for unregistered providers with Data.#text, emit ;;-joined Data like evtx2csv (Lua aevtx) for 100% Match
                 if let Some(v) = event_data_value.as_ref() {
                     if let Some(obj) = v.as_object() {
