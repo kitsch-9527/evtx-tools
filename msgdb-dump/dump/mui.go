@@ -3,9 +3,19 @@ package dump
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/kitsch-9527/wcorefx/fs"
 )
+
+// lcidForLangCode converts a language code to its numeric resource LCID
+// (R27, 2026-09-30): "zh-CN" → 0x0804。未知代码回落 0x0409（en）。
+func lcidForLangCode(langCode string) uint16 {
+	if lcid, err := strconv.ParseUint(LangCodeToLCID(langCode), 10, 16); err == nil {
+		return uint16(lcid)
+	}
+	return 0x0409
+}
 
 // LangMap maps known language codes to their LCID string representations.
 // Used to convert between --lang CLI arguments (LCIDs) and MUI directory names.

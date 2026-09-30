@@ -237,7 +237,10 @@ func ExtractProviderVariants(dllPath string, provider ProviderInfo, langs, langC
 	// 可能没有 RT_MESSAGETABLE（消息全在 MUI，如 msimsg.dll msgs=0 / en-US mui 435），
 	// 原逻辑 en-US 只读主 DLL 导致 MsiInstaller/VSS 的 en-US 0 行（634 行全 zh-CN）。
 	for _, langCode := range langCodes {
-		muiMsgs := combined.Messages
+		// R27（2026-09-30）：多语言单文件（DriverStore e1dmsg.dll 型，单文件内嵌
+		// 0x409/0x0804/0x0C0A 多语言块）按目标语言选取消息表——此前 merged map
+		// last-write-wins 让西语块占据所有 lang 键（e1dexpress 8 条假阳性根因）。
+		muiMsgs := combined.SelectMessagesForLangLCID(lcidForLangCode(langCode))
 		if mp := FindMUICompanion(dllPath, langCode); mp != nil {
 			if mc, err := pe.ExtractAllFromPE(*mp); err == nil && len(mc.Messages) > 0 {
 				muiMsgs = mc.Messages

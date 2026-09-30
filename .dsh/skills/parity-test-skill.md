@@ -184,37 +184,54 @@
 8. [2026-09-30 夜间转出] **Wininit 23×1（TDH-SYMBOL）**：HRESULT 0x10000000（XML 实证
    268435456），wevtutil 经 TDH 内建符号表渲染 "STATUS_SUCCESS"；我方 typed 渲染 0x10000000。
    需内建 NTSTATUS/HRESULT 符号表，非机械。
+21. **R26 classic 全格式 msgid + Qualifier 全键探针（2026-09-30，勿回退）**：
+    ①`classicVariantRows` 保留**原始全格式 message_identifier**（raw>0xFFFF 时）且不再做
+    同 eid 去重——EventMessageFile 链/同表内的姊妹条目（IoLogMsg 0x40000024 配额 vs
+    vmnetadapter 0x40080024 启动，低 16 位同为 36）此前因 (eid, msgid=0, dll_id) PK 相撞
+    被 INSERT OR IGNORE 静默吞掉链尾真身；②渲染端 `resolve_variant_full_id(key, full)`：
+    事件 EventID 带 Qualifiers 属性时以 (q<<16)|eid 精确探针压过通配梯子（wevtapi 全键
+    查找语义）；**该探针位于 resolved 闭包内，外层 guard 已持 db 锁——严禁二次
+    db.lock()（std Mutex 不可重入，重入即死锁，09-30 实测 05 全量挂死 20 分钟根因）**。
+22. **R27 多语言单文件消息表分取（2026-09-30，勿回退）**：DriverStore e1dmsg.dll 型文件
+    单文件内嵌多语言 RT_MESSAGETABLE 块（e1dmsg 10 块：en=37/zh=36/es=36），merged
+    Messages last-write-wins 会让随机语言占据所有 lang 键（e1dexpress 西语入库根因）。
+    `CombinedPEData.MessagesPerLang` 按资源语言 ID 分桶 + `SelectMessagesForLangLCID`
+    （精确→0x0409→merged）三层选择；flat classic 路径与 extractor step-3 均已接
+    `lcidForLangCode`。
+23. **R28/R29 比对与回退收尾（2026-09-30，勿回退）**：①06 `clean_baseline_artefacts`
+    增斜杆日期形态 `?YYYY/?M/?D`（EventLog 6008 的 LRM 被 iconv 吞成 '?'——与 R5 短横线
+    形态同源，只删该形态）；②R12 未注册 N/A 精化：**纯 classic（事件无 Provider @Guid）
+    未注册源 eid≠0 → 先查 Win32 错误文本（`lookup_win32_error_fallback`，命中即渲染——
+    Codex 1001/1002 live 实证；eid 1000 无文本两侧同为 N/A），带 @Guid 的未注册仍 N/A**
+    （事实 #7 的精化而非回退）；③`format_hresult` else 支（非 0x8007 facility）：
+    success 严重级 ∧ code=0 → NTSTATUS 表探针(0)=STATUS_SUCCESS hit-only（Wininit 23
+    0x10000000 live 实证；value=0 不走此臂）。
 
-## 基线（严格口径，2026-09-30 夜间计划终态，verdict=DIFF，44852/44890 一致，M1=99.9153%）
+## 基线（严格口径，2026-09-30 终态，**verdict=PASS**，44873/44890 一致，M1=99.9621%）
 
-> 主比对 zh-CN（G0）。2026-09-30 夜间计划 P1–P7 把 diff 237→21，逐阶段战绩：
-> 起点 237 → P1 −80（R12b N/A 精度，CfgChangeMonitor 清零）→ P2 −75（value_maps schema v9
-> 双语化，Ntfs 98×74 清零）→ P3 −38（NetBT Binary %n+1 清零）→ P4 −9（UserData 嵌套展平，
-> Resource-Exhaustion 2004 清零）→ P5 −2（WER GUID-span hex 保护清零；SPP 1004 连带转绿）→
-> P6 −12（`!S!` specifier + `%%` verbatim，Chrome/Edge/SCM7023 清零）。M2=93.97%（D 残留
-> 21/348，en 基线标定）；M5≈4；acceptance `--prev` 总体 PASS（exit=0）。
+> 主比对 zh-CN（G0）。闭环战绩链：2026-09-29 语言翻转事故（matched 1840）→ v5 主比对随
+> 基线 + v9 param_refs 双语化 → zh 重基线 43356/96.58% → R21 四修复 44635/99.4319%
+> （diff=237）→ 2026-09-30 夜间计划 P1–P7：diff 237→21（P1 −80 R12b / P2 −75 v9 /
+> P3 −38 / P4 −9 / P5 −2 / P6 −12）→ **2026-09-30 白天 R26–R29 五修复 diff 21→0，
+> verdict 首次 PASS**。M2=100.00%（D 残留 0/348）；acceptance `--prev` 总体 PASS
+> exit=0；G6 关豁免 diff=17=0+17（无掩盖）；确定性门两次全链路全等；单测 Go 137（四包）/
+> Rust 246 绿。全仓红线维持：Security/Setup 全绿、B/C 全 0、无缺失类。
 
-| 通道 | 基线 | 新解析 | 一致 | 差异构成（主比对=zh，默认口径；diff 全部为已定性转出簇，见"已知上游缺口" #4–#8） |
+| 通道 | 基线 | 新解析 | 一致 | 差异构成（主比对=zh，默认口径） |
 |---|---|---|---|---|
-| Application | 10742 | 10742 | 10739 | D2（CodexSandboxService×2 UNREG-FALLBACK）；豁免命中 1（CAPI2 4111） |
+| Application | 10742 | 10742 | 10741 | 0（豁免命中 1：CAPI2 4111） |
 | Setup | 676 | 676 | 676 | 全绿 |
 | Security | 27366 | 27366 | 27366 | **全绿** |
-| System | 6106 | 6106 | 6071 | D19 转出（e1dexpress×8、VMnetAdapter×8、EventLog 6008×2、Wininit 23×1）；豁免命中 16（SAM 16962×8、WPD 24577×4/24579×4）|
+| System | 6106 | 6106 | 6090 | 0（豁免命中 16：SAM 16962×8、WPD 24577×4/24579×4）|
 
-**exempted = 17 条 / 4 项**（CAPI2 4111×1、SAM 16962×8、WPD 24577×4/24579×4）；SPP 1004
-（P5 起稳定转绿）与 disk 51（R21 经典映射后不再命中）已出豁免（EXEMPTIONS 双表 2026-09-30
-同步摘除，登记表同撤）。**B/C 类全场清零**维持（红线基线）。P7 全量验收：G6 关豁免
-diff=38=21+17；确定性门两次全链路全等（compared/matched/diff/exempted/逐通道逐字段一致，
-仅 generated_local 时间戳不同）；单测 Go 134（四包；全仓 135）/Rust 245 全绿。
-残留 21 条全部 D 类且逐条定性完毕（无一"未知"）：2 条上游无错（6008 BASE-ARTEFACT）、
-19 条功能缺口（msgdb-dump 提取侧 16 = e1d/VMnet、resolver 回退 2 = Codex、TDH 符号表 1
-= Wininit 23）——修复路径见"已知上游缺口" #4–#8。
+**exempted = 17 条 / 4 项**（CAPI2 4111×1、SAM 16962×8、WPD 24577×4/24579×4）——最后
+21 条真差异经 R26–R29 全部清零：e1dexpress×8（R27 多语言单文件语言块分取）、
+VMnetAdapter×8（R26 全格式 msgid + Qualifier 全键探针）、EventLog 6008×2（R28 斜杆日期
+伪影手术）、Codex×2（R29 未注册 classic 的 Win32 码回退）、Wininit 23×1（R29 format_hresult
+的 NTSTATUS 符号探针）。EXEMPTIONS 双表 2026-09-30 同步摘除 SPP 1004/disk 51 后维持 4 项。
 
 历史（en 口径，2026-09-15 终态）：diff=771（matched 32020/32801，M1=97.6190%）；
-2026-09-29 语言翻转事故（matched 1840）→ v5 主比对随基线 + v9 param_refs 双语化 →
-zh 重基线 43356/96.58% → R21 四修复 44635/99.4319%（diff=237，构成：CfgChangeMonitor×80、
-Ntfs 98×74、NetBT×38、NetBT/VMnet/e1d hex 族、ResExhaustion×9、WER×2、Chrome/Edge×10 等）
-→ 2026-09-30 夜间六阶段 → **44852/99.9153%（diff=21）**。
+2026-09-05 起点 diff=1127。
 
 严格口径（2026-09-04 起）：hex 大小写 / GUID 花括号 / SDDL 分号 / 基线 `?` 不再豁免，
 上游渲染必须完全一致。Security 全绿实证链：`%1843` 映射修复 + 零 GUID 加花括号 +

@@ -1,21 +1,14 @@
 {
-  "generated_local": "2026-09-29 18:33:22",
+  "generated_local": "2026-09-30 12:37:05",
   "baseline_lang": "zh-CN",
   "compared": 44890,
-  "matched": 44635,
-  "diff": 237,
+  "matched": 44873,
+  "diff": 0,
   "exemptions_enabled": true,
-  "exempted": 18,
+  "exempted": 17,
   "exempted_detail": [
     {
       "channel": "Application",
-      "index": 224,
-      "provider": "Microsoft-Windows-Security-SPP",
-      "event_id": "1004",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "Application",
       "index": 2636,
       "provider": "Microsoft-Windows-CAPI2",
       "event_id": "4111",
@@ -134,17 +127,10 @@
       "root_cause": "PARSE"
     }
   ],
-  "whitelist_diff_hits": 18,
+  "whitelist_diff_hits": 17,
   "whitelist_diff_detail": [
     {
       "channel": "Application",
-      "index": 224,
-      "provider": "Microsoft-Windows-Security-SPP",
-      "event_id": "1004",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "Application",
       "index": 2636,
       "provider": "Microsoft-Windows-CAPI2",
       "event_id": "4111",
@@ -263,21 +249,19 @@
       "root_cause": "PARSE"
     }
   ],
-  "verdict": "DIFF",
+  "verdict": "PASS",
   "by_channel": {
     "Application": {
       "baseline": 10742,
       "new_en": 10742,
       "new_zh": 10742,
       "compared": 10742,
-      "matched": 10726,
-      "diff": 14,
+      "matched": 10741,
+      "diff": 0,
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
-      "categories": {
-        "D-实质分歧（含渲染格式差：hex大小写/GUI": 14
-      },
-      "exempted": 2,
+      "categories": {},
+      "exempted": 1,
       "status": "ok"
     },
     "Setup": {
@@ -311,13 +295,11 @@
       "new_en": 6106,
       "new_zh": 6106,
       "compared": 6106,
-      "matched": 5867,
-      "diff": 223,
+      "matched": 6090,
+      "diff": 0,
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
-      "categories": {
-        "D-实质分歧（含渲染格式差：hex大小写/GUI": 223
-      },
+      "categories": {},
       "exempted": 16,
       "status": "ok"
     }

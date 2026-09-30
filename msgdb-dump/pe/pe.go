@@ -24,6 +24,26 @@ type CombinedPEData struct {
 	CrimBlobs [][]byte          // raw WEVT_TEMPLATE CRIM blob bytes
 	RTStrings map[uint32]string // RT_STRING resources (string ID → string value)
 	D2Strings map[uint32]string // RT_MESSAGETABLE entries with ID 0xD200xxxx (index → display string)
+	// MessagesPerLang carries the RT_MESSAGETABLE content per resource language
+	// ID (R27, 2026-09-30). Multi-language files (DriverStore e1dmsg.dll 等)内嵌
+	// 多语言块，merged Messages 的 last-write-wins 会让随机一个语言胜出并被存到
+	// 所有 lang 键下；消费端按目标语言选择 + 0x0409 回退。
+	MessagesPerLang map[uint16]map[uint32]string
+}
+
+// SelectMessagesForLangLCID returns the message table for the requested
+// resource language (R27): exact language block → 0x0409 (en) block → the
+// merged map (legacy single-language semantics).
+func (c *CombinedPEData) SelectMessagesForLangLCID(lcid uint16) map[uint32]string {
+	if c.MessagesPerLang != nil {
+		if tbl := c.MessagesPerLang[lcid]; len(tbl) > 0 {
+			return tbl
+		}
+		if tbl := c.MessagesPerLang[0x0409]; len(tbl) > 0 {
+			return tbl
+		}
+	}
+	return c.Messages
 }
 
 // resolveRVA converts an RVA to a file offset using PE section headers from
@@ -108,6 +128,19 @@ func ExtractAllFromPE(dllPath string) (*CombinedPEData, error) {
 		for _, dataEntries := range msgEntries {
 			for _, de := range dataEntries {
 				msgs := ParseMessageTable(de.Data)
+				if len(msgs) > 0 {
+					// R27: per-language bookkeeping — merged map 之外按资源语言
+					// ID 分桶，供多语言单文件（e1dmsg.dll 型）按语言选择。
+					if result.MessagesPerLang == nil {
+						result.MessagesPerLang = make(map[uint16]map[uint32]string)
+					}
+					if result.MessagesPerLang[de.Lang] == nil {
+						result.MessagesPerLang[de.Lang] = make(map[uint32]string, len(msgs))
+					}
+					for id, msg := range msgs {
+						result.MessagesPerLang[de.Lang][id] = msg
+					}
+				}
 				for eid, msg := range msgs {
 					// 0xDn-encoded string table entries: high nibble 0xD
 					if h := eid >> 24; h&0xF0 == 0xD0 {

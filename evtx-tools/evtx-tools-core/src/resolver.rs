@@ -184,14 +184,24 @@ impl MessageDb {
     /// "The operation completed successfully." / "操作成功完成。" (orphaned
     /// ISV providers WXWorkUpgrader/asus/PDFShellExt/igfx: 100% live parity).
     pub fn lookup_win32_error0(&self) -> Option<String> {
+        self.lookup_win32_error_fallback(0)
+    }
+
+    /// Win32 system-error text for an arbitrary code (R29): preferred-language
+    /// layer first, en-US fallback layer second. Used by the classic
+    /// unregistered-provider fallback (eid rendered as Win32 error code —
+    /// CodexSandbox 1001/1002 live evidence) and the eid=0 path. Unlike
+    /// [`lookup_win32_error`](Self::lookup_win32_error)（TS35 HRESULT 臂，仅首选层），
+    /// 本方法带 en-US 回退层。
+    pub fn lookup_win32_error_fallback(&self, code: u32) -> Option<String> {
         self.param_refs
             .get("Win32-System-Error")
-            .and_then(|m| m.get(&0))
+            .and_then(|m| m.get(&code))
             .cloned()
             .or_else(|| {
                 self.param_refs_fallback
                     .get("Win32-System-Error")
-                    .and_then(|m| m.get(&0))
+                    .and_then(|m| m.get(&code))
                     .cloned()
             })
     }
@@ -1423,6 +1433,74 @@ mod tests {
         let mut db_en = MessageDb::open(tmp.to_str().unwrap()).unwrap();
         db_en.warmup(std::slice::from_ref(&key), "en-US").unwrap();
         assert!(db_en.resolve_variant(&key).is_some());
+
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    /// R26 fixture: two classic sibling rows sharing eid 36, distinguished by
+    /// full-format message_identifier (chain head 0x40000024 vs chain tail
+    /// 0x40080024).
+    fn setup_classic_siblings_db(path: &Path) {
+        let _ = std::fs::remove_file(path);
+        let conn = Connection::open(path).unwrap();
+        create_v8_schema(&conn);
+        insert_metadata_8(&conn);
+        conn.execute(
+            "INSERT INTO dll_entries(dll_id, dll_name, dll_path) VALUES(1, 'IoLogMsg.dll', 'C:/IoLogMsg.dll')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO providers(provider_name, dll_id) VALUES('VMnetAdapter', 1)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id, message) VALUES('VMnetAdapter', '', 'en-US', 36, 0, 0, 0, 0, '0', 0, 1073741860, 1, 'A user hit their quota threshold on volume %2.')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id, message) VALUES('VMnetAdapter', '', 'en-US', 36, 0, 0, 0, 0, '0', 0, 1074266148, 1, '(%1) Starting up the Adapter Driver for VMware Virtual Networks.')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+    }
+
+    #[test]
+    fn test_resolve_variant_full_id_probe() {
+        // R26（2026-09-30）：classic Qualifier 全键探针。事件 EventID Qualifiers=0x4008
+        // → 全格式 msgid=(0x4008<<16)|36=0x40080024 → 精确命中链尾 "Starting up" 行，
+        // 压过 message_identifier=0/异值的梯子猜测（wevtapi 全键查找语义）。
+        let tmp = tmp_path("resolve_full_id");
+        setup_classic_siblings_db(&tmp);
+
+        let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        let key = VariantKey {
+            provider_name: "VMnetAdapter".into(),
+            event_id: 36,
+            version: 0,
+            level: 0,
+            opcode: 0,
+            task: 0,
+            keywords: 0,
+            channel: 0,
+            message_id: 0,
+        };
+        db.warmup(std::slice::from_ref(&key), "zh-CN").unwrap();
+
+        let row = db
+            .resolve_variant_full_id(&key, 0x40080024)
+            .expect("full-id probe must hit the exact sibling row");
+        assert!(
+            row.template.contains("Starting up"),
+            "got: {}",
+            row.template
+        );
+
+        // 无精确匹配的 full id → None（调用方回落梯子）。
+        assert!(db.resolve_variant_full_id(&key, 0x40080025).is_none());
 
         let _ = std::fs::remove_file(&tmp);
     }

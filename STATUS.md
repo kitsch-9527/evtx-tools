@@ -51,27 +51,30 @@ Message）。
 4. 枚举启发式（R11）→ CRIM 值映射（Layer 2/2b）→ LUID 大写 hex（R14）。
 5. `%1-%99` 位置代入 → 展示格式化。取值层含 JSON 原生 Bool 修复（R18）。
 
-## 5. 当前基线（2026-09-30 夜间计划终态，verdict=DIFF）
+## 5. 当前基线（2026-09-30 终态，**verdict=PASS**，44873/44890 一致，M1=99.9621%）
 
-> **G0 语言漂移事件**（2026-09-29）：本机显示语言由 en-US 切为 zh-CN，主比对语言随基线
-> 自动探测（`baseline_lang`），acceptance-check G0 语言一致性门把关。历史 en 口径见下文。
+> 2026-09-29 语言漂移事故后，经 v5 主比对随基线、v9 param_refs/value_maps 双语化、
+> R21/R26–R29 渲染与萃取修复，**2026-09-30 达成首次 verdict=PASS**（diff=0）。
 
-| 通道 | 比对 | 一致 | 差异构成（主比对=zh，默认口径；diff 全部为已定性转出簇） |
+| 通道 | 比对 | 一致 | 差异构成 |
 |---|---|---|---|
-| Application | 10742 | 10739 | D2（CodexSandboxService×2 UNREG-FALLBACK）；豁免命中 1（CAPI2 4111） |
+| Application | 10742 | 10741 | 0（豁免命中 1：CAPI2 4111） |
 | Setup | 676 | 676 | 全绿 |
 | Security | 27366 | 27366 | **全绿** |
-| System | 6106 | 6071 | D19 转出（e1dexpress×8、VMnetAdapter×8、EventLog 6008×2、Wininit 23×1）；豁免命中 16（SAM/WPD） |
+| System | 6106 | 6090 | 0（豁免命中 16：SAM 16962×8、WPD 24577×4/24579×4） |
 
-- 全量：44890 条比对，**44852 一致，diff=21**（App 2 + System 19），**exempted=17 条/4 项**
-  （SPP 1004 转绿、disk 51 脱离后 EXEMPTIONS 已同步摘除为 4 项），M5≈4，baseline_lang=zh-CN。
-- **M1 = 99.9153%**；**M2 = 93.97%**（D 残留 21/348，en 时代标定）；**B/C 类全场清零**。
-- acceptance `--prev` 总体 PASS（exit=0）；G6 关豁免 diff=38=21+17；确定性门两次全链路全等。
-- 单测：Go 134（四包；全仓 135）+ Rust 245 全绿。
-- 逐阶段战绩（diff 237→21）：P1 −80（R12b）→ P2 −75（schema v9）→ P3 −38（Binary %n+1）→
-  P4 −9（UserData 展平）→ P5 −2（WER hex 保护）→ P6 −12（`!S!`+`%%`）。
-- 残留 21 条全部 D 类且逐条定性完毕（见 §7 / skill"已知上游缺口" #4–#8）。
-- 历史 en 终态（2026-09-15）：32801 比对 / 32020 一致 / diff=771 / M1=97.6190%。
+- 全量：44890 条比对，**44873 一致，diff=0**，exempted=17 条/4 项（受控豁免）。
+- **M1 = 99.9621%**（G1 门 97.53% 大幅超越）；**M2 = 100.00%**（D 残留 0/348）。
+- 门禁：G0/G1/G2/G3/G4 全过 exit=0；G6 关豁免 diff=17=0+17（无掩盖）；确定性门两次全等。
+- 本轮修复（R26–R29，全部 TDD 红→绿）：①classic 全格式 msgid 保留 + Qualifier 全键探针
+  （VMnetAdapter×8）；②多语言单文件消息表按语言分取（e1dexpress×8）；③06 斜杆日期伪影
+  手术（EventLog 6008×2）；④未注册 classic 的 Win32 码回退（Codex×2）；⑤format_hresult
+  的 NTSTATUS 符号探针（Wininit 23×1）。附带修复：resolved 闭包内二次 db.lock() 死锁
+  （05 全量挂死根因，坑位已入 skill）。
+- 残留 21 条真差异全部清零；**受控豁免 17 条/4 项**（CAPI2 4111×1、SAM 16962×8、
+  WPD 24577×4/24579×4）为唯一登记分歧。
+- 历史：en 终态（09-15）diff=771/97.6190%；zh 重基线 96.58%；夜间计划 99.9153%（diff=21）
+  → 本轮 **PASS**。
 
 ## 6. 已落地修复（全部 TDD 回归测试保护，勿回退）
 
@@ -95,25 +98,14 @@ Message）。
 | R25 | 09-30 | `!S!` 字符串族 specifier 消费 + `%%` verbatim（pass2 不塌缩）——Chrome/Edge 256×10、SCM 7023×2 清零 |
 | 批次 C–G | 09-14/15 | 豁免白名单+`--no-exemptions`；6013 消息表接入（netevent MUI RT_MESSAGETABLE 0x8000177D，well-known 注入）；NTSTATUS `NTSTATUS-System-Error` 全局组（ntdll 2975 条）+ (_,0x1F) hit-only 渲染臂；残余归属收口（Wininit 26 闭合） |
 
-## 7. 残留问题（2026-09-30 夜间终态：diff=21 全部已定性转出，无一"未知"）
+## 7. 残留问题（2026-09-30 终态：diff=0，唯一登记分歧=受控豁免 17 条/4 项）
 
-- **EventLog 6008×2（System）**：BASE-ARTEFACT——我方文本逐字节正确（真实 LRM U+200E），
-  基线管线 iconv 把 LRM 变 `?`（斜杠形日期未被 R5 手术覆盖）。上游不可修；建议白名单
-  System/EventLog/6008/PARSE（须豁免双表+登记表三处同步，待授权）。
-- **CodexSandboxService 1001/1002×2（App）**：UNREG-FALLBACK——源未注册，基线把 eid 当
-  Win32 错误码回退渲染；我方 N/A。需 resolver"无模板→Win32 错误表"回退，牵动 N/A-parity 谓词。
-- **e1dexpress 32×8（System）**：MUI-WRONGLANG——DriverStore 语言中立 e1dmsg.dll 的 MUI
-  目录解析错选 es-ES，msgdb zh/en 键下均存西语文案。msgdb-dump MUI 解析重写。
-- **VMnetAdapter 36×8（System）**：EID-QUALIFIER——classic 消息 id=qualifiers<<16|eid，
-  msgdb 变体键缺 qualifiers 致链首 IoLogMsg.dll 裸 id 首中（错库）。msgdb-dump qualifier
-  感知链式查找（与 e1dexpress 同管线，可合并一个专项）。
-- **Wininit 23×1（System）**：TDH-SYMBOL——0x10000000 经 wevtutil TDH 内建符号表渲染
-  "STATUS_SUCCESS"；需内建 NTSTATUS/HRESULT 符号表。
-- **豁免 4 项/17 条**（登记表真源 `docs/residual-zeroing-plan-2026-09-07.md` §4）：
-  CAPI2 4111×1、SAM 16962×8（BIN）、WPD 24577×4 / 24579×4（PARSE）。SPP 1004（转绿）与
-  disk 51（脱命中）已于 2026-09-30 摘除。
-- **M2 D 基线（348）重标定待定**：zh 轮 D 残留 21 条全部为上述功能缺口簇，与 en 时代
-  348 的构成已完全不同。
+- **verdict=PASS**：21 条真差异经 R26–R29 五修复全部清零（e1dexpress×8、VMnetAdapter×8、
+  EventLog 6008×2、CodexSandbox×2、Wininit 23×1），修复机理见 skill 三镜像事实 #21–#23。
+- **受控豁免 17 条/4 项**（ADR 0006，登记表真源 `docs/residual-zeroing-plan-2026-09-07.md` §4）：
+  CAPI2 4111×1（PARSE，基线侧 CJK 日期 `?` 手术可选）、SAM 16962×8（BIN，二进制语义）、
+  WPD 24577×4 / 24579×4（PARSE）。SPP 1004 与 disk 51 已于 2026-09-30 关闭出豁免。
+- **后续可选项**：CAPI2 4111 的基线侧 `?` 手术（同类 R5/R28 形态扩展）可再减 1 条豁免。
 
 ## 8. 验证与测试循环（使用 `evtx-parity-test/`）
 
@@ -125,8 +117,8 @@ Message）。
 ### 8.1 层次一：代码单元测试（秒级，改上游后立即跑）
 
 ```bash
-cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ ./pe/ -count=1   # Go 侧（2026-09-30：134 用例四包全绿；全仓含探针包 135）
-cd evtx-tools   && cargo test --workspace                       # Rust 侧（2026-09-30：245 绿，bin 35 + core 207 + doctest 3）
+cd msgdb-dump   && go test ./dump/ ./schema/ ./crim/ ./pe/ -count=1   # Go 侧（2026-09-30：137 用例四包全绿）
+cd evtx-tools   && cargo test --workspace                       # Rust 侧（2026-09-30：246 绿）
 ```
 
 覆盖：v8 schema 契约（旧 v7 拒开、缺表硬错、空表特性关）、渲染规则

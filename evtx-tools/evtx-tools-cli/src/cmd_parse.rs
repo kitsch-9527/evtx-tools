@@ -305,12 +305,27 @@ fn apply_param_types(
         let Some((intype, outtype)) = parse_type_spec(spec) else { continue };
         let (new_value, takes_over) = match (intype, outtype) {
             (0x14, 0x12) | (0x08, 0x12) | (0x15, 0x13) => {
-                (parse_num(value).map(|v| format!("0x{v:X}")).unwrap_or_else(|| value.clone()), true)
+                // R29（2026-09-30）：success 严重级（bit30-31=00）且 code=0 的
+                // facility-only HRESULT/NTSTATUS（如 Wininit 23 的 0x10000000），
+                // wevtutil 渲染符号名 STATUS_SUCCESS（live 实证）。hit-only：
+                // NTSTATUS 表查到才接管；value=0 不走此臂（经 (_,0x1F) 臂或
+                // 原有路径闭合，避免对全 0 hex 参数引入行为变化）。
+                let sym = parse_num(value)
+                    .map(|v| v as u32)
+                    .filter(|vu| *vu != 0 && *vu >> 30 == 0 && *vu & 0xFFFF == 0)
+                    .and_then(|_| (ntstatus_lookup)(0))
+                    .filter(|t| !t.contains('%'));
+                let out = sym.unwrap_or_else(|| {
+                    parse_num(value)
+                        .map(|v| format!("0x{v:X}"))
+                        .unwrap_or_else(|| value.clone())
+                });
+                (out, true)
             }
             (0x0A, 0x13) => {
                 (parse_num(value).map(|v| format!("0x{v:x}")).unwrap_or_else(|| value.clone()), true)
             }
-            (0x07, 0x20) | (0x14, 0x20) => (format_hresult(value, &hresult_lookup), true),
+            (0x07, 0x20) | (0x14, 0x20) => (format_hresult(value, &hresult_lookup, &ntstatus_lookup), true),
             // NTSTATUS (any InType, OutType 0x1F) — wevtapi/TdhFormatProperty
             // resolves the raw code through ntdll's message table (Phase E:
             // Ntfs 140 `Failure status` → "A device which does not exist was
@@ -378,7 +393,11 @@ fn parse_num(s: &str) -> Option<u64> {
     }
 }
 
-fn format_hresult(value: &str, lookup: &dyn Fn(u32) -> Option<String>) -> String {
+fn format_hresult(
+    value: &str,
+    lookup: &dyn Fn(u32) -> Option<String>,
+    ntstatus: &dyn Fn(u32) -> Option<String>,
+) -> String {
     let Some(v) = parse_num(value) else { return value.to_string() };
     let v = v as u32;
     // FACILITY_WIN32 HRESULTs (0x8007xxxx) carry the Win32 code in the low
@@ -388,6 +407,16 @@ fn format_hresult(value: &str, lookup: &dyn Fn(u32) -> Option<String>) -> String
     } else if v & 0xFFFF_0000 == 0x8007_0000 {
         v & 0xFFFF
     } else {
+        // R29（2026-09-30）：success 严重级（bit30-31=00）且 code=0 的 facility-only
+        // HRESULT（Wininit 23 的 0x10000000），wevtutil 渲染符号名 STATUS_SUCCESS
+        //（live 实证）。hit-only：NTSTATUS 表查到才接管，未命中保持 0x%08X。
+        if v >> 30 == 0 && v & 0xFFFF == 0 {
+            if let Some(t) = ntstatus(0) {
+                if !t.contains('%') {
+                    return t;
+                }
+            }
+        }
         return format!("0x{v:08X}");
     };
     lookup(code).unwrap_or_else(|| format!("0x{v:08X}"))
@@ -499,7 +528,33 @@ fn process_parallel_batch(
                 guard.resolve_variant(&key).cloned()
             };
             // Single-file v7: variants only, no legacy single-template fallback.
-            let row = try_variant()?;
+            let mut row = try_variant()?;
+            // R26（2026-09-30）：classic Qualifier 全键探针。事件 EventID 的 Qualifiers
+            // 属性参与消息表查找键（(q<<16)|eid，wevtapi 语义）；msgdb 经 R26 起保留
+            // 全格式 message_identifier，同 eid 姊妹条目（链首配额 vs 链尾启动）由此
+            // 精确区分，压过通配梯子的猜测。未命中保持梯子结果。
+            if let Some(q) = event.qualifiers.filter(|q| *q != 0) {
+                let full = ((q as u32) << 16) | eid;
+                if full != eid {
+                    // 注意：此处位于 resolved 闭包内，外层 guard 已持有 db 锁——
+                    // 严禁二次 db.lock()（std Mutex 不可重入，重入即死锁，
+                    // 2026-09-30 实测 05 全量挂死根因）。
+                    let key2 = evtx_tools_core::VariantKey {
+                        provider_name: provider_str.to_string(),
+                        event_id: eid,
+                        version: event.version.unwrap_or(0),
+                        level: event.level.unwrap_or(0),
+                        opcode: event.opcode.as_deref().and_then(|s| s.parse::<u8>().ok()).unwrap_or(0),
+                        task: event.task_category.as_deref().and_then(|s| s.parse::<u16>().ok()).unwrap_or(0),
+                        keywords: event.keywords.as_deref().and_then(|s| s.parse::<u64>().ok()).unwrap_or(0),
+                        channel: channel_to_u8(event.channel.as_deref()),
+                        message_id: full,
+                    };
+                    if let Some(exact) = guard.resolve_variant_full_id(&key2, full) {
+                        row = exact.clone();
+                    }
+                }
+            }
             // Layer A: legacy name-keyed value maps (map_name == param name).
             let mut vms = row.parameters.as_ref()
                 .map(|pm| guard.get_param_value_maps(pm))
@@ -537,6 +592,19 @@ fn process_parallel_batch(
                             Err(_) => (false, true, true),
                         };
                         if known && !registered {
+                            // R29（2026-09-30）：纯 classic 未注册（事件无 Provider @Guid）
+                            // 时 wevtutil 把 eid 当 Win32 错误码渲染（CodexSandbox 1001=
+                            // "递归太深；堆栈溢出。"、1002 live 实证，事件 Data 被忽略；
+                            // eid 1000 无对应文本 → 两侧同为 N/A）。查得到才渲染，
+                            // 未命中维持 N/A；带 @Guid 的未注册事件保持 R12 N/A 语义。
+                            if event.provider_guid.is_none() {
+                                if let Ok(g) = db.lock() {
+                                    if let Some(text) = g.lookup_win32_error_fallback(eid) {
+                                        event.message = Some(text);
+                                        return;
+                                    }
+                                }
+                            }
                             event.message = Some("N/A".to_string());
                             return;
                         }

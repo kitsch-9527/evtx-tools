@@ -111,4 +111,35 @@ impl MessageDb {
         // Cohort miss means the (provider, event_id) is absent from the DB.
         None
     }
+    /// R26（2026-09-30）：classic Qualifier 全键探针——在 (provider, event_id) cohort 内
+    /// 只看 message_identifier == full_id 的候选（(Qualifiers<<16)|eid 精确身份，
+    /// wevtapi 全键查找语义）。无命中返回 None，调用方回落 resolve_variant 梯子。
+    pub fn resolve_variant_full_id(
+        &self,
+        key: &VariantKey,
+        full_id: u32,
+    ) -> Option<&MessageRow> {
+        let mut best: Option<(&VariantKey, &MessageRow, i32)> = None;
+        for (k, v) in &self.variant_cache {
+            if k.provider_name != key.provider_name
+                || k.event_id != key.event_id
+                || k.message_id != full_id
+            {
+                continue;
+            }
+            let mut score: i32 = 0;
+            if k.level != 0 { if k.level == key.level { score += 10; } else { score -= 10; } }
+            if k.opcode != 0 { if k.opcode == key.opcode { score += 10; } else { score -= 10; } }
+            if k.task != 0 { if k.task == key.task { score += 10; } else { score -= 10; } }
+            if k.channel != 0 { if k.channel == key.channel { score += 10; } else { score -= 10; } }
+            if k.keywords != 0 { if k.keywords == key.keywords { score += 10; } else { score -= 5; } }
+            if k.version != 0 { if k.version == key.version { score += 10; } else { score -= 10; } } else { score += k.version as i32; }
+            let take = match &best {
+                None => true,
+                Some((bk, _, bs)) => score > *bs || (score == *bs && k.message_id < bk.message_id),
+            };
+            if take { best = Some((k, v, score)); }
+        }
+        best.map(|(_, row, _)| row)
+    }
 }

@@ -94,8 +94,9 @@ func ExtractSingleDLL(dllPath string, providers []ProviderInfo, langLCIDs, langC
 
 	// 3. RT_MESSAGETABLE branch: messages found in DLL
 	if len(combined.Messages) > 0 {
-		// Build PeMessage objects from flat message map
-		primaryMsgs := buildPeMessages(combined.Messages, nil, nil)
+		// R27（2026-09-30）：en-US 层按资源语言块选取（多语言单文件的 merged map
+		// 可能被其他语言块 last-write-wins 占据）。
+		primaryMsgs := buildPeMessages(combined.SelectMessagesForLangLCID(0x0409), nil, nil)
 
 		// Apply CRIM message_id -> event_id mapping
 		// resource IDs to manifest-defined event IDs.
@@ -106,13 +107,21 @@ func ExtractSingleDLL(dllPath string, providers []ProviderInfo, langLCIDs, langC
 
 		result.MessagesByLang["en-US"] = primaryMsgs
 
-		// Try MUI companions for additional languages
+		// Try MUI companions for additional languages; when absent, fall back
+		// to the base file's own per-language table (R27, 多语言单文件形态).
 		for _, code := range langCodes {
 			if code == "en-US" {
 				continue
 			}
 			muiPath := FindMUICompanion(dllPath, code)
 			if muiPath == nil {
+				// R27：无 MUI 卫星时，仅当基础文件精确携带该语言块才赋值
+				// （多语言单文件形态）；en 回退语义由消费端 select 处理。
+				if combined.MessagesPerLang != nil {
+					if tbl := combined.MessagesPerLang[lcidForLangCode(code)]; len(tbl) > 0 {
+						result.MessagesByLang[code] = buildPeMessages(tbl, nil, nil)
+					}
+				}
 				continue
 			}
 			if muiCombined, err := pe.ExtractAllFromPE(*muiPath); err == nil {

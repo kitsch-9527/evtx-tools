@@ -102,28 +102,33 @@ func extractVariantsFallback(res *DLLResult, prov ProviderInfo, langCodes []stri
 // record carries the low 16 bits, e.g. Ntfs 50 ← 0x80010032, EventLog
 // 6013 ← 0x8000177D). Storing the raw full-format ID as event_id made every
 // classic-source cohort unreachable for the renderer (the classic B
-// clusters). message_identifier stays 0 = wildcard for the resolve ladder.
-// Deterministic first-wins dedup on the mapped eid (ascending raw ID).
+// clusters).
+// R26（2026-09-30）：message_identifier = 原始全格式 ID（raw > 0xFFFF 时），
+// 且不再做同 eid 去重——同一 EventMessageFile 链/同表内的姊妹条目
+// （IoLogMsg 0x40000024 配额 vs vmnetadapter 0x40080024 启动，低 16 位同为
+// 36）靠 Qualifier 区分；此前塌缩成 (eid, msgid=0) 后 PK 相撞，INSERT OR
+// IGNORE 静默吞掉链尾真身（VMnetAdapter 8 条假阳性根因）。raw ≤ 0xFFFF 的行
+// message_identifier 保持 0 = 通配（6013 注入契约）。
 func classicVariantRows(provider ProviderInfo, lang string, msgs []PeMessage) []VariantRow {
 	sorted := make([]PeMessage, len(msgs))
 	copy(sorted, msgs)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].EventID < sorted[j].EventID })
 	var rows []VariantRow
-	seen := make(map[uint32]bool)
 	for _, m := range sorted {
 		eid := m.EventID
+		msgID := uint32(0)
 		if eid > 0xFFFF {
+			msgID = eid
 			eid &= 0xFFFF
 		}
-		if seen[eid] {
-			continue
-		}
-		seen[eid] = true
 		row := VariantRow{
 			ProviderName: provider.Name,
 			Lang:         lang,
 			EventID:      eid,
 			Message:      m.Message,
+		}
+		if msgID != 0 {
+			row.MessageID = msgID
 		}
 		if provider.GUID != nil {
 			row.ProviderGUID = *provider.GUID
