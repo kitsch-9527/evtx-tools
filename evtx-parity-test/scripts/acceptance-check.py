@@ -32,12 +32,10 @@ TARGETS = {
 EXEMPTIONS = {
     # 根因码登记表（ADR 0006）：通道/provider/event_id/根因码。
     # 条目变化必须同步 docs/residual-zeroing-plan-2026-09-07.md §4。
-    "entries": [
-        ("Application", "Microsoft-Windows-CAPI2", "4111", "PARSE"),
-        ("System", "Microsoft-Windows-Directory-Services-SAM", "16962", "BIN"),
-        ("System", "Microsoft-Windows-WPDClassInstaller", "24577", "PARSE"),
-        ("System", "Microsoft-Windows-WPDClassInstaller", "24579", "PARSE"),
-    ],
+    # R31–R34（2026-09-30）：最后 4 项豁免全部闭合转匹配（CAPI2 4111 = R31 CJK
+    # 日期手术；SAM 16962 = R33 伪键跳过；WPD 24577/24579 = R32 占位符字面量
+    # 透传 + R34 空元素语义修正），双表同一提交清空。登记表 §4 同步关闭。
+    "entries": [],
 }
 
 

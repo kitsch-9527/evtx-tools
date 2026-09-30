@@ -39,12 +39,10 @@ TRAIL_RE = re.compile(r"[;\s]+$")
 # 本表必须与 scripts/acceptance-check.py 的 EXEMPTIONS 表内容一致，两处改动须同一提交；
 # 登记表唯一真源：docs/residual-zeroing-plan-2026-09-07.md §4。
 EXEMPTIONS = {
-    "entries": [
-        ("Application", "Microsoft-Windows-CAPI2", "4111", "PARSE"),
-        ("System", "Microsoft-Windows-Directory-Services-SAM", "16962", "BIN"),
-        ("System", "Microsoft-Windows-WPDClassInstaller", "24577", "PARSE"),
-        ("System", "Microsoft-Windows-WPDClassInstaller", "24579", "PARSE"),
-    ],
+    # R31–R34（2026-09-30）：最后 4 项豁免全部闭合转匹配（CAPI2 4111 = R31 CJK
+    # 日期手术；SAM 16962 = R33 伪键跳过；WPD 24577/24579 = R32 占位符字面量
+    # 透传 + R34 空元素语义修正），双表同一提交清空。登记表 §4 同步关闭。
+    "entries": [],
 }
 EXEMPTION_KEYS = {(ch, prov, eid): code for ch, prov, eid, code in EXEMPTIONS["entries"]}
 def norm_text(s):
@@ -62,6 +60,9 @@ def clean_baseline_artefacts(s):
     # LRM(U+200E) 被 iconv 吞成 '?'（"?2026/?8/?21"），我方是真实 LRM（canon 剥离后
     # "2026/8/21"）。与 R5 短横线形态同源的基线侧伪影；只删该形态，不动其他 '?'。
     s = re.sub(r"\?(\d{4})/\?(\d{1,2})/\?(\d{1,2})", r"\1/\2/\3", s)
+    # R31（2026-09-30）：CJK 日期形态 "?YYYY?年?M?月?D?日"——CAPI2 4111（第三方根列表
+    # 更新时间 "?2026?年?8?月?25?日"）同源伪影；R5/R28 家族第三变体，只删该形态。
+    s = re.sub(r"\?(\d{4})\?年\?(\d{1,2})\?月\?(\d{1,2})\?日", r"\1年\2月\3日", s)
     return s
 
 
@@ -204,14 +205,18 @@ def canon_msg(s):
 
 
 def classify_msg_diff(bm, zm):
+    # R33b（2026-09-30）：canon 相等性检查前置——B 判据（";" in zm and len<200）会把
+    # 参数值本身含 SDDL 分号的正常渲染误判为裸参数（SAM 16962 "O:SYG:SYD:(A;;RC;;;BA)"
+    # 实测：canon 后与基线逐字一致却被判 B）。顺序修正：实质一致先判 A；
+    # canon 后仍不等的才进 B/C/D 分类。
+    if canon_msg(bm) == canon_msg(zm):
+        return "A-渲染格式一致"
     if "cannot be found" in zm:
         return "C-无模板fallback"
     # B 类阈值来源——实测裸参数行最长约 120 字（如 System 6009 的 "10.00.;;26220;;;;…"），
     # 200 为安全边际；超过 200 且含 ;; 的长消息走严格比较，不误判。
     if ";;" in zm and len(zm) < 200:
         return "B-裸参数未渲染"
-    if canon_msg(bm) == canon_msg(zm):
-        return "A-渲染格式一致"
     return "D-实质分歧（含渲染格式差：hex大小写/GUID花括号/SDDL分号/?替换符）"
 
 

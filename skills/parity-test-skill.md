@@ -206,29 +206,40 @@
     （事实 #7 的精化而非回退）；③`format_hresult` else 支（非 0x8007 facility）：
     success 严重级 ∧ code=0 → NTSTATUS 表探针(0)=STATUS_SUCCESS hit-only（Wininit 23
     0x10000000 live 实证；value=0 不走此臂）。
+24. **R31–R34 豁免全清四修复（2026-09-30，勿回退）**：①R31 `clean_baseline_artefacts`
+    CJK 日期形态 `?YYYY?年?M?月?D?日`（R5/R28 家族第三变体，CAPI2 4111）；②R32
+    占位符字面量透传**必须以 `event.qualifiers.is_some()` 门控 classic**
+    （`substitute_format_message_protected_classic`）——wevtapi 双语义：classic 零参
+    字面量（WPD）/manifest 缺参补空（VSS 等 233 条），未门控即 0→233 全量回归；
+    ③R33 Strategy 2 跳过 `#` 前缀伪键（SAM 16962 `#attributes` 挤位）；④R34 空串
+    `#text` 不算参数**但有 Binary 时除外**（NetBT `<Data/>+<Binary>` 的空 Data 是
+    真实 %1）；⑤R33b `classify_msg_diff` canon 相等性前置（SDDL 分号触发 B 类误判）；
+    ⑥`info` 子命令版本校验须与 parse 同步跟进 schema 版本（R30 曾停在 v7）。
 
-## 基线（严格口径，2026-09-30 终态，**verdict=PASS**，44873/44890 一致，M1=99.9621%）
+## 基线（严格口径，2026-09-30 终态，**verdict=PASS，绝对 100%**：45166/45166 一致，diff=0，exempted=0）
 
-> 主比对 zh-CN（G0）。闭环战绩链：2026-09-29 语言翻转事故（matched 1840）→ v5 主比对随
-> 基线 + v9 param_refs 双语化 → zh 重基线 43356/96.58% → R21 四修复 44635/99.4319%
-> （diff=237）→ 2026-09-30 夜间计划 P1–P7：diff 237→21（P1 −80 R12b / P2 −75 v9 /
-> P3 −38 / P4 −9 / P5 −2 / P6 −12）→ **2026-09-30 白天 R26–R29 五修复 diff 21→0，
-> verdict 首次 PASS**。M2=100.00%（D 残留 0/348）；acceptance `--prev` 总体 PASS
-> exit=0；G6 关豁免 diff=17=0+17（无掩盖）；确定性门两次全链路全等；单测 Go 137（四包）/
-> Rust 246 绿。全仓红线维持：Security/Setup 全绿、B/C 全 0、无缺失类。
+> 主比对 zh-CN（G0）。战绩链：09-05 起点 diff=1127 → en 终态 771/97.6190% → 09-29 语言
+> 翻转事故（matched 1840）→ v5+param_refs 双语化 96.58% → R21 四修复 99.4319% → 夜间
+> P1–P7 99.9153% → R26–R29 五修复 99.9621%（豁免 17 条）→ **R31–R34 五修复：豁免全部
+> 闭合，diff=0 且 exempted=0——比对集内无双路径分歧**。
+> 门禁：G0–G4 全过 exit=0（M1=100.0000%、M2=100.00%）；G6 关豁免 diff=0=0+0；确定性门
+> 两次全等；单测 Go 137 / Rust 249 绿。EXEMPTIONS 双表 2026-09-30 清空（全部闭合，
+> 登记表 §4 同步关闭）。
 
-| 通道 | 基线 | 新解析 | 一致 | 差异构成（主比对=zh，默认口径） |
+| 通道 | 基线 | 新解析 | 一致 | 差异 |
 |---|---|---|---|---|
-| Application | 10742 | 10742 | 10741 | 0（豁免命中 1：CAPI2 4111） |
-| Setup | 676 | 676 | 676 | 全绿 |
-| Security | 27366 | 27366 | 27366 | **全绿** |
-| System | 6106 | 6106 | 6090 | 0（豁免命中 16：SAM 16962×8、WPD 24577×4/24579×4）|
+| Application | 11012 | 11012 | 11012 | **0** |
+| Setup | 676 | 676 | 676 | **0** |
+| Security | 27253 | 27253 | 27253 | **0** |
+| System | 6225 | 6225 | 6225 | **0** |
 
-**exempted = 17 条 / 4 项**（CAPI2 4111×1、SAM 16962×8、WPD 24577×4/24579×4）——最后
-21 条真差异经 R26–R29 全部清零：e1dexpress×8（R27 多语言单文件语言块分取）、
-VMnetAdapter×8（R26 全格式 msgid + Qualifier 全键探针）、EventLog 6008×2（R28 斜杆日期
-伪影手术）、Codex×2（R29 未注册 classic 的 Win32 码回退）、Wininit 23×1（R29 format_hresult
-的 NTSTATUS 符号探针）。EXEMPTIONS 双表 2026-09-30 同步摘除 SPP 1004/disk 51 后维持 4 项。
+最后 17 条豁免的闭合机理（R31–R34，全部 TDD 红→绿 + 全量回归守护）：
+CAPI2 4111×1 = R31 `clean_baseline_artefacts` CJK 日期伪影手术（R5/R28 家族第三变体）；
+SAM 16962×8 = R33 Strategy 2 跳过 `#` 序列化伪键（`#attributes` 对象值挤占 %1）；
+WPD 24577×4/24579×4 = R32 classic 零参占位符字面量透传（**Qualifiers 属性 = classic 金标**，
+`substitute_format_message_protected_classic`）+ R34 空串 `#text` 不算参数（有 Binary 时除外）。
+**wevtapi 双语义实证（R32 教训， 勿改）**：classic 零参 → 字面量透传；manifest/CRIM 缺参
+→ 补空（VSS 8224 等 233 条全量回归实证——R32 未门控时 0→233）。
 
 历史（en 口径，2026-09-15 终态）：diff=771（matched 32020/32801，M1=97.6190%）；
 2026-09-05 起点 diff=1127。

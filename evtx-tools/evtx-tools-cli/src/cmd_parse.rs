@@ -751,9 +751,19 @@ fn process_parallel_batch(
             // before substitute_format_message consumes %% → %)
             let params = expand_params_par_refs(params, db, prov);
             let param_refs: Vec<&str> = params.iter().map(|s| s.as_str()).collect();
-            event.message = Some(evtx_tools_core::substitute::substitute_format_message_protected(
-                &template, &param_refs, &owned_values,
-            ));
+            // R32（2026-09-30）：classic 门控——事件 EventID 带 Qualifiers 属性 =
+            // classic 消息表 provider（R26 同款金标），零参数时占位符字面量透传
+            // （FormatMessage 语义，WPD 24577 实证）；manifest/CRIM provider 缺参
+            // 渲染空（VSS 8224 等 233 条全量实证）。
+            event.message = Some(if event.qualifiers.is_some() {
+                evtx_tools_core::substitute::substitute_format_message_protected_classic(
+                    &template, &param_refs, &owned_values,
+                )
+            } else {
+                evtx_tools_core::substitute::substitute_format_message_protected(
+                    &template, &param_refs, &owned_values,
+                )
+            });
         } else {
             event.message = Some(template);
         }
@@ -978,7 +988,15 @@ fn extract_subst_params_ext(
                         Value::Number(n) => n.to_string(),
                         _ => String::new(),
                     }).collect(),
-                    Value::String(s) => vec![s.clone()],
+                    // R34（2026-09-30，修正版）：空 `<EventData></EventData>` 被
+                    // evtx-crate 序列化为空串 #text——不算参数（wevtutil 对空
+                    // EventData 渲染占位符字面量，WPD 24577 实证）。但 **有 Binary
+                    // 时空串 Data 是真实参数**（NetBT 4311 `<Data/>+<Binary>`：
+                    // Data=[""]→%1 空、Binary→%2，P3 实证），须保留否则 Binary
+                    // 追加被 values.is_empty() 短路（09-30 回归 54 条根因）。
+                    Value::String(s) => {
+                        if s.is_empty() && binary_hex.is_none() { Vec::new() } else { vec![s.clone()] }
+                    }
                     _ => Vec::new(),
                 };
                 if !values.is_empty() {
@@ -1055,13 +1073,19 @@ fn extract_subst_params_ext(
     // BinXML template order in serde_json and evtx 0.12).
     // Excludes classic format objects (those with a "Data" key) — they are
     // handled by Strategy 1.75 above.
+    // R33（2026-09-30）：跳过 `#` 前缀序列化伪键（#attributes 等）——SAM 16962 的
+    // EventData 平铺对象 {"#attributes":{…},"Default SD String:":"O:SY…"} 中，伪键
+    // 对象值被当数据推成空串占住 %1，真实值挤到 %2（模板 %1 渲染空的根因）。
     if let Some(obj) = parsed.as_object() {
         if !obj.contains_key("#text") && !obj.contains_key("Data") {
-            let values: Vec<String> = obj.iter().map(|(_k, v)| match v {
-                Value::String(s) => s.clone(),
-                Value::Number(n) => n.to_string(),
-                _ => String::new(),
-            }).collect();
+            let values: Vec<String> = obj.iter()
+                .filter(|(k, _)| !k.starts_with('#'))
+                .map(|(_k, v)| match v {
+                    Value::String(s) => s.clone(),
+                    Value::Number(n) => n.to_string(),
+                    _ => String::new(),
+                })
+                .collect();
             if !values.is_empty() {
                 return values;
             }

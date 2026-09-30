@@ -320,7 +320,7 @@ fn scan_guid(s: &str, start: usize) -> Option<usize> {
 /// * `%1` – `%99` → `params[N-1]` (empty string if index out of bounds)
 /// * Lone `%` not followed by a recognised code → emitted as-is
 pub fn substitute(template: &str, params: &[&str]) -> String {
-    substitute_opts(template, params, true)
+    substitute_opts(template, params, true, false)
 }
 
 /// Night P6 (2026-09-30): `unescape_double_percent=false` keeps `%%` verbatim.
@@ -329,7 +329,12 @@ pub fn substitute(template: &str, params: &[&str]) -> String {
 /// renders verbatim in the baseline, while our two-pass path collapsed it to
 /// a single `%` (then hex-converted the digits). Pass 1 (template-level)
 /// keeps the escape; only pass 2 (parameter-value side) bypasses it.
-fn substitute_opts(template: &str, params: &[&str], unescape_double_percent: bool) -> String {
+fn substitute_opts(
+    template: &str,
+    params: &[&str],
+    unescape_double_percent: bool,
+    literal_when_empty: bool,
+) -> String {
     let mut result = String::with_capacity(template.len());
     let mut chars = template.chars().peekable();
 
@@ -363,8 +368,17 @@ fn substitute_opts(template: &str, params: &[&str], unescape_double_percent: boo
                 let index: usize = num_str.parse().unwrap_or(0);
                 if index > 0 && index <= params.len() {
                     result.push_str(params[index - 1]);
+                } else if index > params.len() && params.is_empty() && literal_when_empty {
+                    // R32（2026-09-30，classic 门控版）：**classic 消息表 provider**
+                    // （事件 EventID 带 Qualifiers 属性）零参数时占位符字面量透传
+                    // （FormatMessage 语义；WPD 24577/24579 基线实证 "设备 %1 的…"）。
+                    // **manifest/CRIM provider**（VSS 8224，模板带参数槽但事件缺参）
+                    // 渲染空——全量回归实证（233 条）。两态由调用方按
+                    // event.qualifiers.is_some() 门控。index==0（%0）维持空替换。
+                    result.push('%');
+                    result.push_str(&num_str);
                 }
-                // index == 0 or out of bounds → emit nothing (empty substitution)
+                // 其余越界 → emit nothing（wevtutil 补空语义，全量实证）
 
                 // Night P6 (2026-09-30): FormatMessage format specifier
                 // `!fmt!` attached to the placeholder (Chrome/Edge
@@ -446,12 +460,31 @@ pub fn substitute_format_message_protected(
     params: &[&str],
     protect: &std::collections::HashSet<String>,
 ) -> String {
-    let pass1 = substitute(template, params);
+    substitute_format_message_protected_opts(template, params, protect, false)
+}
+
+/// R32（2026-09-30）：classic 消息表 provider 变体——零参数时占位符字面量透传
+/// （FormatMessage 语义；调用方按 event.qualifiers.is_some() 门控）。
+pub fn substitute_format_message_protected_classic(
+    template: &str,
+    params: &[&str],
+    protect: &std::collections::HashSet<String>,
+) -> String {
+    substitute_format_message_protected_opts(template, params, protect, true)
+}
+
+fn substitute_format_message_protected_opts(
+    template: &str,
+    params: &[&str],
+    protect: &std::collections::HashSet<String>,
+    literal_when_empty: bool,
+) -> String {
+    let pass1 = substitute_opts(template, params, true, literal_when_empty);
     // Normalize GUIDs and hex BEFORE the second pass, so that URL-encoded
     // GUIDs (e.g. %7B430FD4D0-...%7D) are recognized and braced before
     // being split apart by the second pass's %N substitutions.
     let normalized = format_for_display_protected(&pass1, protect);
-    substitute_opts(&normalized, params, false)
+    substitute_opts(&normalized, params, false, literal_when_empty)
 }
 
 // ---------------------------------------------------------------------------
@@ -953,6 +986,7 @@ mod tests {
 
     #[test]
     fn fmtmsg_percent_pattern_in_template_not_in_params() {
+        // 默认（manifest/CRIM 路径）：有部分参数时越界槽位空替换（wevtutil 补空）。
         let params = &["a", "b"];
         let result = substitute_format_message("test %1 %4", params);
         assert_eq!(result, "test a ");
@@ -993,7 +1027,28 @@ mod tests {
 
     #[test]
     fn substitute_missing() {
+        // R32（classic 门控版）：默认（manifest）越界 → 空替换。
         assert_eq!(substitute("%99", &["a", "b"]), "");
+        assert_eq!(substitute("%1 %2", &[] as &[&str]), " ");
+    }
+
+    #[test]
+    fn substitute_classic_zero_params_literal_passthrough() {
+        // R32：classic 路径（literal_when_empty）零参数 → 占位符字面量透传
+        //（WPD 24577 基线实证）；有参数时越界仍空替换（VSS 8224 等 233 条实证）。
+        let conn_empty: &[&str] = &[];
+        assert_eq!(
+            substitute_format_message_protected_classic("dev %1 x %2", conn_empty, &std::collections::HashSet::new()),
+            "dev %1 x %2"
+        );
+        assert_eq!(
+            substitute_format_message_protected("dev %1 x %2", conn_empty, &std::collections::HashSet::new()),
+            "dev  x "
+        );
+        assert_eq!(
+            substitute_format_message_protected_classic("test %1 %4", &["a", "b"], &std::collections::HashSet::new()),
+            "test a "
+        );
     }
 
     #[test]

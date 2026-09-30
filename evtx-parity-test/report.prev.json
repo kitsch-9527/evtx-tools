@@ -1,254 +1,14 @@
 {
-  "generated_local": "2026-09-30 13:30:09",
+  "generated_local": "2026-09-30 16:57:56",
   "baseline_lang": "zh-CN",
   "compared": 45166,
-  "matched": 45149,
+  "matched": 45166,
   "diff": 0,
   "exemptions_enabled": true,
-  "exempted": 17,
-  "exempted_detail": [
-    {
-      "channel": "Application",
-      "index": 2636,
-      "provider": "Microsoft-Windows-CAPI2",
-      "event_id": "4111",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 51,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 303,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 547,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 638,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24577",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 639,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24579",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 895,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24577",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 896,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24579",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 2790,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 2862,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 3012,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 3811,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 3977,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 5160,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24577",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 5161,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24579",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 5172,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24577",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 5173,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24579",
-      "root_cause": "PARSE"
-    }
-  ],
-  "whitelist_diff_hits": 17,
-  "whitelist_diff_detail": [
-    {
-      "channel": "Application",
-      "index": 2636,
-      "provider": "Microsoft-Windows-CAPI2",
-      "event_id": "4111",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 51,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 303,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 547,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 638,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24577",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 639,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24579",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 895,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24577",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 896,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24579",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 2790,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 2862,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 3012,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 3811,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 3977,
-      "provider": "Microsoft-Windows-Directory-Services-SAM",
-      "event_id": "16962",
-      "root_cause": "BIN"
-    },
-    {
-      "channel": "System",
-      "index": 5160,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24577",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 5161,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24579",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 5172,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24577",
-      "root_cause": "PARSE"
-    },
-    {
-      "channel": "System",
-      "index": 5173,
-      "provider": "Microsoft-Windows-WPDClassInstaller",
-      "event_id": "24579",
-      "root_cause": "PARSE"
-    }
-  ],
+  "exempted": 0,
+  "exempted_detail": [],
+  "whitelist_diff_hits": 0,
+  "whitelist_diff_detail": [],
   "verdict": "PASS",
   "by_channel": {
     "Application": {
@@ -256,12 +16,12 @@
       "new_en": 11012,
       "new_zh": 11012,
       "compared": 11012,
-      "matched": 11011,
+      "matched": 11012,
       "diff": 0,
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
       "categories": {},
-      "exempted": 1,
+      "exempted": 0,
       "status": "ok"
     },
     "Setup": {
@@ -295,12 +55,12 @@
       "new_en": 6225,
       "new_zh": 6225,
       "compared": 6225,
-      "matched": 6209,
+      "matched": 6225,
       "diff": 0,
       "en_empty_msg": 0,
       "zh_empty_msg": 0,
       "categories": {},
-      "exempted": 16,
+      "exempted": 0,
       "status": "ok"
     }
   }
