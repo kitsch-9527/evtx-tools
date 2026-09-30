@@ -215,6 +215,10 @@
     `#text` 不算参数**但有 Binary 时除外**（NetBT `<Data/>+<Binary>` 的空 Data 是
     真实 %1）；⑤R33b `classify_msg_diff` canon 相等性前置（SDDL 分号触发 B 类误判）；
     ⑥`info` 子命令版本校验须与 parse 同步跟进 schema 版本（R30 曾停在 v7）。
+    ⑦R35 **SQLite 输出为快照语义**：`create_events_table` 先 DROP IF EXISTS、统计表
+    write 前 DROP（stat 表曾 52 次运行累积 52 行/单通道、events 曾 33 次累积 204147 行
+    化石行——CSV 覆盖写无此患、06 只读 CSV 故门禁不可见）；wevtapi 双语义按
+    Qualifiers 门控 classic/manifest（VSS 补空 vs WPD 字面量，233 条回归实证）。
 
 ## 基线（严格口径，2026-09-30 终态，**verdict=PASS，绝对 100%**：45166/45166 一致，diff=0，exempted=0）
 

@@ -355,8 +355,11 @@ impl StatsCollector {
                 _ => format!("{c} TEXT"),
             }).collect::<Vec<_>>().join(", ");
 
+            // R35（2026-09-30）：快照语义——统计表是本次运行的聚合，重复 parse
+            // 向同一 -o 文件写时必须替换而非追加（实测 stat_channel 52 次运行
+            // 累积 52 行/单通道）。与 events 表 R35 修复同类。
             conn.execute_batch(&format!(
-                "CREATE TABLE IF NOT EXISTS {name} ({schema});"
+                "DROP TABLE IF EXISTS {name}; CREATE TABLE {name} ({schema});"
             )).map_err(|e| format!("failed to create {name}: {e}"))?;
 
             if rows.is_empty() {
@@ -402,6 +405,51 @@ impl StatsCollector {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_stats_write_snapshot_semantics() {
+        // R35：统计表重复 write 必须替换而非累积。
+        use super::*;
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        let mut c = StatsCollector::new();
+        let ev = ParsedEvent {
+            event_record_id: Some(1),
+            event_time: None,
+            provider_name: Some("EventLog".into()),
+            provider_guid: None,
+            event_id: Some(6009),
+            qualifiers: None,
+            version: None,
+            level: Some(4),
+            severity: Some("信息".into()),
+            task_category: None,
+            opcode: None,
+            keywords: None,
+            channel: Some("System".into()),
+            computer: Some("PC-1".into()),
+            process_id: None,
+            thread_id: None,
+            user_name: None,
+            user_sid: None,
+            activity_id: None,
+            related_activity_id: None,
+            message: None,
+            level_name: None,
+            keywords_name: None,
+            event_data: None,
+            raw_xml: None,
+            file_name: None,
+            sequence_number: None,
+        };
+        c.feed(&ev);
+        c.write(&conn).unwrap();
+        c.write(&conn).unwrap();
+        let n: i64 = conn
+            .query_row("SELECT COUNT(*) FROM stat_event_id", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(n, 1, "second write must replace, not accumulate");
+    }
+
+
     use super::*;
     use crate::ParsedEvent;
 
@@ -612,15 +660,14 @@ mod tests {
         let conn = rusqlite::Connection::open_in_memory().unwrap();
         collector.write(&conn).unwrap();
 
-        // Second write should be idempotent (CREATE TABLE IF NOT EXISTS)
+        // R35b（2026-09-30）：write 为快照语义——重复 write 替换而非累积。此前
+        // 本测试固化的是累积行为（stat 表 52 次运行累积 52 行/单通道的根因）。
         collector.write(&conn).unwrap();
 
-        // Data should have been inserted a second time (the API is call-write,
-        // not dedup — idempotent means no crash, not no-duplicates)
         let count: i64 = conn
             .query_row("SELECT COUNT(*) FROM stat_event_id", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(count, 2, "write is append, not overwrite");
+        assert_eq!(count, 1, "write is snapshot (replace), not append");
     }
 
     // ── Cycle: stat_event_id_hourly ──
