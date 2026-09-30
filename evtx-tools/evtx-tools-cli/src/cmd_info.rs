@@ -1,4 +1,4 @@
-//! `info` subcommand — query single-file messages.db metadata (schema_version 7).
+//! `info` subcommand — query single-file messages.db metadata (schema_version 9).
 //!
 //! Shows provider count, variant count, OS version info, and
 //! optional per-provider details.
@@ -9,17 +9,20 @@ use crate::InfoArgs;
 
 type Result<T> = std::result::Result<T, String>;
 
-fn require_v7(conn: &Connection, db_path: &std::path::Path) -> Result<()> {
+/// R30（2026-09-30）：info 的版本校验跟进 schema v9——此前停在 v7，对现行 v9 库
+/// 拒开（`schema_version=9, want 7`），与 parse（resolver 硬校验 v9）不一致。
+/// 语义与 resolver.rs `open()` 对齐：只认当前版本，旧库一律 re-run msgdb-dump。
+fn require_current_schema(conn: &Connection, db_path: &std::path::Path) -> Result<()> {
     let version: String = conn
         .query_row(
             "SELECT value FROM metadata WHERE key = 'schema_version'",
             [],
             |row| row.get(0),
         )
-        .map_err(|e| format!("database '{}' has no schema_version (want v7 single-file DB): {e}", db_path.display()))?;
-    if version != "7" {
+        .map_err(|e| format!("database '{}' has no schema_version (want v9 single-file DB): {e}", db_path.display()))?;
+    if version != "9" {
         return Err(format!(
-            "database '{}' schema_version={version}, want 7: re-run msgdb-dump (single-file, ADR 0003)",
+            "database '{}' schema_version={version}, want 9: re-run msgdb-dump (single-file, ADR 0003)",
             db_path.display()
         ));
     }
@@ -35,7 +38,7 @@ pub fn run_info(args: &InfoArgs) -> Result<()> {
 
     let conn = Connection::open(db_path)
         .map_err(|e| format!("failed to open database '{}': {e}", db_path.display()))?;
-    require_v7(&conn, db_path)?;
+    require_current_schema(&conn, db_path)?;
 
     // --- Schema version ---
     let schema_version: String = conn
@@ -46,7 +49,7 @@ pub fn run_info(args: &InfoArgs) -> Result<()> {
         )
         .unwrap_or_else(|_| "unknown".into());
 
-    println!("=== hotech-evtx messages.db info (single-file v7) ===");
+    println!("=== hotech-evtx messages.db info (single-file) ===");
     println!("  Database: {}", db_path.display());
     println!("  Schema version: {schema_version}");
 
@@ -134,5 +137,31 @@ mod tests {
             provider: None,
         };
         assert!(run_info(&args).is_err());
+    }
+
+    #[test]
+    fn test_require_current_schema_accepts_v9_rejects_legacy() {
+        // R30：info 版本校验与 parse（resolver 硬校验 v9）对齐——v9 通过，
+        // v7/v8/无 metadata 表一律拒开（re-run msgdb-dump）。
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+             INSERT INTO metadata VALUES ('schema_version', '9');",
+        )
+        .unwrap();
+        assert!(require_current_schema(&conn, std::path::Path::new(":memory:")).is_ok());
+
+        for legacy in ["7", "8"] {
+            let conn = Connection::open_in_memory().unwrap();
+            conn.execute_batch(&format!(
+                "CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                 INSERT INTO metadata VALUES ('schema_version', '{legacy}');"
+            ))
+            .unwrap();
+            assert!(
+                require_current_schema(&conn, std::path::Path::new(":memory:")).is_err(),
+                "legacy schema {legacy} must be rejected"
+            );
+        }
     }
 }

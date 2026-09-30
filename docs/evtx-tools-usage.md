@@ -70,10 +70,9 @@ evtx-tools.exe parse <evtx> -o <out-en>.csv --format csv --msg-db $MSGDB --lang 
 evtx-tools.exe info <DB> [--provider <名称过滤>]
 ```
 
-> ⚠️ **已知遗留**：`info` 目前硬校验 schema v7，对现行 v9 消息库会报
-> `schema_version=9, want 7` 后退出。`parse` 不受影响（v9 正常）。需要看库内容时
-> 用 python+sqlite3 直查（`provider_message_variants` / `parameter_refs` /
-> `value_maps` / `eventlog_sources` / `param_types` / `metadata`）。
+> R30（2026-09-30）起版本校验与 parse 对齐：只认 v9（旧库提示 `re-run msgdb-dump`）。
+> 实例输出：Schema version 9 / Provider count 1170 / Variant count 1553249；
+> `--provider Security-Auditing` 可按名称过滤并显示各 provider 变体数。
 
 ---
 
@@ -110,7 +109,7 @@ evtx-tools.exe parse Security.evtx -o sec.db --format db \
 
 | 现象 | 说明 / 处置 |
 |---|---|
-| `info` 报 `schema_version=9, want 7` | info 未跟进 v9（parse 正常）。看库用 sqlite3 直查 |
+| `info` 报 `schema_version=N, want 9` | 库与工具版本不配对（R30 起 info 与 parse 一致只认 v9） | 重跑 03 重建消息库 |
 | CSV 内夹带重复表头行 | 每 batch 重写 BOM+表头的历史遗留；下游按 `event_id` 是否纯数字过滤（06 已内置） |
 | `both` 格式抢写 | db/csv 共用 `-o` 路径互相覆盖；分两次跑 |
 | 输出目录不存在报 os error 3 | 先 `mkdir` |
