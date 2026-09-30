@@ -81,6 +81,12 @@ pub const BATCH_SIZE: usize = 20_000;
 /// [`finalize`](EventsDb::finalize) after all data has been inserted,
 /// avoiding per-row index maintenance overhead during bulk load.
 pub fn create_events_table(conn: &Connection) -> Result<()> {
+    // R35（2026-09-30）：快照语义——`-o` 目标文件是本次运行的输出而非追加日志。
+    // 此前 CREATE TABLE IF NOT EXISTS 使重复 parse 向同一文件累积（实测 System.db
+    // 33 次运行 204147 行，旧版本渲染的化石行与现行行并存且被查看工具命中）。
+    // DROP 会连带删除本表索引，finalize 阶段按 IF NOT EXISTS 重建。
+    conn.execute_batch("DROP TABLE IF EXISTS events;")
+        .map_err(|e| format!("failed to drop stale events table: {e}"))?;
     conn.execute_batch(CREATE_EVENTS_TABLE)
         .map_err(|e| format!("failed to create events table: {e}"))
 }
@@ -534,6 +540,39 @@ mod scenario_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_events_table_snapshot_semantics() {
+        // R35（2026-09-30）：`-o` 目标是快照不是追加日志。此前 CREATE TABLE IF
+        // NOT EXISTS + INSERT 使重复 parse 向同一文件累积（实测 System.db 33 次
+        // 运行 204147 行 / 真实 6225，旧版本渲染的化石行与现行行并存——用户看到的
+        // 6009 `;;` 即化石行）。写两遍必须只剩第二遍的行。
+        let tmp = std::env::temp_dir().join("evtx_sqlite_snapshot_test.db");
+        let _ = std::fs::remove_file(&tmp);
+        let path = tmp.to_str().unwrap();
+
+        for (run, n) in [(1, 2usize), (2, 1usize)] {
+            let db = EventsDb::open(path).unwrap();
+            db.create_table().unwrap();
+            let events: Vec<ParsedEvent> = (1..=n)
+                .map(|i| make_test_event(i as u64, &format!("P{run}-{i}")))
+                .collect();
+            db.insert(&events).unwrap();
+            db.finalize().unwrap();
+        }
+
+        let conn = Connection::open(path).unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM events", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 1, "second run must replace, not accumulate");
+        let provider: String = conn
+            .query_row("SELECT provider_name FROM events LIMIT 1", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(provider, "P2-1");
+        let _ = std::fs::remove_file(&tmp);
+    }
+
 
     fn make_test_event(event_record_id: u64, provider: &str) -> ParsedEvent {
         ParsedEvent {

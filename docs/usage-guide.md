@@ -186,6 +186,7 @@ cd evtx-tools && cargo test --workspace                            # Rust 246 �
 | 06 基线语言与预期不符 / G0 FAIL | 本机显示语言变了 | 重跑 01/02（真值语言跟机器走） |
 | 修复后 diff 纹丝不动 | 04 没真正重编 / tools exe 未更新 | 核对 exe mtime 或 md5；重跑 04 |
 | 输出出现 `;;` 连接的裸参数（如 6009 `10.00.;;26220;;…`） | 渲染器没找到消息模板：跑了**旧版/孤儿二进制**（如 evtx-batch.exe 09-03 化石），或未带 `--msg-db` | 只用 `tools/evtx-tools.exe`（核对 mtime）+ `--msg-db`；孤儿 exe 已隔离为 `*.stale-*` |
+| `.db` 输出里同一 event_record_id 出现多次/旧渲染并存 | R35 前的 SQLite 写入是追加语义（跨运行累积化石行；CSV 覆盖写所以不受影响，06 只读 CSV 故门禁不可见） | R35 已修（快照语义）；旧污染 .db 重跑 05 即净 |
 | 05 全量挂死（进程 CPU≈0） | resolved 闭包内二次 `db.lock()`（Mutex 不可重入） | 已修（R26）；新增闭包内代码严禁再 `db.lock()` |
 | 06 出现"缺失"类 diff | 两侧事件数不对齐 | 查 02/05 是否完整跑完（4 个文件都有产物） |
 | `--no-exemptions` diff ≠ 默认 diff + 白名单条数 | 豁免表两处不同步 | EXEMPTIONS 在 06 与 acceptance-check 两处，必须同一提交同步 |

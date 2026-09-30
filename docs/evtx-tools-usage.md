@@ -116,6 +116,7 @@ evtx-tools.exe parse Security.evtx -o sec.db --format db \
 | 中文乱码（重定向/管道时） | 工具 stdout 走 UTF-8/系统码页混合；python 侧解码按实际来源选择 |
 | 请求语言缺文本 | 自动回落 en-US（`--lang` 的既定语义，与 wevtutil 行为对齐；Setup 通道即整通道回落） |
 | 解析报消息库 schema 错 | 库与渲染器版本不配对：`re-run msgdb-dump`（03）后重试 |
+| 同一 `.db` 里旧渲染行累积 | R35 前的追加语义缺陷（已修：`-o` 目标为快照，重写自动清空）；R35 前生成的 .db 重跑 05 即净 |
 
 ---
 
