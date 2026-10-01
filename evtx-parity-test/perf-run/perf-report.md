@@ -219,3 +219,53 @@ JSON 遍历（extract_fields）从串行生产者前移进 rayon fork-join 段�
 - `bottleneck.txt` 计时汇总（含各 run 的 ms 与事件数核对）；`log-*.txt` 各 run 完整输出；
   `bench.sh` 可复跑。大体积 CSV/DB 产物已清理（约 12.7 GB）。
 - 复跑注意：Git Bash 无 `bc`，计时用 `date +%s%N` 整数运算；内建 `time` 抓不到子进程 CPU 时间。
+## 9. R40 C 项 chunk 分片：实现、等价实证与负结果归因（2026-10-02 凌晨，值守）
+
+**落地**（均 TDD + 06 门 PASS）：
+- C① `core/src/shard.rs`：ShardReader（脏块容忍与 crate 逐字同语义）+ ShardChunk
+  ::records_json_value（与全流同源序列化路径）；等价测试=分片 record_id 流==全流逐一。
+- C② shard_records_parallel：dispatcher→N worker（静态轮转、独立 cap-1 队列）→merger
+  BTreeMap 连续游标保序；等价测试=workers=1/4 双档每记录 JSON Value 逐字段相等。
+- C③ CLI `--shard N`（默认 0 关闭）；**端到端实证：baseline System.evtx --shard 4 与
+  默认路径 CSV SHA256 逐字节一致**；264 测试绿；05+06 全门 PASS。
+
+**C④ 基准：负结果。** Security.evtx --shard 4 热跑 85.7s vs 同机 t4 基线 58.9s
+（**+45% 回归**，事件数精确 2,034,603）。按 C⑤ 规则不设默认。
+
+**归因（代码级，实锤）**：evtx 0.12 的 `records_json_value` 底层 `chunk_pipeline`
+（evtx_parser.rs）**已内建与本分片完全同构的并行管线**——`num_threads>1` 时把 chunk
+的解析+序列化 `rayon::spawn` 到全局池、`max_in_flight = num_threads×2`、BTreeMap
+按 seq 重排、Bump arena 池复用、懒拉取迭代器。因此：
+- t1（num_threads=1）走内联串行分支，t4 即 4 路 chunk 并行——R38 的 t1=94.4/t4=73.2
+  差值正是 crate 内建 chunk 并行，非「串行树构建」；
+- **§8 的「剩余串行 ~59% 在 evtx crate JSON 树构建」结论修正**：树构建在 t4 下已并行，
+  真实串行余量=每批一次全局锁的消息解析阶段（process_parallel_batch 阶段1）+
+  批组装/编排 + 写线程；
+- 本分片是在已并行资源上叠加冗余管线（+6 OS 线程、+2 跳通道、每块 Vec 中转、
+  无 arena 复用）→ 纯开销。经典归类：**reinvented wheel / redundant parallelism**
+  ——平台原语已存在，先读实现再动手（本轮教训：C①/C② 的 API 可行性探针做了，
+  但没做「crate 内部是否已有同构实现」的文献综述）。
+
+**处置**：`--shard` 开关保留（默认关、零影响、测试守护）作为研究遗留；
+docs/evtx-tools-usage.md 参数表已注明不推荐。真后续优化方向=阶段1 全局锁批解析
+的并发化（先探针测锁内占比 ≥20% 再立项，涉 resolver 核心需谨慎）。
+
+## 10. R41 立项探针：阶段占比实测 → no-go（2026-10-02 01:0x，值守）
+
+新增 `EVTX_TRACE_PHASES=1` 环境变量门控的阶段计时（warmup/resolve-lock/render-rayon
+三段累计，[done] 时输出；env 未设零行为变化，264 测试绿+05+06 全门 PASS）：
+
+| 文件 | warmup | resolve(锁内批解析) | render(rayon 渲染) | 墙钟 |
+|---|---|---|---|---|
+| system.evtx (t4) | 12 ms | 165 ms (**≈10%**) | 410 ms | ~1.7 s |
+| Security.evtx (t4) | 3-4 ms | 3.16-3.3 s (**≈4-5%**) | 55.9-59.0 s | ~60-82 s |
+
+**R41（阶段1 全局锁并发化）no-go**：锁内占比 4-10% << 20% 立项门槛（b 项同款
+探针先行门控）。经典归类：测得瓶颈不在锁（R36 已把锁次数降到每批 1 次），
+render(rayon) 占 80-95% 且已并行——其内部是 R31-R34 语义密集的替换/类型化渲染
+路径（~29ns/输出字节 intrinsic），夜间值守不动语义面。
+
+**结论：本轮性能战役到达自然底部。** 落地=R36(锁竞争)+R37(CSV 表头)+R38(抽取并行)
++R39(默认线程) 四项实测收益 Security 91.5→58.9s（−36%）；三个否决各有数据
+（B 摊销 10-12%、C 分片 +45% 回归、R41 锁并发 4-10%）。剩余轮次=验证轮
+（全套测试+06 门+状态刷新），除非新问题出现。

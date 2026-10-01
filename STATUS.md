@@ -182,3 +182,7 @@ cd evtx-tools   && cargo test --workspace                       # Rust 侧（202
   端到端 CSV 字节级等价实证、264 测试绿、05+06 全门 PASS；**C④ 首测回归**：Security
   --shard 4 = 85.7s vs 基线 58.9s（+45%）——不设默认，下轮三连探针归因（worker 吞吐
   曲线/ParserSettings 对齐/池拓扑）。
+- Round 3（01:1x）：C 项归因收档（crate chunk_pipeline 已内建 chunk 并行，分片=冗余
+  并行 +45% 回归，--shard 留开关标注不推荐）；R41 探针 no-go（resolve 锁内仅 4-10%）。
+  **性能战役自然收尾**：R36-R39 落地 Security 91.5→58.9s（−36%），三个否决有数据。
+  剩余轮次=验证轮（测试+06 门+状态），08:30 总结收尾。

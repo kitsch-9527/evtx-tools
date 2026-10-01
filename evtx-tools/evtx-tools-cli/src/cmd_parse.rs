@@ -152,6 +152,15 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
             }
 
             eprintln!("[done] {total} events written to {output_display}");
+            if phase_trace_enabled() {
+                let us = |c: &std::sync::atomic::AtomicU64| c.load(std::sync::atomic::Ordering::Relaxed);
+                eprintln!(
+                    "[phase] warmup={}ms resolve(lock)={}ms render(rayon)={}ms",
+                    us(&PHASE_WARMUP_US) / 1000,
+                    us(&PHASE_RESOLVE_US) / 1000,
+                    us(&PHASE_RENDER_US) / 1000,
+                );
+            }
             Ok(())
         })
         .map_err(|e| format!("failed to spawn writer thread: {e}"))?;
@@ -542,6 +551,20 @@ fn format_datetime_ns(value: &str) -> String {
 /// 3. **Parallel render** (lock-free): JSON traversal, `substitute`, metadata
 ///    copy run without touching the cache — all cores work simultaneously.
 ///    Only the rare miss-fallback path takes per-event locks (R12/R21/R29).
+// R41 probe (EVTX_TRACE_PHASES=1): cumulative µs per pipeline phase, printed
+// at [done]. Pure diagnostics — zero effect when the env var is unset.
+static PHASE_WARMUP_US: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static PHASE_RESOLVE_US: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static PHASE_RENDER_US: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+fn phase_trace_enabled() -> bool {
+    std::env::var("EVTX_TRACE_PHASES").is_ok()
+}
+
+fn phase_acc(cell: &std::sync::atomic::AtomicU64, t: std::time::Instant) {
+    cell.fetch_add(t.elapsed().as_micros() as u64, std::sync::atomic::Ordering::Relaxed);
+}
+
 fn process_parallel_batch(
     msg_db: &Option<Arc<Mutex<MessageDb>>>,
     new_variant_keys: &mut Vec<evtx_tools_core::VariantKey>,
@@ -560,12 +583,16 @@ fn process_parallel_batch(
     // 不挂 param_map_refs（param_value_maps 链接），导致 Layer B 永远为空——
     // Kernel-Power 566 Reason=12 无法展开 SessionUnlock（190 条 D）。
     if !new_variant_keys.is_empty() {
+        let __t = (phase_trace_enabled()).then(std::time::Instant::now);
         if let Ok(mut guard) = db.lock() {
             let _ = guard.warmup(&new_variant_keys, target_lang);
         } else {
             eprintln!("[warn] msg_db lock poisoned during warmup");
         }
         new_variant_keys.clear();
+        if let Some(t) = __t {
+            phase_acc(&PHASE_WARMUP_US, t);
+        }
     }
 
     // --- 2. Parallel message resolution ---
@@ -582,6 +609,7 @@ fn process_parallel_batch(
         event_bitmaps: std::collections::HashSet<String>,
     }
 
+    let __t = (phase_trace_enabled()).then(std::time::Instant::now);
     let pre: Vec<Option<PreResolved>> = match db.lock() {
         // Poisoned lock: mark every event as unresolved — the render phase's
         // None arm runs the same fallback path the per-event resolve used to
@@ -677,8 +705,12 @@ fn process_parallel_batch(
         .collect::<Vec<_>>()
         }
     };
+    if let Some(t) = __t {
+        phase_acc(&PHASE_RESOLVE_US, t);
+    }
 
     // ---- 3. Parallel render (lock-free on the hit path) ----
+    let __t = (phase_trace_enabled()).then(std::time::Instant::now);
     batch.par_iter_mut().zip(pre.into_par_iter()).for_each(|((event, event_data_value), resolved)| {
         let row: PreResolved = match resolved {
             Some(r) => r,
@@ -918,6 +950,9 @@ fn process_parallel_batch(
             ));
         }
     });
+    if let Some(t) = __t {
+        phase_acc(&PHASE_RENDER_US, t);
+    }
 }
 
 /// Extract substitution values from event_data JSON using the parameter map.

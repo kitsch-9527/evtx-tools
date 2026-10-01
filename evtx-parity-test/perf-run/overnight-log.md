@@ -85,3 +85,24 @@ automation-bbe62e97 每 30 分钟触发，08:30 后自行 CronDelete 收尾。
 **下轮建议**：C④ 归因三连探针；若 worker 段本身吞吐不足则 C 项定性为「crate 内部
 已有更优 chunk 管线，公开 API 分片无增益」并留 --shard 开关+报告记录；若对齐
 ParserSettings 后逆转则重测。值守至 08:30 自行收尾。
+
+## Round 3（00:56–01:1x，已提交——归因收档+R41 探针）
+
+**C④ 归因实锤（代码级）**：evtx 0.12 `records_json_value` 底层 `chunk_pipeline`
+在 num_threads>1 时已内建与本分片完全同构的并行管线（rayon::spawn 派发 chunk 解析+
+序列化、max_in_flight=num_threads×2、BTreeMap 按 seq 重排、Bump arena 池复用、
+懒拉取）——t1 走内联串行分支、t4 即 4 路 chunk 并行。**§8「剩余串行 ~59% 在 crate
+树构建」结论修正**：树构建 t4 下已并行；分片 +45% 回归=在已并行资源上叠加冗余管线
+（+6 OS 线程/+2 跳通道/每块 Vec 中转/无 arena 复用）。经典归类=reinvented wheel /
+redundant parallelism；教训=API 可行性探针做了，但缺「crate 内部已有同构实现」的
+文献综述。处置：--shard 留开关（默认关、docs 标注不推荐）、报告 §9 收档。
+
+**R41 立项探针（EVTX_TRACE_PHASES 阶段计时，env 门控零行为变化）→ no-go**：
+- system.evtx：resolve(锁内)=165ms ≈10%；Security.evtx：3.16-3.3s ≈4-5%
+  ——远低于 20% 门槛（R36 整批单锁后锁已不是矛盾）
+- render(rayon) 占 80-95% 且已并行，其内部为 R31-R34 语义密集路径，不动
+- 264 测试绿；05+06 全门 PASS（45375/45375 diff=0）
+
+**结论：性能战役到达自然底部**——落地 R36-R39 四项（Security 91.5→58.9s，−36%），
+三个否决各有数据（B=10-12%、C=+45%、R41=4-10%）。剩余轮次转验证轮：每轮
+cargo test --workspace + 06 门 + 磁盘/jj 状态核对，无新问题不动代码；08:30 总结收尾。
