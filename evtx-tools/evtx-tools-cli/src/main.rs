@@ -84,6 +84,11 @@ struct ParseArgs {
     /// R38 后 12 核上全核池与 rayon 池过订阅反而慢 ~12%，故默认取甜点 4。
     #[arg(long, default_value_t = 4)]
     threads: usize,
+    /// Chunk-level parallel parsing (R40; 0 = off, the default serial path).
+    /// Splits the file into its native 64 KiB chunks and parses them on N
+    /// worker threads, reassembling records in strict file order.
+    #[arg(long, default_value_t = 0)]
+    shard: usize,
     /// Message language code (e.g. "zh-CN", "en-US"). Falls back to en-US
     /// when the requested language is not available for a given event.
     #[arg(long, default_value = "zh-CN")]
@@ -147,6 +152,23 @@ mod tests {
         ]);
         match cli.command {
             Command::Parse(args) => assert_eq!(args.threads, 0),
+            _ => panic!("expected parse subcommand"),
+        }
+    }
+
+    /// R40-C③：--shard N 分片并行开关，默认 0（关闭）=默认路径行为零变化。
+    #[test]
+    fn test_shard_defaults_to_zero_and_accepts_n() {
+        let cli = Cli::parse_from(["evtx-tools", "parse", "-o", "out.csv", "in.evtx"]);
+        match cli.command {
+            Command::Parse(args) => assert_eq!(args.shard, 0, "默认必须关闭分片"),
+            _ => panic!("expected parse subcommand"),
+        }
+        let cli = Cli::parse_from([
+            "evtx-tools", "parse", "-o", "out.csv", "--shard", "4", "in.evtx",
+        ]);
+        match cli.command {
+            Command::Parse(args) => assert_eq!(args.shard, 4),
             _ => panic!("expected parse subcommand"),
         }
     }

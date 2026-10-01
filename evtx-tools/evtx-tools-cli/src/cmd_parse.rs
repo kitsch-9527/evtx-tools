@@ -157,17 +157,30 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
         .map_err(|e| format!("failed to spawn writer thread: {e}"))?;
 
     // Producer: iterate evtx events in batches, parallel resolve, send to writer
-    let mut parser = open_evtx(&input_path, args.threads)?;
+    let mut parser = if args.shard > 0 {
+        // R40 --shard: the chunk-parallel driver opens the file itself and
+        // yields the same raw (Value, record_id) stream; the crate-level
+        // parser (and its thread pool) is not used on this path.
+        None
+    } else {
+        Some(open_evtx(&input_path, args.threads)?)
+    };
     let file_name = file_stem(&args.input);
     // --with-xml: a second pass over the same file supplies each record's raw
     // XML (evtx serializes a record to JSON *or* XML, never both). Declared
     // before the event iterator and not touched afterwards — the iterator
     // holds the mutable borrow.
-    let mut xml_parser = if args.with_xml {
+    let mut xml_parser = if args.with_xml && args.shard == 0 {
         Some(open_evtx(&input_path, args.threads)?)
     } else {
         None
     };
+
+    if args.with_xml && args.shard > 0 {
+        return Err("--with-xml is not supported together with --shard (the chunk-parallel \
+                    driver has no second XML pass); drop one of the two flags"
+            .into());
+    }
 
     // Wrap msg_db in Arc<Mutex> for thread-safe parallel access.
     // Mutex is used because rusqlite::Connection is not Sync (contains RefCell),
@@ -190,11 +203,27 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
         extract_batch_parallel, iter_raw_json_values, iter_raw_json_values_with_xml,
     };
     let events: Box<dyn Iterator<Item = Result<(Value, u64, Option<String>)>>> =
-        match &mut xml_parser {
-            Some(xp) => Box::new(iter_raw_json_values_with_xml(&mut parser, xp)),
-            None => Box::new(
-                iter_raw_json_values(&mut parser).map(|r| r.map(|(v, rid)| (v, rid, None))),
-            ),
+        if args.shard > 0 {
+            // R40 chunk-parallel path: same raw stream, records reassembled
+            // in strict chunk order; extract/render downstream unchanged.
+            let rx = evtx_tools_core::shard::shard_records_parallel(&input_path, args.shard)?;
+            Box::new(rx.into_iter().flat_map(|msg| match msg {
+                Ok((_chunk_id, records)) => records
+                    .into_iter()
+                    .map(|(v, rid)| Ok((v, rid, None)))
+                    .collect::<Vec<_>>(),
+                Err(e) => vec![Err(e)],
+            }))
+        } else {
+            match &mut parser {
+                Some(p) => match &mut xml_parser {
+                    Some(xp) => Box::new(iter_raw_json_values_with_xml(p, xp)),
+                    None => {
+                        Box::new(iter_raw_json_values(p).map(|r| r.map(|(v, rid)| (v, rid, None))))
+                    }
+                },
+                None => Box::new(std::iter::empty()),
+            }
         };
     for result in events {
         let raw = match result {
