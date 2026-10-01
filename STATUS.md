@@ -178,3 +178,7 @@ cd evtx-tools   && cargo test --workspace                       # Rust 侧（202
   vs 58.9s → C⑤ 全门禁。
 - 交接锚点：evtx-parity-test/perf-run/overnight-log.md（每轮一节）；
   08:30 后值守自动写总结并自删 automation。
+- Round 2（00:50）：C② 并行驱动+保序归并（074c1ff7）与 C③ --shard 开关（9acda652）已提交，
+  端到端 CSV 字节级等价实证、264 测试绿、05+06 全门 PASS；**C④ 首测回归**：Security
+  --shard 4 = 85.7s vs 基线 58.9s（+45%）——不设默认，下轮三连探针归因（worker 吞吐
+  曲线/ParserSettings 对齐/池拓扑）。

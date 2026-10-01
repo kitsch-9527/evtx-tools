@@ -52,3 +52,36 @@ automation-bbe62e97 每 30 分钟触发，08:30 后自行 CronDelete 收尾。
 逐字节对照 iter_events。之后 C③ --shard N 开关（默认关）→ C④ Security 基准 vs 58.9s
 → C⑤ 全门禁。值守 automation-bbe62e97 每 30 分钟触发，08:30 后自行 CronDelete 收尾。
 
+
+## Round 2（00:27–00:50，已提交 9acda652 + 本日志提交）
+
+**C② 并行驱动+保序归并（已提交 074c1ff7）**：
+- 经典归类：out-of-order partitions 的 ordered merge + 有界流水线背压
+- shard_records_parallel 三线程形：dispatcher（顺序走块，Skipped(id) 上报使游标跨脏文件
+  推进）→ N worker 静态轮转各持 cap-1 独立队列（共享 Mutex<Receiver> 的 recv 持锁泊车
+  会阻塞全部 worker——锁持有泊车经典陷阱，故轮转）→ merger BTreeMap 连续游标排干
+  （乱序缓冲 ≤ worker 数；cap-4 out 通道背压，内存有界）
+- TDD 红→绿：workers=1/4 双档，分片全链每记录 JSON Value 与全流逐字段相等 +
+  chunk_id 严格递增；263 测试绿；06 快门 PASS
+
+**C③ --shard N CLI 开关（已提交 9acda652）**：
+- TDD 红（E0609）→绿（默认 0 断言+显式 N 断言）；shard>0 不建 crate parser，
+  rx→flat_map 适配为既有 raw 流，下游 extract/render 零改动；--with-xml 互斥显式报错
+- **端到端等价实证：baseline System.evtx --shard 4 与默认路径 CSV SHA256 逐字节一致**
+- 264 测试绿；部署后 05+06 全门 PASS（45375/45375 diff=0 exempted=0）
+
+**C④ 首测：分片 4 worker 反而更慢（⚠️ 回归，未达 C⑤ 门槛，不设默认）**：
+- Security.evtx --shard 4 热跑 = **85.7s**（事件 2,034,603 精确）vs R38 t4 基线 58.9s
+  → +45%，分片路径净亏损
+- 初步嫌疑（下轮探针归因）：
+  ① worker 端 tree-build 吞吐未随 worker 数扩展（静态轮转无 work stealing，chunk 等
+  尺寸假设可能被模板复杂度方差破坏）
+  ② ParserSettings 差异：分片路径用 default（crate 全流路径可能有共享模板/program
+  缓存或不同 codec 设置）
+  ③ 池拓扑：4 shard worker + rayon 全局池（extract+render 12 线程）叠加行为未知
+- 归因实验设计：①分片 tree-build-only 吞吐 vs iter_raw_json_values（隔离 worker 段）
+  ②workers 2/4/8/12 曲线 ③ParserSettings 对齐 crate 全流路径设置
+
+**下轮建议**：C④ 归因三连探针；若 worker 段本身吞吐不足则 C 项定性为「crate 内部
+已有更优 chunk 管线，公开 API 分片无增益」并留 --shard 开关+报告记录；若对齐
+ParserSettings 后逆转则重测。值守至 08:30 自行收尾。
