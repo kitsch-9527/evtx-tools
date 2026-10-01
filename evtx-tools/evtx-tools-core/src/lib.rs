@@ -148,6 +148,7 @@ pub mod parser;
 pub mod resolver;
 pub mod variant_resolver;
 pub mod routing;
+pub mod shard;
 
 #[cfg(test)]
 mod tests {
