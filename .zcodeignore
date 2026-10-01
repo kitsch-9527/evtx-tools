@@ -1,0 +1,63 @@
+# Build artifacts
+target/
+*.exe
+*.pdb
+
+# Pipeline data (regenerable by scripts/01-export … 06-compare; hundreds of MB)
+evtx-parity-test/msgdb/
+evtx-parity-test/new-parsed/
+evtx-parity-test/baseline-evtx/
+evtx-parity-test/baseline-parsed/
+evtx-parity-test/tools/
+evtx-tools/output/
+msgdb-dump/output/
+msgdb-dump/*.db
+
+# msys64 toolchain (115MB) — keep only the top-level baseline scripts
+msys64-Tools/usr/
+msys64-Tools/etc/
+msys64-Tools/tmp/
+msys64-Tools/inetpub/
+msys64-Tools/watch/
+msys64-Tools/var/
+msys64-Tools/evtx/
+
+# Local scratch
+NUL
+*.log
+Thumbs.db
+
+# Local agent-tool settings
+.claude/
+
+# ===== ↑ 以上同步自 .gitignore（「从 .gitignore 同步」只重写以上部分）=====
+.git/
+.hg/
+.svn/
+node_modules/
+bower_components/
+jspm_packages/
+__pycache__/
+site-packages/
+venv/
+coverage/
+htmlcov/
+lcov-report/
+cmakefiles/
+cmake-build-*/
+bazel-*/
+pods/
+deriveddata/
+storybook-static/
+playwright-report/
+test-results/
+allure-results/
+allure-report/
+cdk.out/
+*.egg-info/
+*.dist-info/
+eggs/
+pip-wheel-metadata/
+wheels/
+# ----- ↑ 以上为 ZCode 默认排除规则（自定义规则请写在本行下方，不会被同步/恢复改动）-----
+# 自定义规则写在下方（本行提示可删除）

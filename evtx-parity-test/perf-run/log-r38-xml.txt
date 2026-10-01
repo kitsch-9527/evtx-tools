@@ -1,0 +1,6 @@
+[info] detected EVTX build: 0
+[info] message language: zh-CN
+[info] loading messages db: ../msgdb/hotech-msg-Windows_10_Education-25H2-26220.9343.db
+[progress] 20000 events processed
+[progress] 34255 events processed
+[done] 34255 events written to r38check/app.xml.csv

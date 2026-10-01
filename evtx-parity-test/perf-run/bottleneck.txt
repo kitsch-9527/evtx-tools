@@ -1,0 +1,40 @@
+# Security.evtx 1073.8MB 2034603 events - bottleneck decomposition 13:23:22
+environment: line 5: bc: command not found
+csv msgdb threads=1                        0.00 s
+environment: line 5: bc: command not found
+csv msgdb threads=4                        0.00 s
+environment: line 5: bc: command not found
+csv msgdb threads=8                        0.00 s
+environment: line 5: bc: command not found
+csv NO-msgdb threads=0                     0.00 s
+environment: line 5: bc: command not found
+csv NO-msgdb threads=1                     0.00 s
+# Security.evtx 1073.8MB / Setup.evtx 21.0MB - bottleneck decomposition 2026-10-01 13:30:23
+setup-msgdb-t0                   1427 ms   events=14875
+setup-nomsgdb-t0                  161 ms   events=FAILED
+sec-csv-msgdb-t1               111255 ms   events=2034603
+sec-csv-msgdb-t4                86852 ms   events=2034603
+sec-csv-msgdb-t8                88632 ms   events=2034603
+sec-csv-nomsgdb-t0                139 ms   events=FAILED
+sec-csv-nomsgdb-t1                112 ms   events=FAILED
+sec-db-msgdb-t0                101401 ms   events=2034603
+sec-db-msgdb-t0-nostats        110276 ms   events=2034603
+# done 2026-10-01 13:38:45
+# warm-cache follow-up 2026-10-01 13:41:35
+sec-csv-msgdb-t0-warm           94209 ms   events=2034603
+sec-csv-msgdb-t2                88722 ms   events=2034603
+sec-csv-msgdb-t6                90277 ms   events=2034603
+sec-csv-msgdb-t0-rep2           91487 ms   events=2034603
+# done 2026-10-01 13:47:41
+# write-side experiments 2026-10-01 13:49:51
+sec-csv-nul-t0                  91142 ms   events=2034603
+sec-csv-xml-t0                  91904 ms   events=2034603
+# done 2026-10-01 13:52:55
+# post-optimization runs 2026-10-01 15:31:11
+r36-sec-csv-t0-cold             89894 ms   events=2034603
+r36-sec-csv-t0-warm             77088 ms   events=2034603
+r36-sec-csv-t1                  97627 ms   events=2034603
+r36-sec-csv-t4                  78052 ms   events=2034603
+r36-app-csv-t0                   4109 ms   events=34255
+r36-sys-csv-t0                   2579 ms   events=147082
+# done 2026-10-01 15:37:02

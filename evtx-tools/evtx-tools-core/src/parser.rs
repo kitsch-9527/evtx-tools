@@ -146,6 +146,95 @@ pub fn iter_events(
     })
 }
 
+/// Like [`iter_events`], but also attaches each record's raw XML
+/// (`<Event xmlns="...">...`, the evtx crate's own serialization) to
+/// `ParsedEvent.raw_xml`. Used by `parse --with-xml`.
+///
+/// The evtx crate serializes a record either to JSON or to XML, never both,
+/// so a second parser over the same file walks the records again and the two
+/// streams are zipped by `event_record_id`. Both iterators yield records in
+/// file order; a record whose XML counterpart is missing (parse error on
+/// either side) is still emitted, with `raw_xml = None`.
+pub fn iter_events_with_xml<'a>(
+    parser: &'a mut EvtxParser<File>,
+    xml_parser: &'a mut EvtxParser<File>,
+    file_name: String,
+) -> impl Iterator<Item = Result<(ParsedEvent, Option<Value>)>> + 'a {
+    iter_raw_json_values_with_xml(parser, xml_parser).map(move |result| match result {
+        Err(e) => Err(e),
+        Ok((data, rid, raw_xml)) => {
+            let (mut event, event_data_value) = extract_fields(data, rid, &file_name);
+            event.raw_xml = raw_xml;
+            Ok((event, event_data_value))
+        }
+    })
+}
+
+/// Like [`iter_events_with_xml`], but yields raw `(Value, event_record_id,
+/// raw_xml)` tuples **without** calling [`extract_fields`] — the 22-field
+/// JSON traversal is deferred to the caller so it can run inside a rayon
+/// parallel section (see [`extract_batch_parallel`]). The `raw_xml` payload
+/// comes from the same record-id zip as [`iter_events_with_xml`]: a record
+/// whose XML counterpart is missing (parse error on either side) yields
+/// `raw_xml = None`.
+pub fn iter_raw_json_values_with_xml<'a>(
+    parser: &'a mut EvtxParser<File>,
+    xml_parser: &'a mut EvtxParser<File>,
+) -> impl Iterator<Item = Result<(Value, u64, Option<String>)>> + 'a {
+    let mut xml_iter = xml_parser.records();
+    // Records whose XML arrived before the matching JSON event (e.g. the JSON
+    // side skipped an item via an error path) wait here for their record id.
+    let mut pending_xml: std::collections::BTreeMap<u64, String> = std::collections::BTreeMap::new();
+    parser.records_json_value().map(move |result| {
+        match result {
+            Err(e) => Err(format!("evtx error: {e}")),
+            Ok(record) => {
+                let rid = record.event_record_id;
+                let mut raw_xml: Option<String> = pending_xml.remove(&rid);
+                if raw_xml.is_none() {
+                    for item in xml_iter.by_ref() {
+                        match item {
+                            Ok(x) if x.event_record_id < rid => continue,
+                            Ok(x) if x.event_record_id == rid => {
+                                raw_xml = Some(x.data);
+                                break;
+                            }
+                            Ok(x) => {
+                                pending_xml.insert(x.event_record_id, x.data);
+                                break;
+                            }
+                            Err(_) => continue,
+                        }
+                    }
+                }
+                Ok((record.data, rid, raw_xml))
+            }
+        }
+    })
+}
+
+/// Parallel counterpart of the [`iter_events`] extract stage: run the
+/// 22-field JSON traversal ([`extract_fields`]) across a raw batch on the
+/// rayon pool instead of the serial producer thread.
+///
+/// Order is preserved (rayon indexed collect), so callers can keep assigning
+/// sequence numbers and collecting warmup keys in stream order after the
+/// batch returns. `raw_xml` payloads produced by
+/// [`iter_raw_json_values_with_xml`] are attached to their records here.
+pub fn extract_batch_parallel(
+    raw: Vec<(Value, u64, Option<String>)>,
+    file_name: &str,
+) -> Vec<(ParsedEvent, Option<Value>)> {
+    use rayon::prelude::*;
+    raw.into_par_iter()
+        .map(|(data, rid, raw_xml)| {
+            let (mut event, event_data_value) = extract_fields(data, rid, file_name);
+            event.raw_xml = raw_xml;
+            (event, event_data_value)
+        })
+        .collect()
+}
+
 /// Extract all fields from a JSON EVTX record into a [`ParsedEvent`].
 ///
 /// Also returns the raw `EventData` sub-tree so that downstream message
@@ -822,5 +911,185 @@ mod tests {
     fn test_scan_evtx_channels_not_found() {
         let result = scan_evtx_channels("/nonexistent/file.evtx", 1);
         assert!(result.is_err(), "expected Err for non-existent file");
+    }
+
+    // -----------------------------------------------------------------------
+    // iter_events_with_xml tests (--with-xml)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_iter_events_with_xml_populates_raw_xml() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../data/test-dataset/evtx/DE_WinEventLogSvc_Crash_System_7036.evtx"
+        );
+        let mut parser = open_evtx(path, 1).unwrap();
+        let mut xml_parser = open_evtx(path, 1).unwrap();
+        let events: Vec<_> = iter_events_with_xml(&mut parser, &mut xml_parser, "t.evtx".into())
+            .map(|r| r.expect("event should parse"))
+            .collect();
+        assert!(!events.is_empty(), "fixture should yield events");
+
+        // Same record set as the plain iterator (no events lost/added).
+        let plain_count = {
+            let mut p = open_evtx(path, 1).unwrap();
+            iter_events(&mut p, "t.evtx".into())
+                .map(|r| r.expect("event should parse"))
+                .count()
+        };
+        assert_eq!(events.len(), plain_count, "xml pass must not drop events");
+
+        for (ev, _) in &events {
+            let rid = ev.event_record_id.expect("record id present");
+            let xml = ev.raw_xml.as_ref().unwrap_or_else(|| {
+                panic!("raw_xml must be populated for record {rid} (--with-xml)")
+            });
+            assert!(xml.contains("<Event"), "record {rid}: not Event XML: {xml:.80}");
+        }
+    }
+
+    #[test]
+    fn test_iter_events_with_xml_record_ids_match() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../data/test-dataset/evtx/DE_WinEventLogSvc_Crash_System_7036.evtx"
+        );
+        // Independent source of truth: the embedded <EventRecordID> of each
+        // record from a plain XML pass. The zip must reproduce this exact
+        // sequence — one XML payload per event, in stream order.
+        let xml_ids = |data: &str| -> Option<String> {
+            let tag = "<EventRecordID>";
+            let start = data.find(tag)? + tag.len();
+            let end = data[start..].find('<')? + start;
+            Some(data[start..end].to_string())
+        };
+        let expected: Vec<String> = {
+            let mut p0 = open_evtx(path, 1).unwrap();
+            p0.records()
+                .filter_map(|r| r.ok())
+                .filter_map(|r| xml_ids(&r.data))
+                .collect()
+        };
+        assert!(!expected.is_empty(), "fixture XML should carry EventRecordID");
+        let mut parser = open_evtx(path, 1).unwrap();
+        let mut xml_parser = open_evtx(path, 1).unwrap();
+        let got: Vec<String> = iter_events_with_xml(&mut parser, &mut xml_parser, "t.evtx".into())
+            .filter_map(|r| r.ok())
+            .filter_map(|(ev, _)| ev.raw_xml)
+            .filter_map(|xml| xml_ids(&xml))
+            .collect();
+        assert_eq!(got, expected, "zip misaligned: raw_xml stream != XML stream order");
+    }
+
+    // -------------------------------------------------------------------
+    // extract_batch_parallel / iter_raw_json_values_with_xml
+    // (R38 生产者并行化：22 字段 JSON 遍历前移进 rayon fork-join 段)
+    // -------------------------------------------------------------------
+
+    fn xml_fixture_path() -> &'static str {
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../data/test-dataset/evtx/DE_WinEventLogSvc_Crash_System_7036.evtx"
+        )
+    }
+
+    #[test]
+    fn test_extract_batch_parallel_matches_serial_iter_events() {
+        let path = xml_fixture_path();
+        let serial: Vec<(ParsedEvent, Option<Value>)> = {
+            let mut p = open_evtx(path, 1).unwrap();
+            iter_events(&mut p, "t.evtx".into())
+                .map(|r| r.expect("event should parse"))
+                .collect()
+        };
+        assert!(!serial.is_empty(), "fixture should yield events");
+
+        let raw: Vec<(Value, u64)> = {
+            let mut p = open_evtx(path, 1).unwrap();
+            iter_raw_json_values(&mut p)
+                .map(|r| r.expect("event should parse"))
+                .collect()
+        };
+        assert_eq!(raw.len(), serial.len(), "raw and serial must cover the same records");
+
+        let raw3: Vec<(Value, u64, Option<String>)> =
+            raw.into_iter().map(|(v, rid)| (v, rid, None)).collect();
+        let parallel = extract_batch_parallel(raw3, "t.evtx");
+
+        for ((se, sv), (pe, pv)) in serial.into_iter().zip(parallel) {
+            assert_eq!(se.event_record_id, pe.event_record_id, "record order must be preserved");
+            let sj = serde_json::to_string(&se).unwrap();
+            let pj = serde_json::to_string(&pe).unwrap();
+            assert_eq!(sj, pj, "ParsedEvent mismatch at record {:?}", pe.event_record_id);
+            assert_eq!(sv, pv, "EventData value mismatch at record {:?}", pe.event_record_id);
+        }
+    }
+
+    #[test]
+    fn test_iter_raw_json_values_with_xml_zip_matches_iter_events_with_xml() {
+        let path = xml_fixture_path();
+        // Reference: the established zip+extract iterator.
+        let reference: Vec<(Option<u64>, Option<String>)> = {
+            let mut p = open_evtx(path, 1).unwrap();
+            let mut xp = open_evtx(path, 1).unwrap();
+            iter_events_with_xml(&mut p, &mut xp, "t.evtx".into())
+                .map(|r| r.expect("event should parse"))
+                .map(|(e, _)| (e.event_record_id, e.raw_xml))
+                .collect()
+        };
+        // New raw zip: identical (rid, raw_xml) pairing, unextracted Value.
+        let raw: Vec<(Value, u64, Option<String>)> = {
+            let mut p = open_evtx(path, 1).unwrap();
+            let mut xp = open_evtx(path, 1).unwrap();
+            iter_raw_json_values_with_xml(&mut p, &mut xp)
+                .map(|r| r.expect("event should parse"))
+                .collect()
+        };
+        assert_eq!(raw.len(), reference.len(), "zip must not drop events");
+        for ((v, rid, xml), (ref_rid, ref_xml)) in raw.into_iter().zip(reference) {
+            assert_eq!(Some(rid), ref_rid, "record id zip misaligned");
+            assert_eq!(xml, ref_xml, "raw_xml zip misaligned at record {rid}");
+            assert!(v.get("Event").is_some(), "raw Value must be the full record");
+        }
+    }
+
+    /// Perf probe (manual, `#[ignore]`): splits the serial producer cost into
+    /// the evtx crate's JSON tree build vs our `extract_fields` traversal —
+    /// the extract share is what [`extract_batch_parallel`] can move onto the
+    /// rayon pool.
+    ///
+    /// Run: `EVTX_PROBE_FILE=<path> cargo test --release -p evtx-tools-core
+    /// --lib -- --ignored probe_serial_split`
+    #[test]
+    #[ignore = "manual perf probe: set EVTX_PROBE_FILE"]
+    fn probe_serial_split_tree_build_vs_extract() {
+        let Ok(path) = std::env::var("EVTX_PROBE_FILE") else { return };
+        let t0 = std::time::Instant::now();
+        let mut p = open_evtx(&path, 1).unwrap();
+        let mut tree_only = 0u64;
+        for raw in iter_raw_json_values(&mut p) {
+            if raw.is_ok() {
+                tree_only += 1;
+            }
+        }
+        let tree = t0.elapsed();
+
+        let t1 = std::time::Instant::now();
+        let mut p = open_evtx(&path, 1).unwrap();
+        let mut full = 0u64;
+        for ev in iter_events(&mut p, "probe.evtx".into()) {
+            if ev.is_ok() {
+                full += 1;
+            }
+        }
+        let both = t1.elapsed();
+
+        let extract = both.saturating_sub(tree);
+        eprintln!("[probe] {path}");
+        eprintln!("[probe] records: tree_only={tree_only} full={full}");
+        eprintln!(
+            "[probe] tree_build={tree:?} full_iter={both:?} extract≈{extract:?} ({:.0}% of serial)",
+            100.0 * extract.as_secs_f64() / both.as_secs_f64().max(1e-9)
+        );
     }
 }

@@ -1,6 +1,7 @@
 use crate::{MessageRow, VariantKey};
 use crate::resolver::MessageDb;
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 impl MessageDb {
     /// Batch-load variant rows for given (provider, event_id) cohorts (v6 precise).
@@ -29,7 +30,12 @@ impl MessageDb {
                 variant_rows.extend(fallback_rows);
             }
         }
-        for (k, r) in variant_rows { self.variant_cache.insert(k, r); }
+        for (k, r) in variant_rows {
+            let cohort_key = (k.provider_name.clone(), k.event_id);
+            if self.variant_cache.insert(k.clone(), Arc::new(r)).is_none() {
+                self.cohort_cache.entry(cohort_key).or_default().push(k);
+            }
+        }
         Ok(())
     }
 
@@ -82,12 +88,26 @@ impl MessageDb {
         }
         Ok(variant_rows)
     }
-    pub fn get_variant(&self, key: &VariantKey) -> Option<&MessageRow> { self.variant_cache.get(key) }
-    pub fn resolve_variant(&self, key: &VariantKey) -> Option<&MessageRow> {
+    pub fn get_variant(&self, key: &VariantKey) -> Option<Arc<MessageRow>> {
+        self.variant_cache.get(key).cloned()
+    }
+    pub fn resolve_variant(&self, key: &VariantKey) -> Option<Arc<MessageRow>> {
         if let Some(r) = self.get_variant(key) { return Some(r); }
-        let mut best: Option<(&VariantKey, &MessageRow, i32)> = None;
-        for (k, v) in &self.variant_cache {
-            if k.provider_name != key.provider_name || k.event_id != key.event_id { continue; }
+        let mut best: Option<(&VariantKey, &Arc<MessageRow>, i32)> = None;
+        // Cohort-scoped ladder: only this (provider, event_id)'s cached rows
+        // can win, so scan them instead of the whole cache. Tie-break (R8)
+        // is deterministic (score, then smaller message_id), so the scan
+        // order over the cohort vec is irrelevant.
+        let empty: Vec<VariantKey> = Vec::new();
+        let cohort = self
+            .cohort_cache
+            .get(&(key.provider_name.clone(), key.event_id))
+            .unwrap_or(&empty);
+        for k in cohort {
+            let v = match self.variant_cache.get(k) {
+                Some(v) => v,
+                None => continue,
+            };
             let mut score: i32 = 0;
             if k.level != 0 { if k.level == key.level { score += 10; } else { score -= 10; } }
             if k.opcode != 0 { if k.opcode == key.opcode { score += 10; } else { score -= 10; } }
@@ -106,7 +126,7 @@ impl MessageDb {
             };
             if take { best = Some((k, v, score)); }
         }
-        if let Some((_, row, _)) = best { return Some(row); }
+        if let Some((_, row, _)) = best { return Some(Arc::clone(row)); }
         // Single-file v7 (ADR 0003): no legacy single-template cache to fall back to.
         // Cohort miss means the (provider, event_id) is absent from the DB.
         None
@@ -118,15 +138,21 @@ impl MessageDb {
         &self,
         key: &VariantKey,
         full_id: u32,
-    ) -> Option<&MessageRow> {
-        let mut best: Option<(&VariantKey, &MessageRow, i32)> = None;
-        for (k, v) in &self.variant_cache {
-            if k.provider_name != key.provider_name
-                || k.event_id != key.event_id
-                || k.message_id != full_id
-            {
+    ) -> Option<Arc<MessageRow>> {
+        let mut best: Option<(&VariantKey, &Arc<MessageRow>, i32)> = None;
+        let empty: Vec<VariantKey> = Vec::new();
+        let cohort = self
+            .cohort_cache
+            .get(&(key.provider_name.clone(), key.event_id))
+            .unwrap_or(&empty);
+        for k in cohort {
+            if k.message_id != full_id {
                 continue;
             }
+            let v = match self.variant_cache.get(k) {
+                Some(v) => v,
+                None => continue,
+            };
             let mut score: i32 = 0;
             if k.level != 0 { if k.level == key.level { score += 10; } else { score -= 10; } }
             if k.opcode != 0 { if k.opcode == key.opcode { score += 10; } else { score -= 10; } }
@@ -140,6 +166,6 @@ impl MessageDb {
             };
             if take { best = Some((k, v, score)); }
         }
-        best.map(|(_, row, _)| row)
+        best.map(|(_, row, _)| Arc::clone(row))
     }
 }

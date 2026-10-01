@@ -35,8 +35,8 @@ evtx-tools.exe parse [OPTIONS] --output <OUTPUT> <INPUT>
 | `--msg-db` | 显式指定消息库路径 |
 | `--msg-dir` | 目录自动探测 `hotech-msg-*.db`（与 `--msg-db` 二选一；都没有则以原始形态输出消息字段） |
 | `--lang` | 消息语言，默认 `zh-CN`。**请求语言缺失时自动回落 en-US**（镜像 wevtapi MUI 回退链；Setup 通道即此形态） |
-| `--with-xml` | 附带 raw XML 列（默认关） |
-| `--threads` | 工作线程数（0=全部核心，默认 0） |
+| `--with-xml` | 附带 raw XML 列（默认关）。R36（2026-10-01）起实际生效：对同一文件二次走 XML 序列化并按 event_record_id 对齐（evtx crate 单条记录只能序列化为 JSON 或 XML 之一）；解析耗时约 +10~30%（大文件 +100% 以内），缺记录侧 raw_xml 留空 |
+| `--threads` | 工作线程数（0=全部核心，默认 0）。实测甜点 **2–4**：R38（2026-10-01）起 t0/12 核比 t4 慢 ~12%（crate 解压池与 rayon 抽取/渲染池过订阅），大文件建议显式 `--threads 4` |
 | `--profile` | 内置分析 profile（security / persistence / system / remote / process / powershell / mssql / web，可多值） |
 | `--rules-dir` | 自定义规则 YAML 目录 |
 | `--no-stats` | 跳过统计表生成 |
@@ -99,9 +99,9 @@ evtx-tools.exe parse Security.evtx -o sec.db --format db \
 
 `--profile` 按 YAML 规则给事件打场景标签并生成统计表；`--rules-dir` 可加自定义规则。
 
-### 4.3 无消息库快速看事件
+### 4.3 无消息库解析（已禁用，v7 ADR 0003）
 
-省略 `--msg-db/--msg-dir`：message 列为空/原始形态，但 EventID/Provider/时间/EventData 结构照常输出——适合只看事件骨架。
+~~省略 `--msg-db/--msg-dir` 快速看事件骨架~~ —— v7 单文件契约（ADR 0003）起 CLI 强制要求消息库，无库直接报错退出。只看骨架请用任一 v9 消息库 + `--format csv`（Setup 通道类缺文本会回落 en-US）。
 
 ---
 

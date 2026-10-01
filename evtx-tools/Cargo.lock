@@ -512,6 +512,7 @@ dependencies = [
  "chrono",
  "csv",
  "evtx",
+ "rayon",
  "regex",
  "rusqlite",
  "serde",

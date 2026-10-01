@@ -18,9 +18,9 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
 
-use evtx_tools_core::parser::{detect_evtx_build, iter_events, open_evtx};
+use evtx_tools_core::parser::{detect_evtx_build, open_evtx};
 use evtx_tools_core::resolver::MessageDb;
-use evtx_tools_core::storage::csv::write_events;
+use evtx_tools_core::storage::csv::{write_csv_header, write_event_rows};
 use evtx_tools_core::storage::sqlite::EventsDb;
 use evtx_tools_core::storage::sqlite::{ensure_scenario_table, insert_scenario_event};
 use evtx_tools_core::routing::{rule_from_yaml, SceneRouter};
@@ -79,8 +79,8 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
         let file = File::create(output_path)
             .map_err(|e| format!("failed to create csv '{}': {e}", output_path.display()))?;
         let mut writer = BufWriter::new(file);
-        // Write an empty batch to emit header + BOM; actual data appended per-batch
-        write_events(&mut writer, &[])?;
+        // Header + BOM exactly once; per-batch flush_batch only appends rows
+        write_csv_header(&mut writer)?;
         Some(writer)
     } else {
         None
@@ -159,6 +159,15 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
     // Producer: iterate evtx events in batches, parallel resolve, send to writer
     let mut parser = open_evtx(&input_path, args.threads)?;
     let file_name = file_stem(&args.input);
+    // --with-xml: a second pass over the same file supplies each record's raw
+    // XML (evtx serializes a record to JSON *or* XML, never both). Declared
+    // before the event iterator and not touched afterwards — the iterator
+    // holds the mutable borrow.
+    let mut xml_parser = if args.with_xml {
+        Some(open_evtx(&input_path, args.threads)?)
+    } else {
+        None
+    };
 
     // Wrap msg_db in Arc<Mutex> for thread-safe parallel access.
     // Mutex is used because rusqlite::Connection is not Sync (contains RefCell),
@@ -167,14 +176,28 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
 
     const PARALLEL_BATCH: usize = 20_000;
 
-    let mut batch: Vec<(ParsedEvent, Option<Value>)> = Vec::with_capacity(PARALLEL_BATCH);
+    let mut raw_batch: Vec<(Value, u64, Option<String>)> = Vec::with_capacity(PARALLEL_BATCH);
     let mut new_variant_keys: Vec<evtx_tools_core::VariantKey> = Vec::new();
     let mut warmed_up_variants: HashSet<evtx_tools_core::VariantKey> = HashSet::new();
     // Global monotonically increasing sequence number — preserves parse order
     let mut sequence_number: u64 = 0;
 
-    for result in iter_events(&mut parser, file_name) {
-        let (mut event, event_data_value) = match result {
+    // R38: the serial producer now only iterates the evtx crate stream; the
+    // 22-field JSON traversal (extract_fields, ~23% of the serial segment,
+    // see probe_serial_split_tree_build_vs_extract) is deferred to
+    // extract_batch_parallel and runs on the rayon pool per batch.
+    use evtx_tools_core::parser::{
+        extract_batch_parallel, iter_raw_json_values, iter_raw_json_values_with_xml,
+    };
+    let events: Box<dyn Iterator<Item = Result<(Value, u64, Option<String>)>>> =
+        match &mut xml_parser {
+            Some(xp) => Box::new(iter_raw_json_values_with_xml(&mut parser, xp)),
+            None => Box::new(
+                iter_raw_json_values(&mut parser).map(|r| r.map(|(v, rid)| (v, rid, None))),
+            ),
+        };
+    for result in events {
+        let raw = match result {
             Ok(t) => t,
             Err(e) => {
                 eprintln!("[warn] skipping event: {e}");
@@ -182,9 +205,67 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
             }
         };
 
+        raw_batch.push(raw);
+
+        if raw_batch.len() >= PARALLEL_BATCH {
+            let mut batch = extract_and_prepare_batch(
+                &mut raw_batch, &file_name, &msg_db,
+                &mut warmed_up_variants, &mut new_variant_keys, &mut sequence_number,
+            );
+            process_parallel_batch(
+                &msg_db, &mut new_variant_keys, &target_lang, &mut batch,
+            );
+            let event_vec: Vec<ParsedEvent> = batch.drain(..).map(|(e, _)| e).collect();
+            if tx.send(event_vec).is_err() {
+                eprintln!("[error] writer thread terminated unexpectedly");
+                break;
+            }
+        }
+    }
+
+    // Flush remaining partial batch
+    if !raw_batch.is_empty() {
+        let mut batch = extract_and_prepare_batch(
+            &mut raw_batch, &file_name, &msg_db,
+            &mut warmed_up_variants, &mut new_variant_keys, &mut sequence_number,
+        );
+        process_parallel_batch(
+            &msg_db, &mut new_variant_keys, &target_lang, &mut batch,
+        );
+        let event_vec: Vec<ParsedEvent> = batch.drain(..).map(|(e, _)| e).collect();
+        if tx.send(event_vec).is_err() {
+            eprintln!("[error] writer thread terminated unexpectedly");
+        }
+    }
+
+    // Signal writer to finish by dropping the sender, then wait
+    drop(tx);
+    writer.join().map_err(|_| "writer thread panicked".to_string())??;
+
+    Ok(())
+}
+
+/// R38: run the per-record extract stage on the rayon pool
+/// ([`evtx_tools_core::parser::extract_batch_parallel`]), then assign
+/// sequence numbers and collect variant warmup keys in stream order —
+/// the returned batch is index-ordered, so this preserves the previous
+/// serial-producer semantics exactly.
+fn extract_and_prepare_batch(
+    raw_batch: &mut Vec<(Value, u64, Option<String>)>,
+    file_name: &str,
+    msg_db: &Option<Arc<Mutex<MessageDb>>>,
+    warmed_up_variants: &mut HashSet<evtx_tools_core::VariantKey>,
+    new_variant_keys: &mut Vec<evtx_tools_core::VariantKey>,
+    sequence_number: &mut u64,
+) -> Vec<(ParsedEvent, Option<Value>)> {
+    let mut batch = evtx_tools_core::parser::extract_batch_parallel(
+        std::mem::take(raw_batch),
+        file_name,
+    );
+    for (event, _) in batch.iter_mut() {
         // Assign global sequence number in parse order
-        event.sequence_number = Some(sequence_number);
-        sequence_number += 1;
+        event.sequence_number = Some(*sequence_number);
+        *sequence_number += 1;
 
         // Collect variant warmup keys (single-file v7: warmup_variants is the only path).
         if msg_db.is_some() {
@@ -218,37 +299,8 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
                 }
             }
         }
-
-        batch.push((event, event_data_value));
-
-        if batch.len() >= PARALLEL_BATCH {
-            process_parallel_batch(
-                &msg_db, &mut new_variant_keys, &target_lang, &mut batch,
-            );
-            let event_vec: Vec<ParsedEvent> = batch.drain(..).map(|(e, _)| e).collect();
-            if tx.send(event_vec).is_err() {
-                eprintln!("[error] writer thread terminated unexpectedly");
-                break;
-            }
-        }
     }
-
-    // Flush remaining partial batch
-    if !batch.is_empty() {
-        process_parallel_batch(
-            &msg_db, &mut new_variant_keys, &target_lang, &mut batch,
-        );
-        let event_vec: Vec<ParsedEvent> = batch.drain(..).map(|(e, _)| e).collect();
-        if tx.send(event_vec).is_err() {
-            eprintln!("[error] writer thread terminated unexpectedly");
-        }
-    }
-
-    // Signal writer to finish by dropping the sender, then wait
-    drop(tx);
-    writer.join().map_err(|_| "writer thread panicked".to_string())??;
-
-    Ok(())
+    batch
 }
 
 fn channel_to_u8(channel: Option<&str>) -> u8 {
@@ -453,12 +505,14 @@ fn format_datetime_ns(value: &str) -> String {
 ///
 /// 1. **Warmup** (lock, single-threaded): batch-loads new (provider, eid) pairs
 ///    from SQLite into the in-memory `MessageDb` cache.
-/// 2. **Parallel resolve** (concurrent, lock briefly per event): each event
-///    acquires the lock only to clone its `MessageRow` from the cache (HashMap
-///    lookup + Clone), then does the heavy work (JSON traversal, `substitute`,
-///    metadata copy) **without the lock** — so all cores run simultaneously.
-///    A second brief lock is taken only when `%%N` expansion or value_maps
-///    lookup is needed.
+/// 2. **Batch resolve** (single lock pass for the whole batch): each event's
+///    variant ladder, R26 Qualifier probe, value maps and `%%N`-expanded
+///    template are resolved under ONE lock acquisition, with rows handed out
+///    as cheap `Arc<MessageRow>` clones — the deep per-event row clone and
+///    the 2M-event lock stampede this path used to pay are gone.
+/// 3. **Parallel render** (lock-free): JSON traversal, `substitute`, metadata
+///    copy run without touching the cache — all cores work simultaneously.
+///    Only the rare miss-fallback path takes per-event locks (R12/R21/R29).
 fn process_parallel_batch(
     msg_db: &Option<Arc<Mutex<MessageDb>>>,
     new_variant_keys: &mut Vec<evtx_tools_core::VariantKey>,
@@ -488,24 +542,35 @@ fn process_parallel_batch(
     // --- 2. Parallel message resolution ---
     // Lock held only briefly to clone MessageRow; substitution + metadata copy
     // run without the lock so all rayon threads execute simultaneously.
-    batch.par_iter_mut().for_each(|(event, event_data_value)| {
-        // ---- Brief lock: fetch cloned MessageRow and value_maps ----
-        // Use an inner closure so that any lookup failure falls through
-        // to fallback message generation rather than silently leaving
-        // the message as None.
-        struct ResolveResult {
-            row: MessageRow,
-            value_maps: std::collections::HashMap<String, std::collections::HashMap<String, String>>,
-            bitmap_names: std::collections::HashSet<String>,
-        }
+    // ---- 2. Batch resolve: one lock pass for the whole batch ----
+    struct PreResolved {
+        row: std::sync::Arc<MessageRow>,
+        /// Template with %%N refs already expanded (lock needed for that
+        /// lookup) — None when the template has no %%N refs at all.
+        template_expanded: Option<String>,
+        value_maps: std::collections::HashMap<String, std::collections::HashMap<String, String>>,
+        bitmap_names: std::sync::Arc<std::collections::HashSet<String>>,
+        event_bitmaps: std::collections::HashSet<String>,
+    }
 
-        let resolved = (|| -> Option<ResolveResult> {
-            let guard = db.lock().ok()?;
+    let pre: Vec<Option<PreResolved>> = match db.lock() {
+        // Poisoned lock: mark every event as unresolved — the render phase's
+        // None arm runs the same fallback path the per-event resolve used to
+        // take on a failed lock.
+        Err(_) => {
+            eprintln!("[warn] msg_db lock poisoned during batch resolve");
+            (0..batch.len()).map(|_| None).collect::<Vec<_>>()
+        }
+        Ok(guard) => {
+        // Global bitmap-name set is immutable after load: clone the Arc once
+        // per batch instead of deep-cloning the set per event.
+        let global_bitmaps = guard.get_bitmap_names();
+        batch.iter().map(|(event, _)| {
             let provider = event.provider_name.as_ref()?;
             let provider_str = provider.as_str();
             let eid = event.event_id?;
             // Single-file v7: 8-tuple precise via resolve_variant (no availability check).
-            let try_variant = || -> Option<MessageRow> {
+            let try_variant = || -> Option<std::sync::Arc<MessageRow>> {
                 let ver = event.version.unwrap_or(0);
                 let lvl = event.level.unwrap_or(0);
                 let opc = event.opcode.as_deref().and_then(|s| s.parse::<u8>().ok()).unwrap_or(0);
@@ -525,7 +590,7 @@ fn process_parallel_batch(
                     channel: ch,
                     message_id: 0,
                 };
-                guard.resolve_variant(&key).cloned()
+                guard.resolve_variant(&key)
             };
             // Single-file v7: variants only, no legacy single-template fallback.
             let mut row = try_variant()?;
@@ -551,7 +616,7 @@ fn process_parallel_batch(
                         message_id: full,
                     };
                     if let Some(exact) = guard.resolve_variant_full_id(&key2, full) {
-                        row = exact.clone();
+                        row = exact;
                     }
                 }
             }
@@ -565,16 +630,28 @@ fn process_parallel_batch(
             for (field, entries) in event_vms {
                 vms.insert(field, entries);
             }
-            let mut bitmap_names = guard.get_bitmap_names();
-            bitmap_names.extend(event_bitmaps);
-            Some(ResolveResult {
+            // %%N template expansion needs the param_refs caches — resolve it
+            // here under the already-held lock instead of re-locking per event.
+            let template_expanded = if row.template.contains("%%") {
+                Some(guard.expand_message(&row.template, provider_str))
+            } else {
+                None
+            };
+            Some(PreResolved {
                 row,
+                template_expanded,
                 value_maps: vms,
-                bitmap_names,
+                bitmap_names: std::sync::Arc::clone(&global_bitmaps),
+                event_bitmaps,
             })
-        })();
+        })
+        .collect::<Vec<_>>()
+        }
+    };
 
-        let row = match resolved {
+    // ---- 3. Parallel render (lock-free on the hit path) ----
+    batch.par_iter_mut().zip(pre.into_par_iter()).for_each(|((event, event_data_value), resolved)| {
+        let row: PreResolved = match resolved {
             Some(r) => r,
             None => {
                 // R12（ADR 0004）：miss 且注册快照已知且源未注册时，wevtutil 对
@@ -675,19 +752,13 @@ fn process_parallel_batch(
             }
         };
 
-        // ---- Heavy work (no lock): substitute + copy metadata ----
-        // Step 1: Expand %%N parameter references BEFORE substitute, because
-        // substitute() consumes %% → % (literal percent), which destroys the
-        // %%NNNN marker that expand_param_refs needs to look up (e.g. %%1843).
-        let template = if row.row.template.contains("%%") {
-            let prov = event.provider_name.as_deref().unwrap_or("");
-            if let Ok(guard) = db.lock() {
-                guard.expand_message(&row.row.template, prov)
-            } else {
-                row.row.template.clone()
-            }
-        } else {
-            row.row.template.clone()
+        // ---- Heavy work (no lock on the hit path): substitute + copy metadata ----
+        // Step 1: %%N references were already expanded under the phase-1 lock
+        // (expand_message), because substitute() consumes %% → % (literal
+        // percent), which destroys the %%NNNN marker expand_param_refs needs.
+        let template = match row.template_expanded {
+            Some(ref t) => t.clone(),
+            None => row.row.template.clone(),
         };
 
         // Step 2: Substitute %1–%99 positional parameters.
@@ -742,7 +813,15 @@ fn process_parallel_batch(
             for field in &typed_fields {
                 vms.remove(field);
             }
-            let params = evtx_tools_core::substitute::apply_value_maps(&params, &row.row.parameters, &vms, &row.bitmap_names);
+            let bitmap_union: std::collections::HashSet<String>;
+            let bitmap_names: &std::collections::HashSet<String> =
+                if row.event_bitmaps.is_empty() {
+                    &row.bitmap_names
+                } else {
+                    bitmap_union = row.bitmap_names.union(&row.event_bitmaps).cloned().collect();
+                    &bitmap_union
+                };
+            let params = evtx_tools_core::substitute::apply_value_maps(&params, &row.row.parameters, &vms, bitmap_names);
             // Apply Layer 2b: LUID fields (*LogonId) render uppercase hex (wevtutil gold standard).
             let params = apply_luid_uppercase(&params, &row.row.parameters);
             // Expand %%N parameter references in parameter VALUES
@@ -1183,7 +1262,7 @@ fn flush_batch(
         db.insert(batch)?;
     }
     if let Some(ref mut writer) = csv_writer {
-        write_events(writer, batch)?;
+        write_event_rows(writer, batch)?;
     }
     Ok(())
 }
@@ -2293,5 +2372,148 @@ mod debug_live_db {
         );
         println!("typed: {:?}", typed);
         println!("owned: {:?}", owned);
+    }
+}
+
+#[cfg(test)]
+mod batch_resolve_tests {
+    //! Characterization tests for the full resolve→render hit path of
+    //! `process_parallel_batch` (warmup → variant ladder with R8 tie-break →
+    //! Layer A/B value maps → metadata copy). These pin current semantics
+    //! while the resolve internals are refactored (Arc cache, batch-resolve).
+
+    use super::*;
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static DB_SEQ: AtomicU64 = AtomicU64::new(0);
+
+    fn tmp_path(name: &str) -> PathBuf {
+        let n = DB_SEQ.fetch_add(1, Ordering::SeqCst);
+        std::env::temp_dir().join(format!("evtx_batch_{}_{}_{}.db", name, std::process::id(), n))
+    }
+
+    fn setup_db(path: &Path) {
+        let _ = std::fs::remove_file(path);
+        let conn = rusqlite::Connection::open(path).unwrap();
+        super::r12_na_tests::create_v8_schema(&conn);
+        conn.execute_batch(
+            "INSERT INTO metadata(key, value) VALUES('schema_version', '9');
+             INSERT INTO dll_entries(dll_id, dll_name, dll_path) VALUES(1, 't.dll', 'C:/t.dll');
+             INSERT INTO providers(provider_name, guid, channel, dll_id) VALUES('Batch-Provider', '{B}', 'System', 1);
+             -- two sibling variants in the same cohort, identical match fields,
+             -- different message_identifier: R8 tie-break must pick 200 (smaller)
+             INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id, message, parameters, level_name, keywords_name)
+               VALUES('Batch-Provider', '{B}', 'en-US', 200, 0, 0, 0, 0, '0', 0, 200, 1,
+                      'Logon %1 from %2.', '{\"1\":\"LogonType\",\"2\":\"TargetUserName\"}',
+                      'Information', 'Audit Success');
+             INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id, message, parameters, level_name, keywords_name)
+               VALUES('Batch-Provider', '{B}', 'en-US', 200, 0, 0, 0, 0, '0', 0, 3221226500, 1,
+                      'ALT Logon %1 from %2.', '{\"1\":\"LogonType\",\"2\":\"TargetUserName\"}',
+                      'Information', 'Audit Success');
+             -- Layer A: field-name-keyed value map (map_name == param name)
+             INSERT INTO value_maps(provider_name, map_name, entry_value, display_name, is_bitmap, lang)
+               VALUES('Batch-Provider', 'LogonType', '2', 'Interactive', 0, 'en-US');
+             -- Layer B: param_index-keyed reference (param 2 -> LogonTypeX map)
+             INSERT INTO value_maps(provider_name, map_name, entry_value, display_name, is_bitmap, lang)
+               VALUES('Batch-Provider', 'LogonTypeX', '10', 'RemoteInteractive-x', 0, 'en-US');
+             INSERT INTO param_value_maps(provider_name, event_id, param_index, param_name, map_name, is_bitmap)
+               VALUES('Batch-Provider', 200, '2', 'TargetUserName', 'LogonTypeX', 0);",
+        )
+        .unwrap();
+        drop(conn);
+    }
+
+    fn batch_event() -> (ParsedEvent, Option<Value>) {
+        let ev = ParsedEvent {
+            event_record_id: Some(1),
+            event_time: None,
+            provider_name: Some("Batch-Provider".into()),
+            provider_guid: Some("{B}".into()),
+            event_id: Some(200),
+            qualifiers: None,
+            version: None,
+            level: None,
+            severity: None,
+            task_category: None,
+            opcode: None,
+            keywords: None,
+            channel: None,
+            computer: None,
+            process_id: None,
+            thread_id: None,
+            user_name: None,
+            user_sid: None,
+            activity_id: None,
+            related_activity_id: None,
+            message: None,
+            level_name: None,
+            keywords_name: None,
+            event_data: None,
+            raw_xml: None,
+            file_name: None,
+            sequence_number: None,
+        };
+        let data = serde_json::json!({ "LogonType": "2", "TargetUserName": "10" });
+        (ev, Some(data))
+    }
+
+    fn run(db_path: &Path, batch: &mut [(ParsedEvent, Option<Value>)]) {
+        let mut db = MessageDb::open(db_path.to_str().unwrap()).unwrap();
+        db.load_value_maps("en-US").unwrap();
+        let msg_db: Option<Arc<Mutex<MessageDb>>> = Some(Arc::new(Mutex::new(db)));
+        let mut keys = vec![evtx_tools_core::VariantKey {
+            provider_name: "Batch-Provider".into(),
+            event_id: 200,
+            version: 0, level: 0, opcode: 0, task: 0, keywords: 0, channel: 0, message_id: 0,
+        }];
+        process_parallel_batch(&msg_db, &mut keys, "en-US", batch);
+    }
+
+    #[test]
+    fn hit_path_ladder_tiebreak_and_value_maps() {
+        let tmp = tmp_path("hit");
+        setup_db(&tmp);
+        let mut batch = vec![batch_event(), batch_event()];
+        run(&tmp, &mut batch);
+        let (ev, _) = &batch[0];
+        assert_eq!(
+            ev.message.as_deref(),
+            Some("Logon Interactive from RemoteInteractive-x."),
+            "R8 tie-break must pick message_id 200; Layer A map param 1, Layer B map param 2"
+        );
+        assert_eq!(ev.level_name.as_deref(), Some("Information"));
+        assert_eq!(ev.keywords_name.as_deref(), Some("Audit Success"));
+        // Second event in the same batch must render identically (no
+        // warmup-order or cross-event cache dependence).
+        assert_eq!(batch[1].0.message.as_deref(), Some("Logon Interactive from RemoteInteractive-x."));
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn hit_path_value_maps_b_override_a_on_same_field() {
+        // Layer B replaces Layer A when both target the same field name.
+        // param 1 (LogonType) gets A entries; adding a B link for param 1 to
+        // a different map must fully replace the A entries for that field.
+        let tmp = tmp_path("override");
+        setup_db(&tmp);
+        {
+            let conn = rusqlite::Connection::open(&tmp).unwrap();
+            conn.execute_batch(
+                "INSERT INTO value_maps(provider_name, map_name, entry_value, display_name, is_bitmap, lang)
+                   VALUES('Batch-Provider', 'LogonTypeA2', '2', 'Interactive-A2', 0, 'en-US');
+                 INSERT INTO param_value_maps(provider_name, event_id, param_index, param_name, map_name, is_bitmap)
+                   VALUES('Batch-Provider', 200, '1', 'LogonType', 'LogonTypeA2', 0);",
+            )
+            .unwrap();
+        }
+        let mut batch = vec![batch_event()];
+        run(&tmp, &mut batch);
+        assert_eq!(
+            batch[0].0.message.as_deref(),
+            Some("Logon Interactive-A2 from RemoteInteractive-x."),
+            "Layer B (param_value_maps) must take precedence over Layer A for the same field"
+        );
+        let _ = std::fs::remove_file(&tmp);
     }
 }

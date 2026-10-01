@@ -28,6 +28,7 @@ use rusqlite::Connection;
 use crate::{substitute::expand_param_refs, MessageRow, Result};
 
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 /// An in-memory cached view of a SQLite message database.
 ///
@@ -44,7 +45,14 @@ pub struct MessageDb {
     pub(crate) conn: Connection,
     /// Variant cache: VariantKey -> MessageRow (single-file v7, 8-tuple precise).
     /// The legacy single-template `cache` is deleted (ADR 0003).
-    pub(crate) variant_cache: HashMap<crate::VariantKey, MessageRow>,
+    /// Rows are Arc-shared: resolve hands out cheap Arc clones instead of
+    /// deep-cloning the whole row per event (2M-event files paid ~25 heap
+    /// allocations/event for that clone under the global Mutex).
+    pub(crate) variant_cache: HashMap<crate::VariantKey, std::sync::Arc<MessageRow>>,
+    /// Cohort index: (provider_name, event_id) -> that cohort's cache keys.
+    /// resolve_variant's fallback ladder previously linear-scanned the whole
+    /// cache on every exact-key miss; it now scans only this cohort's rows.
+    pub(crate) cohort_cache: HashMap<(String, u32), Vec<crate::VariantKey>>,
     /// `%%N` parameter reference cache: provider_name → (param_id → expanded text).
     /// R17（2026-09-04）：provider 维度。全局平铺会让 provider 私有 %%N 与 Win32
     /// 系统错误码互撞（SCM %%2 要 Win32 的 2，某 provider %%2 是私有文本）。
@@ -66,7 +74,7 @@ pub struct MessageDb {
     /// MUI fallback chain (zh-CN → en-US) and the param_refs v9 pattern.
     value_maps_fallback: HashMap<String, HashMap<String, String>>,
     /// Set of map names that are bitmaps (is_bitmap=1 in DB).
-    bitmap_names: HashSet<String>,
+    bitmap_names: Arc<HashSet<String>>,
     /// Registered event source names (R12 / ADR 0004): classic EventLog
     /// sources ∪ WINEVT publisher names. Optional table — an absent or empty
     /// snapshot means "registry state unknown": `is_registered_source` then
@@ -109,11 +117,12 @@ impl MessageDb {
         Ok(MessageDb {
             conn,
             variant_cache: HashMap::new(),
+            cohort_cache: HashMap::new(),
             param_refs: HashMap::new(),
             param_refs_fallback: HashMap::new(),
             value_maps: HashMap::new(),
             value_maps_fallback: HashMap::new(),
-            bitmap_names: HashSet::new(),
+            bitmap_names: Arc::new(HashSet::new()),
             registry_sources: HashSet::new(),
             providers_with_variants: HashSet::new(),
             param_types_cache: HashMap::new(),
@@ -393,7 +402,9 @@ impl MessageDb {
         for row in rows {
             if let Ok((map_name, entry_value, display_name, is_bitmap, row_lang)) = row {
                 if is_bitmap != 0 {
-                    self.bitmap_names.insert(map_name.clone());
+                    let mut bm: HashSet<String> = (*self.bitmap_names).clone();
+                    bm.insert(map_name.clone());
+                    self.bitmap_names = Arc::new(bm);
                 }
                 let layer = if row_lang == lang {
                     &mut self.value_maps
@@ -485,8 +496,8 @@ impl MessageDb {
     }
 
     /// Returns the set of bitmap map names loaded from `value_maps`.
-    pub fn get_bitmap_names(&self) -> HashSet<String> {
-        self.bitmap_names.clone()
+    pub fn get_bitmap_names(&self) -> Arc<HashSet<String>> {
+        Arc::clone(&self.bitmap_names)
     }
 
     /// Attach per-parameter value map references to warmed variant rows.
@@ -522,6 +533,7 @@ impl MessageDb {
             };
             for (k, v) in self.variant_cache.iter_mut() {
                 if k.provider_name == *provider && k.event_id == *event_id {
+                    let v = Arc::make_mut(v);
                     let mut matched = HashMap::new();
                     for (idx, (spec, pname)) in types {
                         let name_ok = match v.parameters.as_ref().and_then(|pm| pm.get(idx)) {
@@ -600,6 +612,7 @@ impl MessageDb {
             // "TimeDeltaInMs" in v4; a v3 link must not map the v4 delta.
             for (k, v) in self.variant_cache.iter_mut() {
                 if k.provider_name == provider && k.event_id == event_id {
+                    let v = Arc::make_mut(v);
                     let name_ok = match v.parameters.as_ref().and_then(|pm| pm.get(&param_index)) {
                         // empty collected name = legacy/unknown → trust
                         Some(actual) => param_name.is_empty() || actual == &param_name,
@@ -948,7 +961,7 @@ mod tests {
         assert!(!row.param_bitmap_refs.contains("1"));
 
         // Field name comes from parameters[idx], map key from param_map_refs[idx].
-        let (vms, bitmaps) = db.resolve_param_value_maps(row);
+        let (vms, bitmaps) = db.resolve_param_value_maps(&row);
         let entries = vms.get("TargetUserName").expect("TargetUserName should resolve");
         assert_eq!(entries.get("2").map(|s| s.as_str()), Some("Interactive"));
         assert!(!bitmaps.contains("TargetUserName"));
@@ -1585,7 +1598,7 @@ mod tests {
         db.warmup(&[key_security_4624()], "zh-CN").unwrap();
 
         // Get the message row via the v7 variant ladder.
-        let row = db.resolve_variant(&key_security_4624()).cloned().expect("4624 variant resolves");
+        let row = db.resolve_variant(&key_security_4624()).expect("4624 variant resolves");
 
         // --- Correct order: expand %%N FIRST, then substitute ---
         let expanded = db.expand_message(&row.template, "Microsoft-Windows-Security-Auditing");
@@ -1655,7 +1668,7 @@ mod tests {
         assert!(!db.has_param_refs(), "cache should be empty with no data rows");
         db.warmup(&[key_security_4624()], "zh-CN").unwrap();
 
-        let row = db.resolve_variant(&key_security_4624()).cloned().expect("4624 variant resolves");
+        let row = db.resolve_variant(&key_security_4624()).expect("4624 variant resolves");
         assert!(row.template.contains("%%1843"), "template should have %%1843");
 
         // With empty cache, expand_message returns template unchanged

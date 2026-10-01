@@ -45,6 +45,13 @@ const CSV_HEADER: &[&str] = &[
 /// double-quote quoting). A UTF-8 BOM (`\u{FEFF}`) is written before the
 /// header so that Chinese characters display correctly in Excel.
 pub fn write_events<W: Write>(mut writer: W, events: &[ParsedEvent]) -> Result<()> {
+    write_csv_header(&mut writer)?;
+    write_event_rows(writer, events)
+}
+
+/// Write the UTF-8 BOM + header row. Call exactly once per output file,
+/// before the first [`write_event_rows`] call.
+pub fn write_csv_header<W: Write>(mut writer: W) -> Result<()> {
     // Write UTF-8 BOM before csv::Writer so Excel displays Chinese correctly
     writer
         .write_all(&[0xEF, 0xBB, 0xBF])
@@ -53,10 +60,24 @@ pub fn write_events<W: Write>(mut writer: W, events: &[ParsedEvent]) -> Result<(
     let mut wtr = csv::WriterBuilder::new()
         .delimiter(b',')
         .quote_style(csv::QuoteStyle::Necessary)
-        .from_writer(writer);
+        .from_writer(&mut writer);
 
     wtr.write_record(CSV_HEADER)
         .map_err(|e| format!("failed to write csv header: {e}"))?;
+
+    wtr.flush().map_err(|e| format!("failed to flush csv writer: {e}"))
+}
+
+/// Append a batch of `ParsedEvent` rows without BOM or header.
+///
+/// flush_batch calls this once per producer batch; the header must have been
+/// emitted exactly once up front (run_parse), otherwise batch boundaries
+/// would grow duplicate header rows (Security ≈ 102 batches ≈ 102 junk rows).
+pub fn write_event_rows<W: Write>(writer: W, events: &[ParsedEvent]) -> Result<()> {
+    let mut wtr = csv::WriterBuilder::new()
+        .delimiter(b',')
+        .quote_style(csv::QuoteStyle::Necessary)
+        .from_writer(writer);
 
     for event in events {
         wtr.write_record(&[
@@ -151,6 +172,29 @@ mod tests {
             sequence_number: None,
             file_name: Some("test.evtx".into()),
         }
+    }
+
+    #[test]
+    fn test_csv_batched_appends_do_not_repeat_header() {
+        // 回归：flush_batch 曾逐批复用 write_events，每批都重写 BOM+表头
+        // （实测 Application 34,255 事件产出 3 条表头，Security 约 102 条，
+        // pandas/Excel 读取在批次边界报错）。契约：调用方预写一次表头，
+        // 各批次经 write_event_rows 只追加数据行。
+        let mut output = Vec::new();
+        write_csv_header(&mut output).unwrap();
+        write_event_rows(&mut output, &[make_test_event(1)]).unwrap();
+        write_event_rows(&mut output, &[make_test_event(2), make_test_event(3)]).unwrap();
+        let content = String::from_utf8(output).unwrap();
+
+        assert_eq!(
+            content.matches('\u{FEFF}').count(),
+            1,
+            "BOM 必须只出现一次，不得随批次重复"
+        );
+        let lines: Vec<&str> = content.lines().collect();
+        assert_eq!(lines.len(), 4); // header + 3 data rows
+        assert!(lines[0].contains("event_record_id"));
+        assert!(lines[1].contains("Test-Provider"));
     }
 
     #[test]
