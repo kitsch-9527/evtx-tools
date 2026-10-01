@@ -36,7 +36,7 @@ evtx-tools.exe parse [OPTIONS] --output <OUTPUT> <INPUT>
 | `--msg-dir` | 目录自动探测 `hotech-msg-*.db`（与 `--msg-db` 二选一；都没有则以原始形态输出消息字段） |
 | `--lang` | 消息语言，默认 `zh-CN`。**请求语言缺失时自动回落 en-US**（镜像 wevtapi MUI 回退链；Setup 通道即此形态） |
 | `--with-xml` | 附带 raw XML 列（默认关）。R36（2026-10-01）起实际生效：对同一文件二次走 XML 序列化并按 event_record_id 对齐（evtx crate 单条记录只能序列化为 JSON 或 XML 之一）；解析耗时约 +10~30%（大文件 +100% 以内），缺记录侧 raw_xml 留空 |
-| `--threads` | 工作线程数（0=全部核心，默认 0）。实测甜点 **2–4**：R38（2026-10-01）起 t0/12 核比 t4 慢 ~12%（crate 解压池与 rayon 抽取/渲染池过订阅），大文件建议显式 `--threads 4` |
+| `--threads` | 工作线程数。**R39（2026-10-01）起默认 4**（实测甜点；12 核上全核池与 rayon 抽取/渲染池过订阅反而慢 ~12%）。显式 `--threads 0` 仍表示用全部核心 |
 | `--profile` | 内置分析 profile（security / persistence / system / remote / process / powershell / mssql / web，可多值） |
 | `--rules-dir` | 自定义规则 YAML 目录 |
 | `--no-stats` | 跳过统计表生成 |

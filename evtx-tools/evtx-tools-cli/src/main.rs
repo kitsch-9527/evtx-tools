@@ -80,8 +80,9 @@ struct ParseArgs {
     /// Include raw XML output (default: false)
     #[arg(long)]
     with_xml: bool,
-    /// Number of worker threads (0 = use all available cores)
-    #[arg(long, default_value_t = 0)]
+    /// Number of worker threads (4 = measured sweet spot; 0 = use all cores).
+    /// R38 后 12 核上全核池与 rayon 池过订阅反而慢 ~12%，故默认取甜点 4。
+    #[arg(long, default_value_t = 4)]
     threads: usize,
     /// Message language code (e.g. "zh-CN", "en-US"). Falls back to en-US
     /// when the requested language is not available for a given event.
@@ -118,5 +119,35 @@ fn main() {
     if let Err(e) = result {
         eprintln!("Error: {e}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Cli, Command};
+    use clap::Parser;
+
+    /// R39：默认 --threads 从 0（全核）改为 4。12 核实测 t0 比 t4 慢 12%
+    /// （evtx crate 解压池与 rayon 抽取/渲染池过订阅，perf-report.md §8）。
+    /// 经典归类：协同线程池过订阅 → 右移默认池大小到实测甜点。
+    #[test]
+    fn test_default_threads_is_four() {
+        let cli = Cli::parse_from(["evtx-tools", "parse", "-o", "out.csv", "in.evtx"]);
+        match cli.command {
+            Command::Parse(args) => assert_eq!(args.threads, 4, "默认线程应为实测甜点 4"),
+            _ => panic!("expected parse subcommand"),
+        }
+    }
+
+    /// 显式 --threads 0 仍保留"用全部核心"语义（用户显式覆盖不受默认值影响）。
+    #[test]
+    fn test_explicit_threads_zero_still_allowed() {
+        let cli = Cli::parse_from([
+            "evtx-tools", "parse", "-o", "out.csv", "--threads", "0", "in.evtx",
+        ]);
+        match cli.command {
+            Command::Parse(args) => assert_eq!(args.threads, 0),
+            _ => panic!("expected parse subcommand"),
+        }
     }
 }
