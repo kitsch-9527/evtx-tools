@@ -167,3 +167,14 @@ cd evtx-tools   && cargo test --workspace                       # Rust 侧（202
 - 架构决策：`docs/adr/0001`（Variant Identity）→ `0005`（TDH 类型化渲染）
 - 操作手册：`evtx-parity-test/README.md`、`skills/parity-test-skill.md`（勿回退事实 #1-#23）
 - 下轮工作清单：`C:\msys64\tmp\evet-handoff-2026-09-07.md`（会话交接文档）
+
+## 9. 夜间值守（2026-10-01 晚 → 10-02 08:30，automation-bbe62e97 每 30 分钟一轮）
+
+- R39 已提交（1be9812b）：CLI 默认 --threads 0→4（co-pool 过订阅右移）。
+- Round 1（00:08）：B 项多输入摊销探针后**不做**——4 文件热跑 20.7s 中固定开销仅占
+  13.5%，收益 ~10-12% < 30% 门槛（amortization 不适用本库负载形态）。
+- C 项 chunk 分片进行中：C① shard.rs 遍历器已提交（d2785fb6，等价性测试实证分片流
+  ==全流）；下轮 C② 有界通道并行驱动+保序归并 → C③ --shard N 开关 → C④ 基准
+  vs 58.9s → C⑤ 全门禁。
+- 交接锚点：evtx-parity-test/perf-run/overnight-log.md（每轮一节）；
+  08:30 后值守自动写总结并自删 automation。

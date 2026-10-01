@@ -25,5 +25,30 @@
 **下轮建议**：直接进入 B 项（多输入摊销，探针先行）。值守自动化
 automation-bbe62e97 每 30 分钟触发，08:30 后自行 CronDelete 收尾。
 
-## Round 1（进行中 23:57——并发轮请跳过本轮窗口，等"已提交"标记）
-B 项探针执行中……
+## Round 1（23:56–00:08，已提交 d2785fb6）
+
+**B 项探针完成——结论：不实现（低于收益门槛）**：
+- 实测（热跑 2 轮，baseline-evtx 4 文件）：round2 SUM=20.7s（Application 0.90 / Security
+  17.5 / Setup 0.8-1.5 / System 0.86）；固定开销 ~0.7s/进程 × 4 = 2.8s 仅占 13.5%
+- 多输入理论收益 ≈ 10-12%（8 文件外推同量级）——**< 30% 门槛，按协议不做**
+- 经典归类：批处理摊销（amortization）——结论：本库真实负载的文件不够小，固定开销
+  不是主要矛盾；该优化留给"海量 KB 级小文件"场景再做
+- 顺带发现：Setup round2 1.47s vs round1 0.80s——单跑波动 ~0.7s，与磁盘/调度有关，
+  小文件计时须多轮取中位
+
+**C① 完成并提交（R40-C①，d2785fb6）**：
+- 经典归类：partition-merge（EVTX 原生 64KB 自包含 chunk，records 不跨块）
+- `core/src/shard.rs`：ShardReader（逐块 seek+读，脏块容忍与 crate 自身逐字同语义：
+  短读跳过+warn / 全零静默 / 坏魔数跳过+warn，fatal 仅 seek 失败）+
+  ShardChunk::records_json_value（chunk.parse→iter→into_json_value，与全流同源）+
+  count_chunks（(size-4096)/65536，与 crate 算法一致）
+- TDD 红（编译失败）→绿 3 测试；关键等价断言：**分片 record_id 流 == 全流逐一相等**
+- 262 测试绿（40+219+3）；06 快门 PASS（45375/45375 diff=0；exe 未变故未跑 05）
+
+**下轮建议**：C② 有界通道并行驱动 + 保序归并 TDD（worker 原子领 chunk_id → 读+解析
+→ 带 chunk_id 发有界 mpsc（cap 4）；消费端 BTreeMap 缓存乱序结果、按 chunk_id 连续
+序排干——乱序缓冲 ≤ worker 数天然有界，经典 ordered merge of out-of-order partitions）；
+等价性红测试=分片全链 record_id 流与 extract_batch_parallel 后 ParsedEvent JSON 序列化
+逐字节对照 iter_events。之后 C③ --shard N 开关（默认关）→ C④ Security 基准 vs 58.9s
+→ C⑤ 全门禁。值守 automation-bbe62e97 每 30 分钟触发，08:30 后自行 CronDelete 收尾。
+
