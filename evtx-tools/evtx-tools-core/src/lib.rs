@@ -145,6 +145,7 @@ pub mod storage;
 pub mod stats;
 pub mod substitute;
 pub mod parser;
+pub mod pipeline;
 pub mod resolver;
 pub mod variant_resolver;
 pub mod routing;
