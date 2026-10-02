@@ -41,7 +41,7 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
         with_xml: args.with_xml,
         shard: args.shard,
         batch_size: 0, // core default (20_000)
-        msg_db_path,
+        msg_db_path: Some(msg_db_path),
         output_db_path: (args.format == "db" || args.format == "both")
             .then(|| args.output.to_string_lossy().to_string()),
         output_csv_path: (args.format == "csv" || args.format == "both")

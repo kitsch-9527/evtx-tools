@@ -53,8 +53,11 @@ pub struct PipelineConfig {
     pub shard: usize,
     /// Producer batch size (`0` = default 20_000).
     pub batch_size: usize,
-    /// Single-file v9 message DB (hard requirement, ADR 0003/0004/0005).
-    pub msg_db_path: String,
+    /// Single-file v9 message DB (ADR 0003/0004/0005).  `None` runs the
+    /// degraded mode: events are extracted/sequenced/stored but message
+    /// rendering (variant ladder, %N substitution, N/A parity) is skipped
+    /// entirely.
+    pub msg_db_path: Option<String>,
     pub output_db_path: Option<String>,
     pub output_csv_path: Option<String>,
     /// Write the 7 `stat_*` tables before finalize.
@@ -81,14 +84,22 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
     let batch_size = if config.batch_size == 0 { 20_000 } else { config.batch_size };
 
     eprintln!("[info] message language: {target_lang}");
-    eprintln!("[info] loading messages db: {}", config.msg_db_path);
-    let mut db = MessageDb::open(&config.msg_db_path)?;
-    db.load_param_refs(&target_lang)?;
-    db.load_value_maps(&target_lang)?;
-    db.load_registry_sources()?;
-    db.load_variant_providers()?;
-    db.load_param_types()?;
-    let msg_db: Option<MessageDb> = Some(db);
+    let msg_db: Option<MessageDb> = match config.msg_db_path {
+        Some(ref p) => {
+            eprintln!("[info] loading messages db: {p}");
+            let mut db = MessageDb::open(p)?;
+            db.load_param_refs(&target_lang)?;
+            db.load_value_maps(&target_lang)?;
+            db.load_registry_sources()?;
+            db.load_variant_providers()?;
+            db.load_param_types()?;
+            Some(db)
+        }
+        None => {
+            eprintln!("[warn] no messages db — degraded mode: message rendering disabled");
+            None
+        }
+    };
 
     // SQLite output (snapshot semantics: create_events_table DROPs first)
     let events_db = match config.output_db_path {
@@ -609,8 +620,12 @@ fn process_parallel_batch(
         return;
     }
 
-    // Single-file v7 (ADR 0003): msg_db is always Some — no-DB exits at run_parse.
-    let db = msg_db.as_ref().expect("messages db required");
+    // Degraded mode (no messages db): skip resolve/render entirely — events
+    // keep whatever the extract stage produced.  Hit-path semantics below are
+    // unchanged (a configured messages db always reaches here as Some).
+    let Some(db) = msg_db.as_ref() else {
+        return;
+    };
 
     // --- 1. Warmup (lock held, single-threaded; variants + param value-map refs) ---
     // R9b（2026-09-04）：必须用 warmup() 而非 warmup_variants()。后者只填模板行，
