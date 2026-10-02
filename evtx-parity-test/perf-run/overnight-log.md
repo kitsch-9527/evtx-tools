@@ -170,3 +170,45 @@ cargo test --workspace + 06 门 + 磁盘/jj 状态核对，无新问题不动代
 
 - 264 测试全绿；06 门 PASS（45375/45375 diff=0）；树干净。无新问题，零改动。
 - 本轮为截止（08:30）前最后一轮验证；下一轮（08:56）将过截止，写值守总结并删除自动化。
+
+---
+
+# 值守总结（2026-10-01 23:24 → 10-02 08:56，18 轮全部完成，自动化随本节删除）
+
+## 已落地（全部 TDD + 06 门 PASS，零回归）
+
+| 层 | 内容 | 经典归类 | 实测 |
+|---|---|---|---|
+| R39（1be9812b） | CLI 默认 --threads 0→4 | co-pool 过订阅右移 | 12 核 t0 比 t4 慢 12%→默认取甜点 |
+| R40-C①（d2785fb6） | shard.rs chunk 遍历器（脏块容忍与 crate 同语义） | partition | 分片 record_id 流==全流逐一 |
+| R40-C②（074c1ff7） | 并行驱动+保序归并（轮转 worker+有界通道+游标 merger） | out-of-order partitions ordered merge | workers=1/4 每记录 JSON 逐字段相等 |
+| R40-C③（9acda652） | --shard N 开关（默认关） | — | System.evtx --shard 4 与默认 CSV **SHA256 逐字节一致** |
+| 仪表化（4922f334） | EVTX_TRACE_PHASES 三阶段计时（env 门控） | — | 零行为变化，264 测试绿 |
+
+## 否决（各有数据，探针先行门控）
+
+- **B 多输入摊销**：4 baseline 文件热跑 20.7s 固定开销仅占 13.5% → 收益 ~10-12% < 30% 门槛
+- **C 分片设默认**：Security --shard 4 = 85.7s vs 基线 58.9s（**+45% 回归**）。归因（代码级实锤）：
+  evtx 0.12 `chunk_pipeline` 在 num_threads>1 时已内建同构 chunk 并行（rayon 派发+
+  BTreeMap 重排+arena 池）→ 分片=redundant parallelism（reinvented wheel）
+- **R41 锁并发化**：resolve(锁内) 仅 4-10%（system 165ms/10%、Security 3.3s/4-5%）
+  << 20% 门槛；render(rayon) 占 80-95% 且已并行（R31-R34 语义密集路径，不动）
+
+## 认知修正
+
+§8「剩余串行 ~59% 在 crate JSON 树构建」**已被修正**（报告 §9）：树构建在 t4 下已由
+crate 内建管线并行；真实串行余量=批解析锁段（4-10%）+编排+写线程。最终瓶颈=
+render 阶段的替换/类型化字符串渲染本身（~29ns/字节 intrinsic，语义面不动）。
+
+## 最终状态
+
+- 战役总收益（含 R36-R38）：Security 1GB/203 万事件 91.5→**58.9s（−36%）**，M1=100% 全程维持
+- 08:31 最后验证：264 测试全绿 + 06 门 PASS（45375/45375 diff=0 exempted=0）+ 树干净
+- E 盘 25G 可用（性能产物全程即跑即删）；夜检提交链 R39→Round18 共 9 个提交全部过门
+
+## 遗留清单
+
+1. `--shard` 开关保留为研究遗留（默认关、docs 标注不推荐）；`EVTX_TRACE_PHASES` 诊断 env
+2. B 项（多输入摊销）未实现——仅当出现海量 KB 级小文件场景再立项
+3. render 路径的字符串渲染成本为语义面 intrinsic，明确不动
+4. 夜间 9 个提交均在本地 jj 库（仓库无远端，未推送）

@@ -186,3 +186,6 @@ cd evtx-tools   && cargo test --workspace                       # Rust 侧（202
   并行 +45% 回归，--shard 留开关标注不推荐）；R41 探针 no-go（resolve 锁内仅 4-10%）。
   **性能战役自然收尾**：R36-R39 落地 Security 91.5→58.9s（−36%），三个否决有数据。
   剩余轮次=验证轮（测试+06 门+状态），08:30 总结收尾。
+- **值守结束（08:56，18 轮全部完成）**：R39 + R40-C①②③ + 诊断仪表化共 5 层落地、
+  B/C 设默认/R41 三个否决各有数据；Security 91.5→58.9s（−36%，含 R36-R38），
+  06 门全程 PASS 零回归。详见 perf-run/overnight-log.md 值守总结与 perf-report.md §8-10。
