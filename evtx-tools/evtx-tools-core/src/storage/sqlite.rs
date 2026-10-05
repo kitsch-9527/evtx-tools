@@ -38,6 +38,16 @@ CREATE TABLE IF NOT EXISTS events (
 );
 ";
 
+/// EventData 白名单（单一事实源）：收编进索引化字段筛选的 EventData 键。
+/// 元组 = (JSON 键名, 生成列名)。新增字段 = 加一行——建表 DDL、finalize
+/// 索引、GUI 查询翻译（evtx_analysis 引用本表）全部由此驱动。
+/// 新库：列由 parser 源头抽取落真实列（建表 DDL 落列）；存量库：GUI 侧
+/// ensure 以 VIRTUAL 生成列（json_extract）自动 ALTER 迁移同名列，查询谓词透明。
+pub const EVENT_DATA_INDEXED_FIELDS: &[(&str, &str)] = &[
+    // 安全日志账户登录审计（4624/4625 预设依赖）
+    ("LogonType", "logon_type"),
+];
+
 /// Bulk-insert PRAGMAs — applied once on open, not reverted.
 ///
 /// - `page_size = 65536`: 64 KB pages reduce B‑tree depth and I/O for large DBs.
@@ -775,6 +785,27 @@ mod tests {
         assert_eq!(record_idx, 1, "idx_events_record_id must exist after finalize");
 
         let _ = std::fs::remove_file(&tmp);
+    }
+
+    /// 白名单契约（GUI 引用化后此表为跨仓单一事实源）：每个白名单字段的列
+    /// 必须真实存在于建表 DDL（parser 源头抽取），且 finalize 必须建索引。
+    /// 新增白名单字段时本测试强制三处同步（DDL/索引/白名单表）。
+    #[test]
+    fn test_event_data_indexed_fields_contract() {
+        assert!(
+            !EVENT_DATA_INDEXED_FIELDS.is_empty(),
+            "白名单不可为空（GUI 查询翻译依赖非空契约）"
+        );
+        for (key, col) in EVENT_DATA_INDEXED_FIELDS {
+            assert!(
+                CREATE_EVENTS_TABLE.contains(col),
+                "EventData 键 {key} 的宽表列 {col} 未落入建表 DDL"
+            );
+            assert!(
+                CREATE_INDEXES.iter().any(|s| s.contains(col)),
+                "宽表列 {col} 缺 finalize 索引"
+            );
+        }
     }
 
     #[test]
