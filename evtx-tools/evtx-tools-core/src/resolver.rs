@@ -30,6 +30,82 @@ use crate::{substitute::expand_param_refs, MessageRow, Result};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+/// R48（2026-10-08）：provider 键规范形（lowercase）。
+///
+/// Windows 注册表键与 WINEVT Publishers 名称均 case-insensitive——wevtapi 拿
+/// 事件 XML 里的任意大小写（classic 驱动写的 `Disk`、`NETLOGON`）都能命中
+/// 注册表快照里的 `disk`/`Netlogon` 并解析其消息 DLL。渲染端所有 provider
+/// 键控面（registry 快照、variant 集、variant/cohort 缓存、%%N param_refs、
+/// param_types/value-map 关联）统一在本函数下装载与查找，失配即整体 miss：
+/// `Disk`→误判未注册→R29「eid 当 Win32 错误码」回退（ESCenter System.evtx
+/// 44,647 条 Disk/51 渲染成 Win32 错误 51「无法找到网络路径」的生产事故）。
+/// 无损前提（msgdb 内不存在仅大小写不同的双 provider）由
+/// [`validate_no_provider_case_collisions`] 在 [`MessageDb::open`] 处硬校验。
+pub(crate) fn norm_provider(s: &str) -> String {
+    s.to_lowercase()
+}
+
+/// R48：VariantKey 规范副本（cohort/缓存查找入口统一走这里）。
+pub(crate) fn norm_key(k: &crate::VariantKey) -> crate::VariantKey {
+    let mut c = k.clone();
+    c.provider_name = norm_provider(&c.provider_name);
+    c
+}
+
+/// `%%N` 合成组名（msgdb-dump 写入 parameter_refs 的特殊 provider 行）。
+/// 装载层已 lowercase，查找处一律用本常量（不再耦合 DB 侧大小写）。
+const WIN32_SYSERR_GROUP: &str = "win32-system-error";
+const NTSTATUS_SYSERR_GROUP: &str = "ntstatus-system-error";
+
+/// R48 C 契约：provider 键控表内不得存在仅大小写不同的双 provider。
+/// lowercase 规范化会把这样的两名折叠成一个 cohort/键——真撞名时渲染语义
+/// 静默串线，必须在装载口硬失败（错误可操作：re-run msgdb-dump）。
+/// 表缺失按可选跳过（provenance 表在极旧库可能缺列缺表）。
+fn validate_no_provider_case_collisions(conn: &Connection, path: &str) -> Result<()> {
+    const CHECKS: &[(&str, &str)] = &[
+        ("eventlog_sources", "source_name"),
+        ("providers", "provider_name"),
+        ("provider_message_variants", "provider_name"),
+        ("parameter_refs", "provider_name"),
+        ("param_value_maps", "provider_name"),
+        ("param_types", "provider_name"),
+    ];
+    for (table, col) in CHECKS {
+        let exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                [table],
+                |r| r.get(0),
+            )
+            .map_err(|e| format!("messages db '{path}': sqlite_master probe failed: {e}"))?;
+        if exists == 0 {
+            continue;
+        }
+        let mut stmt = conn
+            .prepare(&format!(
+                "SELECT DISTINCT {col} FROM {table} GROUP BY lower({col}) HAVING COUNT(DISTINCT {col}) > 1"
+            ))
+            .map_err(|e| format!("messages db '{path}': case-collision probe on {table}: {e}"))?;
+        let rows = stmt
+            .query_map([], |r| r.get::<_, String>(0))
+            .map_err(|e| format!("messages db '{path}': case-collision scan on {table}: {e}"))?;
+        let mut collisions: Vec<String> = Vec::new();
+        for row in rows {
+            match row {
+                Ok(lower) => collisions.push(lower),
+                Err(e) => return Err(format!("messages db '{path}': case-collision scan on {table}: {e}")),
+            }
+        }
+        if !collisions.is_empty() {
+            return Err(format!(
+                "messages db '{path}': provider name case collision in table '{table}' (lowercase form: {collisions:?}); \
+                 lowercase normalization (R48) would conflate them — re-run msgdb-dump and fix the producer"
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// An in-memory cached view of a SQLite message database.
 ///
 /// # Usage
@@ -114,6 +190,7 @@ impl MessageDb {
                 "messages db '{path}' schema_version={version}, want 9: re-run msgdb-dump (single-file, ADR 0003/0004/0005; v9 adds value_maps.lang)"
             ));
         }
+        validate_no_provider_case_collisions(&conn, path)?;
         Ok(MessageDb {
             conn,
             variant_cache: HashMap::new(),
@@ -151,7 +228,7 @@ impl MessageDb {
         for row in rows {
             let Ok((provider, eid, idx, pname, intype, outtype)) = row else { continue };
             self.param_types_cache
-                .entry((provider, eid))
+                .entry((norm_provider(&provider), eid))
                 .or_default()
                 .insert(idx, (format!("{intype:02x}:{outtype:02x}"), pname));
         }
@@ -163,7 +240,7 @@ impl MessageDb {
     /// the Win32 code 0x7B in its low word.
     pub fn lookup_win32_error(&self, code: u32) -> Option<String> {
         self.param_refs
-            .get("Win32-System-Error")?
+            .get(WIN32_SYSERR_GROUP)?
             .get(&code)
             .cloned()
     }
@@ -175,13 +252,13 @@ impl MessageDb {
     pub fn lookup_ntstatus(&self, code: u32) -> Option<String> {
         if let Some(text) = self
             .param_refs
-            .get("NTSTATUS-System-Error")
+            .get(NTSTATUS_SYSERR_GROUP)
             .and_then(|m| m.get(&code))
         {
             return Some(text.clone());
         }
         self.param_refs_fallback
-            .get("NTSTATUS-System-Error")
+            .get(NTSTATUS_SYSERR_GROUP)
             .and_then(|m| m.get(&code))
             .cloned()
     }
@@ -204,12 +281,12 @@ impl MessageDb {
     /// 本方法带 en-US 回退层。
     pub fn lookup_win32_error_fallback(&self, code: u32) -> Option<String> {
         self.param_refs
-            .get("Win32-System-Error")
+            .get(WIN32_SYSERR_GROUP)
             .and_then(|m| m.get(&code))
             .cloned()
             .or_else(|| {
                 self.param_refs_fallback
-                    .get("Win32-System-Error")
+                    .get(WIN32_SYSERR_GROUP)
                     .and_then(|m| m.get(&code))
                     .cloned()
             })
@@ -230,7 +307,7 @@ impl MessageDb {
             .map_err(|e| format!("failed to query eventlog_sources: {e}"))?;
         for row in rows {
             if let Ok(name) = row {
-                self.registry_sources.insert(name);
+                self.registry_sources.insert(norm_provider(&name));
             }
         }
         Ok(())
@@ -247,7 +324,8 @@ impl MessageDb {
         if self.registry_sources.is_empty() {
             return true;
         }
-        self.registry_sources.contains(name)
+        // R48：registry 键 case-insensitive，快照装载已规范化，查找侧同规则。
+        self.registry_sources.contains(&norm_provider(name))
     }
 
     /// Load the set of providers that have at least one row in
@@ -268,7 +346,7 @@ impl MessageDb {
             .map_err(|e| format!("failed to query provider_message_variants: {e}"))?;
         for row in rows {
             if let Ok(name) = row {
-                self.providers_with_variants.insert(name);
+                self.providers_with_variants.insert(norm_provider(&name));
             }
         }
         Ok(())
@@ -284,7 +362,8 @@ impl MessageDb {
         if self.providers_with_variants.is_empty() {
             return true;
         }
-        self.providers_with_variants.contains(name)
+        // R48：variant 集装载已规范化，查找侧同规则（'Disk' 命中 'disk' 行）。
+        self.providers_with_variants.contains(&norm_provider(name))
     }
 
     /// Load all `%%N` parameter references from the `parameter_refs` table.
@@ -318,6 +397,8 @@ impl MessageDb {
 
         for row in rows {
             if let Ok((provider, param_id, message, row_lang)) = row {
+                // R48：组键规范化（含 Win32/NTSTATUS 合成组），查找侧同规则。
+                let provider = norm_provider(&provider);
                 if row_lang == lang {
                     self.param_refs
                         .entry(provider)
@@ -347,21 +428,23 @@ impl MessageDb {
         if !message.contains("%%") {
             return message.to_string();
         }
+        // R48：provider 组键规范化——事件侧任意大小写命中装载侧规范形。
+        let provider_name = norm_provider(provider_name);
         let mut merged: HashMap<u32, String> = HashMap::new();
-        if let Some(priv_map) = self.param_refs.get(provider_name) {
+        if let Some(priv_map) = self.param_refs.get(&provider_name) {
             merged.extend(priv_map.iter().map(|(k, v)| (*k, v.clone())));
         }
-        if let Some(priv_fb) = self.param_refs_fallback.get(provider_name) {
+        if let Some(priv_fb) = self.param_refs_fallback.get(&provider_name) {
             for (k, v) in priv_fb {
                 merged.entry(*k).or_insert_with(|| v.clone());
             }
         }
-        if let Some(sys) = self.param_refs.get("Win32-System-Error") {
+        if let Some(sys) = self.param_refs.get(WIN32_SYSERR_GROUP) {
             for (k, v) in sys {
                 merged.entry(*k).or_insert_with(|| v.clone());
             }
         }
-        if let Some(sys_fb) = self.param_refs_fallback.get("Win32-System-Error") {
+        if let Some(sys_fb) = self.param_refs_fallback.get(WIN32_SYSERR_GROUP) {
             for (k, v) in sys_fb {
                 merged.entry(*k).or_insert_with(|| v.clone());
             }
@@ -506,10 +589,12 @@ impl MessageDb {
     /// are warmed by `warmup_variants`; this loads `param_value_maps` for the
     /// (provider, event_id) cohorts and attaches them to every variant row.
     pub fn warmup(&mut self, keys: &[crate::VariantKey], lang: &str) -> Result<()> {
-        self.warmup_variants(keys, lang)?;
+        // R48：cohort 键与 SQL 参数统一规范形——事件侧 provider 大小写任意。
+        let normalized: Vec<crate::VariantKey> = keys.iter().map(norm_key).collect();
+        self.warmup_variants(&normalized, lang)?;
         let mut cohorts: Vec<(String, u32)> = Vec::new();
         let mut seen: HashSet<(String, u32)> = HashSet::new();
-        for k in keys {
+        for k in &normalized {
             let c = (k.provider_name.clone(), k.event_id);
             if seen.insert(c.clone()) {
                 cohorts.push(c);
@@ -527,12 +612,14 @@ impl MessageDb {
     /// is skipped — KGA 1 index 3 is "Reason" in v3 but "TimeDeltaInMs" in v4.
     fn attach_param_types(&mut self, providers: &[(&str, u32)]) -> Result<()> {
         for (provider, event_id) in providers {
-            let Some(types) = self.param_types_cache.get(&((*provider).to_string(), *event_id))
+            // R48：param_types_cache 装载已规范化；cohort 键再规范化一次兜底。
+            let canonical = norm_provider(provider);
+            let Some(types) = self.param_types_cache.get(&(canonical.clone(), *event_id))
             else {
                 continue;
             };
             for (k, v) in self.variant_cache.iter_mut() {
-                if k.provider_name == *provider && k.event_id == *event_id {
+                if k.provider_name == canonical && k.event_id == *event_id {
                     let v = Arc::make_mut(v);
                     let mut matched = HashMap::new();
                     for (idx, (spec, pname)) in types {
@@ -569,7 +656,8 @@ impl MessageDb {
         for (i, (provider, event_id)) in providers.iter().enumerate() {
             let p_idx = i * 2 + 1;
             let e_idx = i * 2 + 2;
-            conditions.push(format!("(provider_name = ?{p_idx} AND event_id = ?{e_idx})"));
+            // R48：COLLATE NOCASE——cohort 键已是规范形，DB 侧大小写任意。
+            conditions.push(format!("(provider_name COLLATE NOCASE = ?{p_idx} AND event_id = ?{e_idx})"));
             params.push(rusqlite::types::Value::Text(provider.to_string()));
             params.push(rusqlite::types::Value::Integer(*event_id as i64));
         }
@@ -602,9 +690,12 @@ impl MessageDb {
         .map_err(|e| format!("param_value_maps query failed: {e}"))?;
 
         for row in rows {
-            let Ok((provider, event_id, param_index, param_name, map_name, is_bitmap)) = row else {
+            let Ok((provider, event_id, param_index, param_name, map_name, is_bitmap)) = row
+            else {
                 continue;
             };
+            // R48：行侧 provider 规范化后与缓存键（规范形）比较。
+            let provider = norm_provider(&provider);
             // Attach to every variant row of the (provider, event_id) cohort.
             // The link is template-scoped (batch 1, 2026-09-08): skip when the
             // variant's own name at this index disagrees with the collected
@@ -1778,4 +1869,160 @@ mod tests {
         assert_eq!(entries.get("1").map(|s| s.as_str()), Some("corruption detected"), "fallback must fill missing keys");
         let _ = std::fs::remove_file(&tmp);
     }
+}
+
+// ---------------------------------------------------------------------------
+// R48（2026-10-08）— provider 大小写不敏感契约
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod provider_case_insensitive_tests {
+    //! Windows 注册表键与 WINEVT Publishers 名称均 case-insensitive：wevtapi
+    //! 以事件 XML 里的任意大小写（如 classic 驱动写的 `Disk`）都能命中注册表
+    //! 里的 `disk` 键并解析其消息 DLL。渲染端所有 provider 键控面（registry
+    //! 快照、variant 集、variant/cohort 缓存、%%N param_refs）必须同样宽松。
+    //! 生产事故：ESCenter System.evtx 44,647 条 Disk/51 因 'Disk'≠'disk' 整体
+    //! miss，落入 R29「eid 当 Win32 错误码」回退，渲染成 Win32 错误 51 的
+    //! 「Windows 无法找到网络路径」（正确应为 IoLogMsg.dll 的「传呼期间在设备
+    //! %1 上检测到一个错误。」）。
+
+    use super::*;
+    use crate::VariantKey;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static DB_SEQ: AtomicU64 = AtomicU64::new(0);
+
+    fn tmp_path(name: &str) -> PathBuf {
+        let n = DB_SEQ.fetch_add(1, Ordering::SeqCst);
+        std::env::temp_dir().join(format!("evtx_r48_{}_{}_{}.db", name, std::process::id(), n))
+    }
+
+    /// msgdb 侧全小写 `disk`（镜像真实注册表快照），事件侧各种大小写。
+    /// variant：('disk', 51, en-US)「paging error on %1.」；
+    /// param_refs：('disk', %%7 私有) + ('Win32-System-Error', 51, 错误文本)。
+    fn setup_disk_db(path: &PathBuf) {
+        let _ = std::fs::remove_file(path);
+        let conn = Connection::open(path).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE dll_entries (dll_id INTEGER PRIMARY KEY AUTOINCREMENT, dll_name TEXT NOT NULL, dll_path TEXT NOT NULL UNIQUE, pe_version TEXT NOT NULL DEFAULT '0.0.0.0');
+            CREATE TABLE providers (provider_name TEXT NOT NULL PRIMARY KEY, guid TEXT, channel TEXT, dll_id INTEGER NOT NULL REFERENCES dll_entries(dll_id));
+            CREATE TABLE provider_message_variants (provider_name TEXT NOT NULL, provider_guid TEXT NOT NULL, lang TEXT NOT NULL DEFAULT 'en-US', event_id INTEGER NOT NULL, version INTEGER NOT NULL DEFAULT 0, level INTEGER NOT NULL DEFAULT 0, opcode INTEGER NOT NULL DEFAULT 0, task INTEGER NOT NULL DEFAULT 0, keywords TEXT NOT NULL DEFAULT '0', channel INTEGER NOT NULL DEFAULT 0, message_identifier INTEGER NOT NULL, dll_id INTEGER NOT NULL REFERENCES dll_entries(dll_id), message TEXT NOT NULL, parameters TEXT, level_name TEXT, keywords_name TEXT, PRIMARY KEY (provider_name, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id));
+            CREATE TABLE metadata (key TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE parameter_refs (provider_name TEXT NOT NULL, param_id INTEGER NOT NULL, message TEXT NOT NULL, lang TEXT NOT NULL DEFAULT 'en-US', PRIMARY KEY (provider_name, param_id, lang));
+            CREATE TABLE value_maps (provider_name TEXT NOT NULL, map_name TEXT NOT NULL, entry_value TEXT NOT NULL, display_name TEXT NOT NULL, is_bitmap INTEGER NOT NULL DEFAULT 0, lang TEXT NOT NULL DEFAULT 'en-US', PRIMARY KEY (provider_name, map_name, entry_value, lang));
+            CREATE TABLE param_value_maps (provider_name TEXT NOT NULL, event_id INTEGER NOT NULL, param_index TEXT NOT NULL, param_name TEXT NOT NULL DEFAULT '', map_name TEXT NOT NULL, is_bitmap INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (provider_name, event_id, param_index));
+            CREATE TABLE eventlog_sources (source_name TEXT NOT NULL PRIMARY KEY, source_type TEXT NOT NULL DEFAULT 'classic');
+            CREATE TABLE param_types (provider_name TEXT NOT NULL, event_id INTEGER NOT NULL, param_index TEXT NOT NULL, param_name TEXT NOT NULL DEFAULT '', in_type INTEGER NOT NULL, out_type INTEGER NOT NULL, PRIMARY KEY (provider_name, event_id, param_index));",
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO metadata(key, value) VALUES('schema_version', '9')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO dll_entries(dll_id, dll_name, dll_path) VALUES(1, 'IoLogMsg.dll', 'C:/WINDOWS/System32/IoLogMsg.dll')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO providers(provider_name, guid, channel, dll_id) VALUES('disk', NULL, 'System', 1)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id, message) VALUES('disk', '', 'en-US', 51, 0, 3, 0, 0, '0', 0, 2147745843, 1, 'paging error on %1.')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO parameter_refs(provider_name, param_id, message, lang) VALUES('disk', 7, 'PRIVATE-7', 'en-US')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO parameter_refs(provider_name, param_id, message, lang) VALUES('Win32-System-Error', 51, 'WRONG-NETWORK-PATH', 'en-US')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO eventlog_sources(source_name, source_type) VALUES('disk', 'classic')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+    }
+
+    fn key(provider: &str) -> VariantKey {
+        VariantKey {
+            provider_name: provider.into(),
+            event_id: 51,
+            version: 0,
+            level: 3,
+            opcode: 0,
+            task: 0,
+            keywords: 0,
+            channel: 0,
+            message_id: 0,
+        }
+    }
+
+    fn open_loaded(path: &PathBuf) -> MessageDb {
+        let mut db = MessageDb::open(path.to_str().unwrap()).unwrap();
+        db.load_registry_sources().unwrap();
+        db.load_variant_providers().unwrap();
+        db.load_param_refs("en-US").unwrap();
+        db
+    }
+
+    /// 事件侧 'Disk'/'DISK' 必须命中 msgdb 侧 'disk' 的 registry/variant/param 面，
+    /// 且 Win32 特殊组在装载层规范化后仍可查。
+    #[test]
+    fn case_mismatched_provider_hits_registry_variants_and_params() {
+        let tmp = tmp_path("disk_case");
+        setup_disk_db(&tmp);
+        let mut db = open_loaded(&tmp);
+
+        assert!(db.is_registered_source("Disk"), "'Disk' must resolve to registry 'disk'");
+        assert!(db.has_any_variant("Disk"), "'Disk' must see variants stored under 'disk'");
+
+        db.warmup(std::slice::from_ref(&key("DISK")), "en-US").unwrap();
+        let row = db
+            .resolve_variant(&key("Disk"))
+            .expect("'Disk' must resolve the ('disk', 51) variant");
+        assert_eq!(row.template, "paging error on %1.");
+
+        // %%N 面同规则：私有 %%7 经 'Disk' 命中 'disk' 行；Win32 特殊组不被破坏。
+        assert_eq!(db.expand_message("x %%7 y", "Disk"), "x PRIVATE-7 y");
+        assert_eq!(db.expand_message("%%51", "Disk"), "WRONG-NETWORK-PATH");
+        assert_eq!(db.lookup_win32_error(51).as_deref(), Some("WRONG-NETWORK-PATH"));
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    /// C 契约：provider_message_variants 里仅大小写不同的双 provider 使 open()
+    /// 硬失败（lowercase 规范化的无损前提；崩在装载口，错误可操作）。
+    #[test]
+    fn open_rejects_provider_case_collisions() {
+        let tmp = tmp_path("disk_collision");
+        setup_disk_db(&tmp);
+        let conn = Connection::open(&tmp).unwrap();
+        conn.execute(
+            "INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id, message) VALUES('DISK', '', 'en-US', 52, 0, 3, 0, 0, '0', 0, 2147745844, 1, 'colliding row')",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+
+        let Err(err) = MessageDb::open(tmp.to_str().unwrap())
+        else {
+            panic!("providers differing only by case must fail open() loudly");
+        };
+        assert!(
+            err.contains("case collision"),
+            "error must name the collision: {err}"
+        );
+        let _ = std::fs::remove_file(&tmp);
+    }
+
 }

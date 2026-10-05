@@ -579,6 +579,14 @@ func RunDump(args *DumpArgs) error {
 		fmt.Printf("[info] wrote %d registered eventlog sources\n", len(sources))
 	}
 
+	// 15. R48 contract (2026-10-08): fail the dump when any provider-keyed
+	// table holds two provider names differing only by case — the renderer
+	// normalizes provider keys to lowercase, a true collision would silently
+	// conflate cohorts (Disk/51 production incident).
+	if err := ValidateProviderCaseCollisions(sysDBPath); err != nil {
+		return fmt.Errorf("case-collision validation failed: %w", err)
+	}
+
 	fmt.Printf("[done] dump complete: %s\n", sysDBPath)
 	return nil
 }

@@ -1,5 +1,5 @@
+use crate::resolver::{norm_key, norm_provider, MessageDb};
 use crate::{MessageRow, VariantKey};
-use crate::resolver::MessageDb;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -7,8 +7,9 @@ impl MessageDb {
     /// Batch-load variant rows for given (provider, event_id) cohorts (v6 precise).
     pub fn warmup_variants(&mut self, keys: &[VariantKey], lang: &str) -> crate::Result<()> {
         if keys.is_empty() { return Ok(()); }
+        // R48：cohort 键规范化——事件侧 provider 大小写任意（'Disk' 命中 'disk'）。
         let mut cohorts: HashSet<(String, u32)> = HashSet::new();
-        for k in keys { cohorts.insert((k.provider_name.clone(), k.event_id)); }
+        for k in keys { cohorts.insert((norm_provider(&k.provider_name), k.event_id)); }
         let cohorts: Vec<(String, u32)> = cohorts.into_iter().collect();
         let mut variant_rows = self.load_variant_rows_for_cohorts(lang, &cohorts)?;
         // R21（2026-09-29）：跨语言回落（MUI 回退链 zh-CN → en-US）。目标语言无行的
@@ -50,7 +51,8 @@ impl MessageDb {
         params.push(rusqlite::types::Value::Text(lang.to_string()));
         for (i, (prov, eid)) in cohorts.iter().enumerate() {
             let p_idx = i*2+2; let e_idx = i*2+3;
-            conditions.push(format!("(m.provider_name=?{} AND m.event_id=?{})", p_idx, e_idx));
+            // R48：COLLATE NOCASE——cohort 键已是规范形，DB 侧大小写任意。
+            conditions.push(format!("(m.provider_name COLLATE NOCASE=?{} AND m.event_id=?{})", p_idx, e_idx));
             params.push(rusqlite::types::Value::Text(prov.clone()));
             params.push(rusqlite::types::Value::Integer(*eid as i64));
         }
@@ -82,17 +84,21 @@ impl MessageDb {
                 let ln: Option<String> = row.get(11)?;
                 let kn: Option<String> = row.get(12)?;
                 let params = pj.and_then(|s: String| serde_json::from_str::<HashMap<String,String>>(&s).ok());
-                Ok((VariantKey{ provider_name: pn, event_id: eid as u32, version: ver as u8, level: lvl as u8, opcode: opc as u8, task: task as u16, keywords: kw, channel: ch as u8, message_id: mid as u32 }, MessageRow{ template: msg, level: Some(lvl as u8), task: None, opcode: None, keywords: None, parameters: params, level_name: ln, keywords_name: kn, param_map_refs: HashMap::new(), param_bitmap_refs: HashSet::new(), param_types: HashMap::new()}))
+                // R48：装载即规范化——缓存键统一小写规范形。
+                Ok((VariantKey{ provider_name: norm_provider(&pn), event_id: eid as u32, version: ver as u8, level: lvl as u8, opcode: opc as u8, task: task as u16, keywords: kw, channel: ch as u8, message_id: mid as u32 }, MessageRow{ template: msg, level: Some(lvl as u8), task: None, opcode: None, keywords: None, parameters: params, level_name: ln, keywords_name: kn, param_map_refs: HashMap::new(), param_bitmap_refs: HashSet::new(), param_types: HashMap::new()}))
             }).map_err(|e| format!("query variant warmup: {e}"))?;
             for row in rows { if let Ok(pair) = row { variant_rows.push(pair); } }
         }
         Ok(variant_rows)
     }
     pub fn get_variant(&self, key: &VariantKey) -> Option<Arc<MessageRow>> {
-        self.variant_cache.get(key).cloned()
+        // R48：入口规范化（幂等）——外部直调也安全。
+        self.variant_cache.get(&norm_key(key)).cloned()
     }
     pub fn resolve_variant(&self, key: &VariantKey) -> Option<Arc<MessageRow>> {
-        if let Some(r) = self.get_variant(key) { return Some(r); }
+        // R48：规范化一次，精确命中与 cohort 梯子共用规范键。
+        let key = &norm_key(key);
+        if let Some(r) = self.variant_cache.get(key).cloned() { return Some(r); }
         let mut best: Option<(&VariantKey, &Arc<MessageRow>, i32)> = None;
         // Cohort-scoped ladder: only this (provider, event_id)'s cached rows
         // can win, so scan them instead of the whole cache. Tie-break (R8)
@@ -139,6 +145,8 @@ impl MessageDb {
         key: &VariantKey,
         full_id: u32,
     ) -> Option<Arc<MessageRow>> {
+        // R48：cohort 键规范化，与 resolve_variant 同规则。
+        let key = &norm_key(key);
         let mut best: Option<(&VariantKey, &Arc<MessageRow>, i32)> = None;
         let empty: Vec<VariantKey> = Vec::new();
         let cohort = self

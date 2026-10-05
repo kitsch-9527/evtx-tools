@@ -2272,6 +2272,85 @@ mod r12_na_tests {
         );
         let _ = std::fs::remove_file(&tmp);
     }
+
+    /// R48（2026-10-08）：classic provider 大小写失配（事件 'Disk' vs msgdb 'disk'）
+    /// 必须命中变体消息，而不是落入 R29 的 eid-当-Win32-错误码回退。生产事故：
+    /// ESCenter System.evtx 44,647 条 Disk/51 被渲染成 Win32 错误 51 的
+    /// 「Windows 无法找到网络路径」（正确为「传呼期间在设备 %1 上检测到一个错误。」）。
+    #[test]
+    fn classic_provider_case_mismatch_resolves_variant_not_win32_fallback() {
+        let tmp = tmp_path("case_disk51");
+        let _ = std::fs::remove_file(&tmp);
+        let conn = rusqlite::Connection::open(&tmp).unwrap();
+        create_v8_schema(&conn);
+        conn.execute(
+            "INSERT INTO metadata(key, value) VALUES('schema_version', '9')",
+            [],
+        )
+        .unwrap();
+        conn.execute_batch(
+            "INSERT INTO dll_entries(dll_id, dll_name, dll_path) VALUES(1, 'IoLogMsg.dll', 'C:/WINDOWS/System32/IoLogMsg.dll');
+             INSERT INTO providers(provider_name, guid, channel, dll_id) VALUES('disk', NULL, 'System', 1);
+             INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id, message) VALUES('disk', '', 'en-US', 51, 0, 3, 0, 0, '0', 0, 2147745843, 1, 'paging error on %1.');
+             INSERT INTO parameter_refs(provider_name, param_id, message, lang) VALUES('Win32-System-Error', 51, 'WRONG-NETWORK-PATH', 'en-US');
+             INSERT INTO eventlog_sources(source_name, source_type) VALUES('disk', 'classic');",
+        )
+        .unwrap();
+        drop(conn);
+
+        let mut keys = vec![crate::VariantKey {
+            provider_name: "Disk".into(),
+            event_id: 51,
+            version: 0,
+            level: 3,
+            opcode: 0,
+            task: 0,
+            keywords: 0,
+            channel: 0,
+            message_id: 0,
+        }];
+        let mut batch = vec![
+            (
+                mk_event("Disk", 51),
+                data_value(&["\\\\Device\\Harddisk0\\DR0"]),
+            ),
+            (
+                mk_event("DISK", 51),
+                data_value(&["\\\\Device\\Harddisk0\\DR0"]),
+            ),
+            // 对照组：真未注册的 classic 源保持 R29 语义（eid 1001 无 Win32 文本 → N/A）。
+            (mk_event("l2nd", 1001), data_value(&["raw"])),
+        ];
+        run_batch_with_keys(&tmp, &mut keys, &mut batch);
+
+        let m0 = batch[0].0.message.as_deref().unwrap();
+        let m1 = batch[1].0.message.as_deref().unwrap();
+        assert_eq!(
+            m0, "paging error on \\\\Device\\Harddisk0\\DR0.",
+            "'Disk' must resolve the ('disk', 51) variant, got: {m0}"
+        );
+        assert_eq!(
+            m1, m0,
+            "'DISK' must behave identically to 'Disk'"
+        );
+        assert_eq!(
+            batch[2].0.message.as_deref(),
+            Some("N/A"),
+            "genuinely unregistered source keeps R29 semantics"
+        );
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    fn run_batch_with_keys(
+        db_path: &Path,
+        keys: &mut Vec<crate::VariantKey>,
+        batch: &mut Vec<(ParsedEvent, Option<Value>)>,
+    ) {
+        let mut db = MessageDb::open(db_path.to_str().unwrap()).unwrap();
+        db.load_registry_sources().unwrap();
+        let msg_db: Option<Arc<Mutex<MessageDb>>> = Some(Arc::new(Mutex::new(db)));
+        process_parallel_batch(&msg_db, keys, "en-US", batch);
+    }
 }
 
 #[cfg(test)]

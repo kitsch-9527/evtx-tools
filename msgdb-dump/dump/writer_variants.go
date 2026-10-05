@@ -308,3 +308,58 @@ func insertSystemMetadata(db *sql.DB, osInfo OsInfo, langCodes []string) error {
 	}
 	return nil
 }
+
+// ValidateProviderCaseCollisions fails when any provider-keyed table holds two
+// provider names differing only by case (R48 contract, 2026-10-08).
+//
+// The Rust renderer (evtx-tools-core R48) normalizes provider keys to
+// lowercase at every load/lookup surface — Windows registry keys and WINEVT
+// publisher names are case-insensitive, so a faithful emulation must be too.
+// A true in-database collision would silently conflate two providers'
+// cohorts, so it must never ship: fail the dump at the producer gate.
+// Missing tables are skipped (optional provenance tables in older layouts).
+func ValidateProviderCaseCollisions(dbPath string) error {
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		return fmt.Errorf("open db for case-collision validation: %w", err)
+	}
+	defer db.Close()
+
+	checks := []struct{ table, col string }{
+		{"eventlog_sources", "source_name"},
+		{"providers", "provider_name"},
+		{"provider_message_variants", "provider_name"},
+		{"parameter_refs", "provider_name"},
+		{"param_value_maps", "provider_name"},
+		{"param_types", "provider_name"},
+	}
+	for _, c := range checks {
+		var n int
+		if err := db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", c.table).Scan(&n); err != nil {
+			return fmt.Errorf("case-collision probe %s: %w", c.table, err)
+		}
+		if n == 0 {
+			continue
+		}
+		rows, err := db.Query(fmt.Sprintf(
+			"SELECT DISTINCT %s FROM %s GROUP BY lower(%s) HAVING COUNT(DISTINCT %s) > 1",
+			c.col, c.table, c.col, c.col))
+		if err != nil {
+			return fmt.Errorf("case-collision scan %s: %w", c.table, err)
+		}
+		var names []string
+		for rows.Next() {
+			var lower string
+			if err := rows.Scan(&lower); err != nil {
+				rows.Close()
+				return fmt.Errorf("case-collision scan %s: %w", c.table, err)
+			}
+			names = append(names, lower)
+		}
+		rows.Close()
+		if len(names) > 0 {
+			return fmt.Errorf("provider name case collision in table '%s' (lowercase form: %v); renderer normalization would conflate them", c.table, names)
+		}
+	}
+	return nil
+}
