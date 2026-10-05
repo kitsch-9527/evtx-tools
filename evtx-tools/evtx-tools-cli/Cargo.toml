@@ -13,3 +13,6 @@ clap = { version = "4", features = ["derive"] }
 rusqlite = { version = "0.37", features = ["bundled"] }
 serde_json = "1"
 rayon = "1"
+# R47c：多线程分配密集负载（render/extract 的海量 String 构造）下默认堆
+# 争用显著，mimalloc 作全局分配器（A/B 实测见 perf-run/cold-bench.md）。
+mimalloc = "0.1"

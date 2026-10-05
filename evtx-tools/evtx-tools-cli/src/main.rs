@@ -26,6 +26,14 @@
 //! evtx-tools parse security.evtx --msg-dir . -o events.csv --format csv
 //! ```
 
+// R47c：mimalloc 全局分配器——render/extract 是 12 线程分配密集型负载，
+// 默认堆的多核争用是实测渲染段的主要非语义开销之一。
+// A/B 实测（2026-10-05，Security 1.07GB db t4 defer，空闲机器双轮）：
+// 默认堆 wall 96.8/101.2s、CPU 353.8s → mimalloc wall 73.2/80.5s、CPU 276/286s
+// （wall −20%、CPU −20.6%）。数据见 perf-run/cold-bench.md。
+#[global_allocator]
+static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use clap::{Parser, Subcommand};
 
 mod cmd_info;
