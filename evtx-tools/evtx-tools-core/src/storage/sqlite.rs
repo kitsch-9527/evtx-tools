@@ -67,26 +67,37 @@ const BULK_INSERT_PRAGMAS: &[&str] = &[
     "PRAGMA threads = 12",
 ];
 
-/// Indexes — created AFTER all data is inserted to avoid per-row index maintenance.
+/// Index definitions (name, SQL) — created AFTER all data is inserted to
+/// avoid per-row index maintenance.
 ///
 /// R44（2026-10-05）：`event_record_id` 是查看器默认排序（ORDER BY … DESC）与详情
 /// 点查（WHERE event_record_id = ?）的唯一检索列——此前无索引迫使每次翻页/点行
 /// 全表扫描+临时 B 树排序（203 万行/6.4 GB 实测单次 12.8 分钟）。user_name /
 /// task_category / keywords_name 服务筛选对话框 GROUP BY 下拉与等值筛选，
 /// 有索引时 GROUP BY 走索引扫描，不再读整表。
-const CREATE_INDEXES: &[&str] = &[
-    "CREATE INDEX IF NOT EXISTS idx_events_record_id ON events(event_record_id);",
-    "CREATE INDEX IF NOT EXISTS idx_events_event_time ON events(event_time);",
-    "CREATE INDEX IF NOT EXISTS idx_events_level ON events(level);",
-    "CREATE INDEX IF NOT EXISTS idx_events_channel ON events(channel);",
-    "CREATE INDEX IF NOT EXISTS idx_events_provider ON events(provider_name);",
-    "CREATE INDEX IF NOT EXISTS idx_events_event_id ON events(event_id);",
-    "CREATE INDEX IF NOT EXISTS idx_events_seq ON events(sequence_number);",
-    "CREATE INDEX IF NOT EXISTS idx_events_user_name ON events(user_name);",
-    "CREATE INDEX IF NOT EXISTS idx_events_task_category ON events(task_category);",
-    "CREATE INDEX IF NOT EXISTS idx_events_keywords_name ON events(keywords_name);",
-    "CREATE INDEX IF NOT EXISTS idx_events_logon_type ON events(logon_type);",
+///
+/// R47：拆分核心/扩展两组——`finalize` 建全量（默认，行为不变）；
+/// `finalize_deferred` 只建核心组（查看器可用所需最小集），扩展组由宿主
+/// 经 [`ensure_events_indexes`] 在首查/后台补建（203 万行实测全量 11 个
+/// ≈32s on HDD，延迟化把这段移出解析关键路径）。GUI 查询翻译引用
+/// [`EVENT_DATA_INDEXED_FIELDS`]，其白名单列的索引也在 `INDEX_DEFS` 内。
+pub const INDEX_DEFS: &[(&str, &str)] = &[
+    ("idx_events_record_id", "CREATE INDEX IF NOT EXISTS idx_events_record_id ON events(event_record_id);"),
+    ("idx_events_event_time", "CREATE INDEX IF NOT EXISTS idx_events_event_time ON events(event_time);"),
+    ("idx_events_level", "CREATE INDEX IF NOT EXISTS idx_events_level ON events(level);"),
+    ("idx_events_channel", "CREATE INDEX IF NOT EXISTS idx_events_channel ON events(channel);"),
+    ("idx_events_provider", "CREATE INDEX IF NOT EXISTS idx_events_provider ON events(provider_name);"),
+    ("idx_events_event_id", "CREATE INDEX IF NOT EXISTS idx_events_event_id ON events(event_id);"),
+    ("idx_events_seq", "CREATE INDEX IF NOT EXISTS idx_events_seq ON events(sequence_number);"),
+    ("idx_events_user_name", "CREATE INDEX IF NOT EXISTS idx_events_user_name ON events(user_name);"),
+    ("idx_events_task_category", "CREATE INDEX IF NOT EXISTS idx_events_task_category ON events(task_category);"),
+    ("idx_events_keywords_name", "CREATE INDEX IF NOT EXISTS idx_events_keywords_name ON events(keywords_name);"),
+    ("idx_events_logon_type", "CREATE INDEX IF NOT EXISTS idx_events_logon_type ON events(logon_type);"),
 ];
+
+/// 延迟化路径（`finalize_deferred`）仍会创建的核心索引：查看器首屏
+/// （按 record_id 倒序分页 + 时间范围过滤）的最小可用集。
+pub const CORE_INDEX_NAMES: &[&str] = &["idx_events_record_id", "idx_events_event_time"];
 
 /// Batch size for INSERT statements.
 ///
@@ -280,20 +291,87 @@ impl EventsDb {
     /// Create indexes and run `ANALYZE`. Must be called once after all data is
     /// inserted. After this, the database is ready for querying.
     pub fn finalize(&self) -> Result<()> {
-        for stmt in CREATE_INDEXES {
+        let t = std::time::Instant::now();
+        self.create_indexes(INDEX_DEFS)?;
+        self.conn
+            .execute_batch("ANALYZE")
+            .map_err(|e| format!("failed to analyze: {e}"))?;
+        eprintln!(
+            "[info] finalize: {} indexes + analyze in {:.2}s",
+            INDEX_DEFS.len(),
+            t.elapsed().as_secs_f64()
+        );
+        Ok(())
+    }
+
+    /// Deferred finalize: create only the core indexes (viewer first-screen
+    /// minimum, [`CORE_INDEX_NAMES`]) and skip the extended set — hosts call
+    /// [`ensure_events_indexes`] later (first query / background) to build
+    /// the rest. Keeps the parse critical path free of the ~N·logN×11 index
+    /// builds (measured 32s for 2M rows on HDD).
+    pub fn finalize_deferred(&self) -> Result<()> {
+        let t = std::time::Instant::now();
+        let core: Vec<(&str, &str)> = INDEX_DEFS
+            .iter()
+            .filter(|(name, _)| CORE_INDEX_NAMES.contains(name))
+            .copied()
+            .collect();
+        self.create_indexes(&core)?;
+        self.conn
+            .execute_batch("ANALYZE")
+            .map_err(|e| format!("failed to analyze: {e}"))?;
+        eprintln!(
+            "[info] finalize (deferred): {} core indexes + analyze in {:.2}s — extended indexes deferred to ensure_events_indexes",
+            core.len(),
+            t.elapsed().as_secs_f64()
+        );
+        Ok(())
+    }
+
+    fn create_indexes(&self, defs: &[(&str, &str)]) -> Result<()> {
+        for (_, stmt) in defs {
             self.conn
                 .execute_batch(stmt)
                 .map_err(|e| format!("failed to create index: {e}"))?;
         }
-        self.conn
-            .execute_batch("ANALYZE")
-            .map_err(|e| format!("failed to analyze: {e}"))
+        Ok(())
     }
 
     /// Return a reference to the inner `Connection`.
     pub fn conn(&self) -> &Connection {
         &self.conn
     }
+}
+
+/// Create every [`INDEX_DEFS`] index that does not exist yet on `conn` —
+/// idempotent, timing-logged per index. Hosts call this lazily (first
+/// query / background after a [`EventsDb::finalize_deferred`] parse) to
+/// backfill the extended set; safe on both fresh and legacy databases.
+pub fn ensure_events_indexes(conn: &Connection) -> Result<()> {
+    let existing: std::collections::HashSet<String> = {
+        let mut stmt = conn
+            .prepare("SELECT name FROM sqlite_master WHERE type = 'index'")
+            .map_err(|e| format!("failed to list indexes: {e}"))?;
+        let names = stmt
+            .query_map([], |r| r.get::<_, String>(0))
+            .map_err(|e| format!("failed to list indexes: {e}"))?
+            .filter_map(|r| r.ok())
+            .collect();
+        names
+    };
+    for (name, stmt) in INDEX_DEFS {
+        if existing.contains(*name) {
+            continue;
+        }
+        let t = std::time::Instant::now();
+        conn.execute_batch(stmt)
+            .map_err(|e| format!("failed to create index {name}: {e}"))?;
+        eprintln!(
+            "[info] ensure index {name} in {:.2}s",
+            t.elapsed().as_secs_f64()
+        );
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -802,10 +880,49 @@ mod tests {
                 "EventData 键 {key} 的宽表列 {col} 未落入建表 DDL"
             );
             assert!(
-                CREATE_INDEXES.iter().any(|s| s.contains(col)),
+                INDEX_DEFS.iter().any(|(_, sql)| sql.contains(col)),
                 "宽表列 {col} 缺 finalize 索引"
             );
         }
+    }
+
+    /// R47 延迟化契约：finalize_deferred 只建核心组（查看器首屏最小集），
+    /// ensure_events_indexes 补建全部缺失且幂等。
+    #[test]
+    fn test_finalize_deferred_and_ensure_events_indexes() {
+        let tmp = std::env::temp_dir().join(format!(
+            "evtx-defer-test-{}-{}.db",
+            std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        let _ = std::fs::remove_file(&tmp);
+        let db = EventsDb::open(&tmp).unwrap();
+        db.create_table().unwrap();
+        db.insert(&[make_test_event(42, "Defer-Test")]).unwrap();
+
+        db.finalize_deferred().unwrap();
+        let count = |db: &EventsDb| -> i64 {
+            db.conn()
+                .query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND tbl_name='events'", [], |r| r.get(0))
+                .unwrap()
+        };
+        assert_eq!(
+            count(&db),
+            CORE_INDEX_NAMES.len() as i64,
+            "deferred finalize must create exactly the core index set"
+        );
+
+        // 补建：全部就位且幂等（重复调用不再新增/不报错）
+        ensure_events_indexes(db.conn()).unwrap();
+        assert_eq!(
+            count(&db),
+            INDEX_DEFS.len() as i64,
+            "ensure_events_indexes must backfill the extended set"
+        );
+        ensure_events_indexes(db.conn()).unwrap();
+        assert_eq!(count(&db), INDEX_DEFS.len() as i64, "ensure must be idempotent");
+
+        let _ = std::fs::remove_file(&tmp);
     }
 
     #[test]

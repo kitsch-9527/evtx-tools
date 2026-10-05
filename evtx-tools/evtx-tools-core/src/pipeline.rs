@@ -62,6 +62,12 @@ pub struct PipelineConfig {
     pub output_csv_path: Option<String>,
     /// Write the 7 `stat_*` tables before finalize.
     pub write_stats: bool,
+    /// R47: defer the extended (non-core) index builds out of the parse
+    /// critical path — `finalize_deferred` creates only the viewer-core
+    /// indexes; call [`evtx_tools_core::storage::sqlite::ensure_events_indexes`]
+    /// later (first query / background) to backfill the rest. Default
+    /// `false` = full finalize (behavior unchanged).
+    pub defer_indexes: bool,
     pub router: SceneRouter,
     /// Called from the writer thread with the cumulative written event count
     /// after every flushed batch (same number the CLI prints as
@@ -185,13 +191,22 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
             if let Some(ref db) = events_db {
                 if !no_stats {
                     eprintln!("[info] writing statistics tables...");
+                    let t = std::time::Instant::now();
                     stats.write(db.conn())?;
+                    eprintln!(
+                        "[info] statistics tables written in {:.2}s",
+                        t.elapsed().as_secs_f64()
+                    );
                 }
             }
 
             // Finalize — create indexes + ANALYZE after all data is inserted
             if let Some(ref db) = events_db {
-                db.finalize()?;
+                if config.defer_indexes {
+                    db.finalize_deferred()?;
+                } else {
+                    db.finalize()?;
+                }
             }
 
             eprintln!("[done] {total} events written to {output_display}");
