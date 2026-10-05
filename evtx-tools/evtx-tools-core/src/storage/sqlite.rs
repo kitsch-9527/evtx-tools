@@ -56,13 +56,23 @@ const BULK_INSERT_PRAGMAS: &[&str] = &[
 ];
 
 /// Indexes — created AFTER all data is inserted to avoid per-row index maintenance.
+///
+/// R44（2026-10-05）：`event_record_id` 是查看器默认排序（ORDER BY … DESC）与详情
+/// 点查（WHERE event_record_id = ?）的唯一检索列——此前无索引迫使每次翻页/点行
+/// 全表扫描+临时 B 树排序（203 万行/6.4 GB 实测单次 12.8 分钟）。user_name /
+/// task_category / keywords_name 服务筛选对话框 GROUP BY 下拉与等值筛选，
+/// 有索引时 GROUP BY 走索引扫描，不再读整表。
 const CREATE_INDEXES: &[&str] = &[
+    "CREATE INDEX IF NOT EXISTS idx_events_record_id ON events(event_record_id);",
     "CREATE INDEX IF NOT EXISTS idx_events_event_time ON events(event_time);",
     "CREATE INDEX IF NOT EXISTS idx_events_level ON events(level);",
     "CREATE INDEX IF NOT EXISTS idx_events_channel ON events(channel);",
     "CREATE INDEX IF NOT EXISTS idx_events_provider ON events(provider_name);",
     "CREATE INDEX IF NOT EXISTS idx_events_event_id ON events(event_id);",
     "CREATE INDEX IF NOT EXISTS idx_events_seq ON events(sequence_number);",
+    "CREATE INDEX IF NOT EXISTS idx_events_user_name ON events(user_name);",
+    "CREATE INDEX IF NOT EXISTS idx_events_task_category ON events(task_category);",
+    "CREATE INDEX IF NOT EXISTS idx_events_keywords_name ON events(keywords_name);",
 ];
 
 /// Batch size for INSERT statements.
@@ -746,7 +756,14 @@ mod tests {
             .conn()
             .query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND tbl_name='events'", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(index_count, 6, "expected 6 indexes after finalize");
+        assert_eq!(index_count, 10, "expected 10 indexes after finalize");
+
+        // R44：record_id 索引必须存在——查看器默认排序与详情点查的唯一检索路径
+        let record_idx: i64 = db
+            .conn()
+            .query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_events_record_id'", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(record_idx, 1, "idx_events_record_id must exist after finalize");
 
         let _ = std::fs::remove_file(&tmp);
     }
