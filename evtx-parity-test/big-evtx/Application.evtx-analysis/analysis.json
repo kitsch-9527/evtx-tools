@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "source_path": "Application.evtx",
+  "evtx_file": "Application.evtx",
+  "db_file": "Application.db",
+  "parsed_at": "2026-10-06T11:25:42.814420600+08:00",
+  "total_events": 34255,
+  "channels": [
+    "Application"
+  ],
+  "messages_db": "E:\\Code\\evet\\evtx-parity-test\\msgdb\\hotech-msg-Windows_10_Education-25H2-26220.9343.db",
+  "rules": [],
+  "duration_secs": 10.0337708,
+  "pipeline_revision": "evtx-tools 9f204b46 (R43, 2026-10-02)",
+  "msgdb_schema": 9
+}

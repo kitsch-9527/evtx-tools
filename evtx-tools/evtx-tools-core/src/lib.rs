@@ -93,6 +93,71 @@ pub struct ParsedEvent {
     /// 解析期从结构化 Value 树直接取值（数字/文本统一字符串化），落 events
     /// 真实列 + 索引。v1 仅 LogonType；新增字段 = 白名单 + parser + DDL/insert 同步。
     pub logon_type: Option<String>,
+    /// R49：渲染链路溯源（见 [`RenderVia`]）。None = 未渲染（降级模式/渲染前）。
+    pub render_via: Option<RenderVia>,
+}
+
+/// R49（2026-10-08）：渲染链路溯源——本条 `message` 由哪条解析链产生。
+///
+/// 信用原则：**宁可 N/A，不可自信地错**。主链命中（真实消息资源 8 元组匹配）
+/// 与低置信回退链（eid 恰好是合法 Win32 错误码所以拿系统错误文本顶上）必须在
+/// 产物里可区分——Disk/51 事故（R48，44,647 条已注册事件被误判未注册后经
+/// [`RenderVia::Win32EidFallback`] 渲染成貌似权威的"Windows 无法找到网络路径"）
+/// 的教训：猜测渲染成权威文本，比诚实的 N/A 危险得多。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum RenderVia {
+    /// 主链：8 元组 variant 梯子命中（真实消息资源）。
+    Variant,
+    /// 主链（精确）：R26 classic Qualifier 全键探针命中 `(q<<16)|eid`。
+    VariantQualifier,
+    /// 低置信回退：R29 未注册 classic，eid 被当 Win32 错误码渲染。
+    /// 正确性完全依赖 registry 快照与事件源机器一致——快照错位即
+    /// Disk/51 式大面积貌似权威的错文本。分析界面应显式降权/标注。
+    Win32EidFallback,
+    /// 低置信回退：R21 classic eid=0 → FormatMessage(0)（"操作成功完成。"）。
+    /// 与 [`RenderVia::Win32EidFallback`] 同类：eid 语义被系统错误码顶替。
+    Win32ZeroFallback,
+    /// 透传：EventData `#text` `;;`-join（evtx2csv 兼容），非模板渲染。
+    DataText,
+    /// 合成：`generate_fallback_message` 兜底文本，非任何消息资源。
+    Generated,
+    /// 诚实占位：未注册 / 已注册无资源 / 查无文本（R12/R12b 语义）。
+    Na,
+}
+
+impl RenderVia {
+    /// 产物序列化形（CSV/sqlite TEXT/JSON）：snake_case 单词。
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            RenderVia::Variant => "variant",
+            RenderVia::VariantQualifier => "variant_qualifier",
+            RenderVia::Win32EidFallback => "win32_eid_fallback",
+            RenderVia::Win32ZeroFallback => "win32_zero_fallback",
+            RenderVia::DataText => "data_text",
+            RenderVia::Generated => "generated",
+            RenderVia::Na => "na",
+        }
+    }
+
+    /// 主链命中（真实消息资源）为真；回退/合成/占位为假。
+    /// 低置信渲染的消费方（GUI 分析界面、report 聚合）以此降权。
+    pub fn is_verified(&self) -> bool {
+        matches!(self, RenderVia::Variant | RenderVia::VariantQualifier)
+    }
+
+    /// 从产物字符串反解（CSV/sqlite 读取侧）。未知值返回 None。
+    pub fn from_str_opt(s: &str) -> Option<Self> {
+        match s {
+            "variant" => Some(RenderVia::Variant),
+            "variant_qualifier" => Some(RenderVia::VariantQualifier),
+            "win32_eid_fallback" => Some(RenderVia::Win32EidFallback),
+            "win32_zero_fallback" => Some(RenderVia::Win32ZeroFallback),
+            "data_text" => Some(RenderVia::DataText),
+            "generated" => Some(RenderVia::Generated),
+            "na" => Some(RenderVia::Na),
+            _ => None,
+        }
+    }
 }
 
 /// Variant identity — 8-tuple Message Variant (CONTEXT.md: Variant Identity).
@@ -244,6 +309,7 @@ mod tests {
             raw_xml: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
             file_name: Some("test.evtx".into()),
         };
 
@@ -294,6 +360,7 @@ mod tests {
             raw_xml: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
             file_name: None,
         };
 

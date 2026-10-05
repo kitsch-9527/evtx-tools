@@ -243,6 +243,7 @@ mod routing_tests {
             opcode: None,
             keywords: None,
             logon_type: None,
+            render_via: None,
             computer: None,
             process_id: None,
             thread_id: None,

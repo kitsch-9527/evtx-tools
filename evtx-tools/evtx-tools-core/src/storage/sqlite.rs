@@ -34,7 +34,9 @@ CREATE TABLE IF NOT EXISTS events (
     file_name           TEXT,
     sequence_number     INTEGER,
     -- EventData 白名单宽表列（parser 源头抽取，EVENT_DATA_INDEXED_FIELDS 同步）
-    logon_type          TEXT
+    logon_type          TEXT,
+    -- R49：渲染链路溯源（RenderVia::as_str，TEXT snake_case）
+    render_via          TEXT
 );
 ";
 
@@ -201,6 +203,8 @@ pub fn insert_events(conn: &Connection, batch: &[ParsedEvent]) -> Result<()> {
             append_int_opt(&mut sql, &event.sequence_number);
             sql.push(',');
             append_text_opt(&mut sql, &event.logon_type);
+            sql.push(',');
+            append_text_opt(&mut sql, &event.render_via.map(|v| v.as_str().to_string()));
             sql.push(')');
         }
 
@@ -249,6 +253,30 @@ fn append_text_opt(sql: &mut String, v: &Option<String>) {
 pub fn analyze(conn: &Connection) -> Result<()> {
     conn.execute_batch("ANALYZE")
         .map_err(|e| format!("failed to analyze: {e}"))
+}
+
+/// R49：meta 表——运行级元数据（msgdb 环境指纹等）随产物固化。
+///
+/// 动机：「diff=0」结论的作用域永远是『给定消息库环境 H 下』。指纹错位
+/// （拿旧库/异机库跑出的报告）必须可检测——R48 Disk/51 假绿事故的教训：
+/// 验收报告不携带环境指纹，就无从审计它是拿哪个环境产生的。
+/// 重复 parse 同一文件（R35 快照语义）时 INSERT OR REPLACE 覆盖旧行。
+pub fn write_meta(conn: &Connection, entries: &[(&str, String)]) -> Result<()> {
+    conn.execute_batch("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);")
+        .map_err(|e| format!("failed to create meta table: {e}"))?;
+    conn.execute_batch("BEGIN")
+        .map_err(|e| format!("failed to begin meta transaction: {e}"))?;
+    for (key, value) in entries {
+        let mut sql = String::from("INSERT OR REPLACE INTO meta VALUES (");
+        append_text_opt(&mut sql, &Some((*key).to_string()));
+        sql.push(',');
+        append_text_opt(&mut sql, &Some(value.clone()));
+        sql.push(')');
+        conn.execute_batch(&sql)
+            .map_err(|e| format!("failed to write meta '{key}': {e}"))?;
+    }
+    conn.execute_batch("COMMIT")
+        .map_err(|e| format!("failed to commit meta: {e}"))
 }
 
 // ---------------------------------------------------------------------------
@@ -415,6 +443,7 @@ fn append_field_value(sql: &mut String, col: &str, event: &ParsedEvent) {
         "raw_xml" => append_text_opt(sql, &event.raw_xml),
         "file_name" => append_text_opt(sql, &event.file_name),
         "logon_type" => append_text_opt(sql, &event.logon_type),
+        "render_via" => append_text_opt(sql, &event.render_via.map(|v| v.as_str().to_string())),
         "sequence_number" => append_int_opt(sql, &event.sequence_number),
         _ => sql.push_str("NULL"),
     }
@@ -504,6 +533,7 @@ mod scenario_tests {
             file_name: Some("test.evtx".into()),
             sequence_number: Some(0),
             logon_type: None,
+            render_via: None,
             // Everything else None
             provider_guid: None,
             qualifiers: None,
@@ -708,6 +738,7 @@ mod tests {
             raw_xml: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
             file_name: Some("test.evtx".into()),
         }
     }
@@ -745,6 +776,32 @@ mod tests {
 
         assert_eq!(event_id, 4624);
         assert_eq!(provider, "Test-Provider");
+    }
+
+    /// R49：render_via 落 events 真实列——低置信回退链必须可被消费方按列查询
+    /// （GUI 分析界面按 render_via 降权的唯一数据源）。
+    #[test]
+    fn test_render_via_persists_as_snake_case_text() {
+        let conn = Connection::open_in_memory().unwrap();
+        create_events_table(&conn).unwrap();
+
+        let mut verified = make_test_event(1, "V");
+        verified.render_via = Some(crate::RenderVia::VariantQualifier);
+        let mut lowconf = make_test_event(2, "L");
+        lowconf.render_via = Some(crate::RenderVia::Win32EidFallback);
+        let unrendered = make_test_event(3, "N");
+        insert_events(&conn, &[verified, lowconf, unrendered]).unwrap();
+
+        let via: Vec<Option<String>> = conn
+            .prepare("SELECT render_via FROM events ORDER BY event_record_id")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(via[0].as_deref(), Some("variant_qualifier"));
+        assert_eq!(via[1].as_deref(), Some("win32_eid_fallback"));
+        assert_eq!(via[2], None, "未渲染必须保持 NULL");
     }
 
     #[test]
@@ -810,6 +867,7 @@ mod tests {
             raw_xml: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
             file_name: None,
         };
 

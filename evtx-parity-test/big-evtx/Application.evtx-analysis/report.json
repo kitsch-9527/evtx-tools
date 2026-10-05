@@ -1,0 +1,27 @@
+{
+  "config_name": "evtx-analysis",
+  "time": "2026-10-06T11:25:42.803292100+08:00",
+  "total_seconds": 10.0337708,
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "sources": [
+    {
+      "path": "Application.db",
+      "module": "evtx-analysis",
+      "label": "Application.evtx",
+      "render": "evtx-view",
+      "badge": 0,
+      "duration": 10.0337708,
+      "summary": "Application · 34255 events"
+    }
+  ],
+  "variables": {
+    "db_path": "E:/Code/evet/evtx-parity-test/big-evtx/Application.evtx-analysis\\Application.db",
+    "evtx_path": "E:/Code/evet/evtx-parity-test/big-evtx/Application.evtx",
+    "rules_used": []
+  }
+}

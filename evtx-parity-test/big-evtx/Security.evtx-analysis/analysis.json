@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "source_path": "Security.evtx",
+  "evtx_file": "Security.evtx",
+  "db_file": "Security.db",
+  "parsed_at": "2026-10-06T11:29:31.097904300+08:00",
+  "total_events": 2034603,
+  "channels": [
+    "Security"
+  ],
+  "messages_db": "E:\\Code\\evet\\evtx-parity-test\\msgdb\\hotech-msg-Windows_10_Education-25H2-26220.9343.db",
+  "rules": [],
+  "duration_secs": 180.0281943,
+  "pipeline_revision": "evtx-tools 9f204b46 (R43, 2026-10-02)",
+  "msgdb_schema": 9
+}

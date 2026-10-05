@@ -104,6 +104,9 @@ pub struct StatsCollector {
     computer: HashMap<String, u64>,
     /// (event_id, provider_name, hour_bucket) → HourlyRange
     event_id_hourly: HashMap<(u32, String, String), HourlyRange>,
+    /// R49：渲染链路直方图（RenderVia::as_str → count）——低置信回退占比
+    /// 一眼可见（Disk/51 形态的事故 = win32_eid_fallback 突增）。
+    via: HashMap<String, u64>,
 }
 
 impl StatsCollector {
@@ -175,6 +178,19 @@ impl StatsCollector {
                 *self.computer.entry(comp.clone()).or_insert(0) += 1;
             }
         }
+
+        // stat_render_via（R49）：未渲染（None）不入表——表只回答「已渲染的
+        // message 里回退链占多少」。
+        if let Some(v) = event.render_via {
+            *self.via.entry(v.as_str().to_string()).or_insert(0) += 1;
+        }
+    }
+
+    /// R49：渲染链路直方图（count 降序）。供 [done]/[info] 汇总行与 meta 表。
+    pub fn render_via_histogram(&self) -> Vec<(String, u64)> {
+        let mut pairs: Vec<_> = self.via.iter().map(|(k, v)| (k.clone(), *v)).collect();
+        pairs.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        pairs
     }
 
     /// Merge another `StatsCollector` into this one (for multi-threaded accumulation).
@@ -208,6 +224,9 @@ impl StatsCollector {
             if v.max_record_id > entry.max_record_id {
                 entry.max_record_id = v.max_record_id;
             }
+        }
+        for (k, v) in other.via {
+            *self.via.entry(k).or_insert(0) += v;
         }
     }
 
@@ -345,6 +364,18 @@ impl StatsCollector {
             tables.push(("stat_event_id_hourly", cols, rows));
         }
 
+        // stat_render_via (R49): via TEXT, count INTEGER — 低置信回退占比
+        // （Disk/51 形态事故 = win32_eid_fallback/win32_zero_fallback 突增）。
+        {
+            let cols = vec!["via", "count"];
+            let rows: Vec<Vec<SqlValue>> = self
+                .render_via_histogram()
+                .into_iter()
+                .map(|(via, cnt)| vec![SqlValue::Text(via), SqlValue::Int(cnt as i64)])
+                .collect();
+            tables.push(("stat_render_via", cols, rows));
+        }
+
         // 2. Write all tables within a single transaction
         conn.execute_batch("BEGIN")
             .map_err(|e| format!("failed to begin stats transaction: {e}"))?;
@@ -405,9 +436,77 @@ impl StatsCollector {
 
 #[cfg(test)]
 mod tests {
+    /// R49：渲染链路直方图——低置信回退计数进 stat_render_via（Disk/51 形态
+    /// 事故的哨兵指标：win32_eid_fallback 突增即快照失位）。
     #[test]
-    fn test_stats_write_snapshot_semantics() {
-        // R35：统计表重复 write 必须替换而非累积。
+    fn test_render_via_histogram_and_stat_table() {
+        use super::*;
+        use crate::RenderVia;
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        let mut c = StatsCollector::new();
+        for (i, via) in [
+            Some(RenderVia::Variant),
+            Some(RenderVia::Win32EidFallback),
+            Some(RenderVia::Win32EidFallback),
+            None, // 未渲染不入直方图
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let ev = ParsedEvent {
+                event_record_id: Some(i as u64),
+                event_time: None,
+                provider_name: Some("P".into()),
+                provider_guid: None,
+                event_id: Some(1),
+                qualifiers: None,
+                version: None,
+                level: None,
+                severity: None,
+                task_category: None,
+                opcode: None,
+                keywords: None,
+                channel: None,
+                computer: None,
+                process_id: None,
+                thread_id: None,
+                user_name: None,
+                user_sid: None,
+                activity_id: None,
+                related_activity_id: None,
+                message: None,
+                level_name: None,
+                keywords_name: None,
+                event_data: None,
+                raw_xml: None,
+                file_name: None,
+                sequence_number: None,
+                logon_type: None,
+                render_via: via,
+            };
+            c.feed(&ev);
+        }
+        let hist = c.render_via_histogram();
+        assert_eq!(
+            hist,
+            vec![
+                ("win32_eid_fallback".to_string(), 2),
+                ("variant".to_string(), 1)
+            ]
+        );
+        c.write(&conn).unwrap();
+        let rows: Vec<(String, i64)> = conn
+            .prepare("SELECT via, count FROM stat_render_via ORDER BY count DESC")
+            .unwrap()
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(rows, vec![("win32_eid_fallback".into(), 2), ("variant".into(), 1)]);
+    }
+
+    #[test]
+    fn test_stats_write_snapshot_semantics() {        // R35：统计表重复 write 必须替换而非累积。
         use super::*;
         let conn = rusqlite::Connection::open_in_memory().unwrap();
         let mut c = StatsCollector::new();
@@ -440,6 +539,7 @@ mod tests {
             file_name: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
         };
         c.feed(&ev);
         c.write(&conn).unwrap();
@@ -492,6 +592,7 @@ mod tests {
             raw_xml: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
             file_name: None,
         }
     }

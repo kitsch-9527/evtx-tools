@@ -12,6 +12,7 @@ evtx-parity-test/tools/
 evtx-tools/output/
 msgdb-dump/output/
 msgdb-dump/*.db
+*.db-journal
 
 # msys64 toolchain (115MB) — keep only the top-level baseline scripts
 msys64-Tools/usr/

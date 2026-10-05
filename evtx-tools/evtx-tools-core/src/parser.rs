@@ -494,6 +494,8 @@ pub fn extract_fields(
         file_name: Some(file_name.to_string()),
         sequence_number: None,
         logon_type,
+        // 渲染链路由 process_parallel_batch 标注（提取期未渲染）
+        render_via: None,
     };
     (parsed, event_data_value)
 }

@@ -33,6 +33,9 @@ const CSV_HEADER: &[&str] = &[
     "raw_xml",
     "file_name",
     "sequence_number",
+    // R49：渲染链路溯源（variant/win32_eid_fallback/...）。行尾追加不破坏
+    // 既有列序消费方（06 门按列名 DictReader 读；GUI 按 db 列名读）。
+    "render_via",
 ];
 
 // ---------------------------------------------------------------------------
@@ -106,6 +109,7 @@ pub fn write_event_rows<W: Write>(writer: W, events: &[ParsedEvent]) -> Result<(
             opt_str(&event.raw_xml),
             opt_str(&event.file_name),
             opt_u64_str(&event.sequence_number),
+            opt_str(&event.render_via.map(|v| v.as_str().to_string())),
         ])
         .map_err(|e| format!("failed to write csv row: {e}"))?;
     }
@@ -171,6 +175,7 @@ mod tests {
             raw_xml: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
             file_name: Some("test.evtx".into()),
         }
     }
@@ -213,7 +218,8 @@ mod tests {
         assert!(lines[0].contains("event_record_id"));
         assert!(lines[0].contains("provider_name"));
         assert!(lines[0].contains("file_name"));
-        assert_eq!(lines[0].matches(',').count(), 24); // 25 columns = 24 commas
+        assert!(lines[0].contains("render_via"));
+        assert_eq!(lines[0].matches(',').count(), 25); // 26 columns = 25 commas
     }
 
     #[test]
@@ -273,6 +279,7 @@ mod tests {
             raw_xml: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
             file_name: None,
         };
         write_events(&mut output, &[event]).unwrap();
@@ -280,7 +287,7 @@ mod tests {
 
         let lines: Vec<&str> = content.lines().collect();
         let fields: Vec<&str> = lines[1].split(',').collect();
-        assert_eq!(fields.len(), 25); // 23 original + level_name + keywords_name + sequence_number
+        assert_eq!(fields.len(), 26); // 25 original + render_via
         assert_eq!(fields[0], "1"); // event_record_id
         for f in &fields[1..] {
             assert_eq!(*f, "", "expected empty field after event_record_id, got: {f}");
@@ -339,6 +346,7 @@ mod tests {
             file_name: Some("security.evtx".into()),
             sequence_number: None,
             logon_type: None,
+            render_via: None,
         };
         write_events(&mut output, &[event]).unwrap();
         let content = String::from_utf8(output).unwrap();

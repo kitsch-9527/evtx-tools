@@ -30,7 +30,7 @@ use crate::resolver::MessageDb;
 use crate::routing::SceneRouter;
 use crate::stats::StatsCollector;
 use crate::storage::csv::{write_csv_header, write_event_rows};
-use crate::storage::sqlite::{ensure_scenario_table, insert_scenario_event, EventsDb};
+use crate::storage::sqlite::{ensure_scenario_table, insert_scenario_event, write_meta, EventsDb};
 use crate::substitute::{apply_luid_uppercase, apply_param_enums};
 use crate::{MessageRow, ParsedEvent};
 
@@ -83,6 +83,51 @@ pub struct PipelineResult {
     pub total_events: u64,
 }
 
+/// R49：msgdb 环境指纹——文件 sha256 + 行数统计，JSON 固化进 events db
+/// meta 表。「diff=0」的作用域是『给定消息库环境 H 下』；拿旧库/异机库跑出的
+/// 验收报告必须可审计（R48 Disk/51 假绿的直接教训）。
+fn build_msgdb_fingerprint(db: &MessageDb, path: &str, lang: &str) -> crate::Result<String> {
+    use sha2::Digest;
+    use std::io::Read;
+
+    let mut file = std::fs::File::open(path)
+        .map_err(|e| format!("fingerprint: cannot open messages db '{path}': {e}"))?;
+    let size = file
+        .metadata()
+        .map(|m| m.len())
+        .unwrap_or(0);
+    let mut hasher = sha2::Sha256::new();
+    let mut buf = [0u8; 1 << 20]; // 1 MiB chunks — msgdb 数百 MB 级，流式读
+    loop {
+        let n = file
+            .read(&mut buf)
+            .map_err(|e| format!("fingerprint: read '{path}': {e}"))?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+
+    let count = |sql: &str| -> i64 {
+        db.conn()
+            .query_row(sql, [], |r| r.get(0))
+            .unwrap_or(0)
+    };
+    let fp = serde_json::json!({
+        "path": path,
+        "sha256": format!("{:x}", hasher.finalize()),
+        "size_bytes": size,
+        "render_lang": lang,
+        "providers": count("SELECT COUNT(*) FROM providers"),
+        "variants": count("SELECT COUNT(*) FROM provider_message_variants"),
+        "registry_sources": count("SELECT COUNT(*) FROM eventlog_sources"),
+        "param_refs": count("SELECT COUNT(*) FROM parameter_refs"),
+        "value_maps": count("SELECT COUNT(*) FROM value_maps"),
+        "param_types": count("SELECT COUNT(*) FROM param_types"),
+    });
+    Ok(fp.to_string())
+}
+
 /// Run the full parse pipeline.  Errors are `String` (crate convention).
 pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
     let input_path = config.input_path.clone();
@@ -90,6 +135,8 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
     let batch_size = if config.batch_size == 0 { 20_000 } else { config.batch_size };
 
     eprintln!("[info] message language: {target_lang}");
+    // R49：msgdb 环境指纹（JSON），db 产物模式下计算并固化进 meta 表。
+    let mut msgdb_fingerprint: Option<String> = None;
     let msg_db: Option<MessageDb> = match config.msg_db_path {
         Some(ref p) => {
             eprintln!("[info] loading messages db: {p}");
@@ -104,6 +151,20 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
                 "[info] messages db loaded in {:.2}s",
                 t_load.elapsed().as_secs_f64()
             );
+            // R49：环境指纹只在 db 产物模式下计算（CSV-only 无处固化，白付 hash 成本）。
+            if config.output_db_path.is_some() {
+                let t_fp = std::time::Instant::now();
+                match build_msgdb_fingerprint(&db, p, &target_lang) {
+                    Ok(json) => {
+                        eprintln!(
+                            "[info] msgdb fingerprint computed in {:.2}s",
+                            t_fp.elapsed().as_secs_f64()
+                        );
+                        msgdb_fingerprint = Some(json);
+                    }
+                    Err(e) => eprintln!("[warn] msgdb fingerprint unavailable: {e}"),
+                }
+            }
             Some(db)
         }
         None => {
@@ -155,6 +216,7 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
     let no_stats = !config.write_stats;
     let router = config.router;
     let progress = config.on_progress.clone();
+    let msgdb_fingerprint = msgdb_fingerprint;
 
     // Writer thread
     let writer = thread::Builder::new()
@@ -208,6 +270,13 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
 
             // Write statistics tables (if enabled) before finalize
             if let Some(ref db) = events_db {
+                // R49：环境指纹先落 meta（统计表写入失败不应拖垮指纹——
+                // 指纹是验收报告的作用域声明，最该先固化）。
+                if let Some(ref fp) = msgdb_fingerprint {
+                    if let Err(e) = write_meta(db.conn(), &[("msgdb_fingerprint", fp.clone())]) {
+                        eprintln!("[warn] failed to write msgdb fingerprint meta: {e}");
+                    }
+                }
                 if !no_stats {
                     eprintln!("[info] writing statistics tables...");
                     let t = std::time::Instant::now();
@@ -229,6 +298,18 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
             }
 
             let wall = t_start.elapsed().as_secs_f64();
+            // R49：渲染链路直方图汇总——低置信回退占比在 [done] 前一眼可见
+            // （Disk/51 形态事故 = win32_eid_fallback 突增，不再静默）。
+            let hist = stats.render_via_histogram();
+            if !hist.is_empty() {
+                let total: u64 = hist.iter().map(|(_, c)| c).sum();
+                let parts = hist
+                    .iter()
+                    .map(|(v, c)| format!("{v}={c}"))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                eprintln!("[info] render via: {parts} (rendered {total})");
+            }
             eprintln!(
                 "[done] {total} events written to {output_display} in {wall:.2}s ({:.0} ev/s)",
                 total as f64 / wall.max(1e-9),
@@ -694,6 +775,9 @@ fn process_parallel_batch(
         value_maps: std::collections::HashMap<String, std::collections::HashMap<String, String>>,
         bitmap_names: std::sync::Arc<std::collections::HashSet<String>>,
         event_bitmaps: std::collections::HashSet<String>,
+        /// R49：主链命中的细分来源（梯子 vs R26 Qualifier 全键探针），
+        /// 供 render_via 标注——产物里主链与回退链必须可区分。
+        via: crate::RenderVia,
     }
 
     let __t = (phase_trace_enabled()).then(std::time::Instant::now);
@@ -738,6 +822,8 @@ fn process_parallel_batch(
             };
             // Single-file v7: variants only, no legacy single-template fallback.
             let mut row = try_variant()?;
+            // R49：主链命中起始标注；R26 全键探针命中时降级细分为 VariantQualifier。
+            let mut via = crate::RenderVia::Variant;
             // R26（2026-09-30）：classic Qualifier 全键探针。事件 EventID 的 Qualifiers
             // 属性参与消息表查找键（(q<<16)|eid，wevtapi 语义）；msgdb 经 R26 起保留
             // 全格式 message_identifier，同 eid 姊妹条目（链首配额 vs 链尾启动）由此
@@ -761,6 +847,7 @@ fn process_parallel_batch(
                     };
                     if let Some(exact) = guard.resolve_variant_full_id(&key2, full) {
                         row = exact;
+                        via = crate::RenderVia::VariantQualifier;
                     }
                 }
             }
@@ -787,6 +874,7 @@ fn process_parallel_batch(
                 value_maps: vms,
                 bitmap_names: std::sync::Arc::clone(&global_bitmaps),
                 event_bitmaps,
+                via,
             })
         })
         .collect::<Vec<_>>()
@@ -800,8 +888,15 @@ fn process_parallel_batch(
     let __t = (phase_trace_enabled()).then(std::time::Instant::now);
     batch.par_iter_mut().zip(pre.into_par_iter()).for_each(|((event, event_data_value), resolved)| {
         let row: PreResolved = match resolved {
-            Some(r) => r,
+            Some(r) => {
+                // R49：主链命中即标注（梯子=Variant，R26 全键=VariantQualifier）。
+                event.render_via = Some(r.via);
+                r
+            }
             None => {
+                // R49：回退链必须显式标注——低置信渲染不得与主链命中在产物里
+                // 不可区分（Disk/51：44,647 条 R29 回退被当成权威文本消费）。
+                event.render_via = Some(crate::RenderVia::Generated);
                 // R12（ADR 0004）：miss 且注册快照已知且源未注册时，wevtutil 对
                 // EID!=0 一律渲染 N/A（2026-09-07 全量取证 101/101：AppX 2562×86、
                 // EdgeWebView 256×11 等）。EID=0 与 classic/winevt miss 走既有路径。
@@ -826,11 +921,15 @@ fn process_parallel_batch(
                                 if let Ok(g) = db.lock() {
                                     if let Some(text) = g.lookup_win32_error_fallback(eid) {
                                         event.message = Some(text);
+                                        // R49：低置信——eid 恰好是合法 Win32 错误码，
+                                        // 正确性完全依赖 registry 快照与源机器一致。
+                                        event.render_via = Some(crate::RenderVia::Win32EidFallback);
                                         return;
                                     }
                                 }
                             }
                             event.message = Some("N/A".to_string());
+                            event.render_via = Some(crate::RenderVia::Na);
                             return;
                         }
                         // R12b（2026-09-30）registered-but-no-resources：已注册但
@@ -841,6 +940,7 @@ fn process_parallel_batch(
                         // 既有「未注册→N/A」语义完全不变；表空=未知=保守不触发。
                         if known && registered && !has_variants {
                             event.message = Some("N/A".to_string());
+                            event.render_via = Some(crate::RenderVia::Na);
                             return;
                         }
                     }
@@ -853,6 +953,8 @@ fn process_parallel_batch(
                     if let Ok(g) = db.lock() {
                         if let Some(text) = g.lookup_win32_error0() {
                             event.message = Some(text);
+                            // R49：低置信——eid=0 被系统错误 0 文本顶替（R21 语义）。
+                            event.render_via = Some(crate::RenderVia::Win32ZeroFallback);
                             return;
                         }
                     }
@@ -876,6 +978,7 @@ fn process_parallel_batch(
                                 let binary_suffix = obj.get("Binary").and_then(|b| b.as_str()).map(|b| format!(";{};;", b)).unwrap_or_default();
                                 if !msg.is_empty() || !binary_suffix.is_empty() {
                                     event.message = Some(format!("{}{}", msg, binary_suffix));
+                                    event.render_via = Some(crate::RenderVia::DataText);
                                     return;
                                 }
                             }
@@ -1879,6 +1982,7 @@ mod r10_typed_tests {
             file_name: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
         };
         let data = serde_json::json!({ "errorCode": "0x8024200b" });
         (ev, Some(data))
@@ -2186,6 +2290,7 @@ mod r12_na_tests {
             file_name: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
         }
     }
 
@@ -2218,6 +2323,8 @@ mod r12_na_tests {
             Some("N/A"),
             "unregistered source + miss + EID!=0 must render N/A"
         );
+        // R49：诚实占位也要可溯源（na ≠ 主链命中 ≠ 低置信回退）。
+        assert_eq!(batch[0].0.render_via, Some(crate::RenderVia::Na));
         let _ = std::fs::remove_file(&tmp);
     }
 
@@ -2338,6 +2445,15 @@ mod r12_na_tests {
             Some("N/A"),
             "genuinely unregistered source keeps R29 semantics"
         );
+        // R49：链路溯源——大小写失配修复后必须走主链（variant），而非低置信
+        // R29 回退；真未注册的对照组标 na。同型事故回潮时 via 先于文本暴露。
+        assert_eq!(
+            batch[0].0.render_via,
+            Some(crate::RenderVia::Variant),
+            "'Disk' 命中变体后必须标主链 variant（R48 事故 fixture）"
+        );
+        assert_eq!(batch[1].0.render_via, Some(crate::RenderVia::Variant));
+        assert_eq!(batch[2].0.render_via, Some(crate::RenderVia::Na));
         let _ = std::fs::remove_file(&tmp);
     }
 
@@ -2350,6 +2466,239 @@ mod r12_na_tests {
         db.load_registry_sources().unwrap();
         let msg_db: Option<Arc<Mutex<MessageDb>>> = Some(Arc::new(Mutex::new(db)));
         process_parallel_batch(&msg_db, keys, "en-US", batch);
+    }
+}
+
+/// R49（2026-10-08）：渲染链路溯源标注——每条 message 必须携带 render_via，
+/// 低置信回退链（R29 eid-当-Win32 错误码 / R21 eid=0）不得与主链命中在产物里
+/// 不可区分。信用原则：宁可 N/A，不可自信地错（Disk/51 事故的直接教训）。
+#[cfg(test)]
+mod r49_render_via_tests {
+    use super::*;
+    use crate::RenderVia;
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static DB_SEQ: AtomicU64 = AtomicU64::new(0);
+
+    fn tmp_path(name: &str) -> PathBuf {
+        let n = DB_SEQ.fetch_add(1, Ordering::SeqCst);
+        std::env::temp_dir().join(format!("evtx_r49_{}_{}_{}.db", name, std::process::id(), n))
+    }
+
+    fn mk_event(provider: &str, eid: u32) -> ParsedEvent {
+        ParsedEvent {
+            event_record_id: None,
+            event_time: None,
+            provider_name: Some(provider.into()),
+            provider_guid: None,
+            event_id: Some(eid),
+            qualifiers: None,
+            version: None,
+            level: None,
+            severity: None,
+            task_category: None,
+            opcode: None,
+            keywords: None,
+            channel: None,
+            computer: None,
+            process_id: None,
+            thread_id: None,
+            user_name: None,
+            user_sid: None,
+            activity_id: None,
+            related_activity_id: None,
+            message: None,
+            level_name: None,
+            keywords_name: None,
+            event_data: None,
+            raw_xml: None,
+            file_name: None,
+            sequence_number: None,
+            logon_type: None,
+            render_via: None,
+        }
+    }
+
+    fn data_value(texts: &[&str]) -> Option<Value> {
+        Some(serde_json::json!({
+            "Data": { "#text": texts }
+        }))
+    }
+
+    /// registry 快照只认 'Chrome'；Win32 错误表有 1001 文本；'V-Source' 有 100 变体。
+    fn setup_db(path: &Path, empty_sources: bool) {
+        let _ = std::fs::remove_file(path);
+        let conn = rusqlite::Connection::open(path).unwrap();
+        r12_na_tests::create_v8_schema(&conn);
+        conn.execute(
+            "INSERT INTO metadata(key, value) VALUES('schema_version', '9')",
+            [],
+        )
+        .unwrap();
+        if !empty_sources {
+            conn.execute_batch(
+                "INSERT INTO dll_entries(dll_id, dll_name, dll_path) VALUES(1, 'v.dll', 'C:/v.dll');
+                 INSERT INTO providers(provider_name, guid, channel, dll_id) VALUES('V-Source', NULL, 'Application', 1);
+                 INSERT INTO provider_message_variants(provider_name, provider_guid, lang, event_id, version, level, opcode, task, keywords, channel, message_identifier, dll_id, message) VALUES('V-Source', '', 'en-US', 100, 0, 4, 0, 0, '0', 0, 100, 1, 'variant text %1');
+                 INSERT INTO parameter_refs(provider_name, param_id, message, lang) VALUES('Win32-System-Error', 1001, 'win32-text-1001', 'en-US');
+                 INSERT INTO parameter_refs(provider_name, param_id, message, lang) VALUES('Win32-System-Error', 0, 'win32-text-zero', 'en-US');
+                 INSERT INTO eventlog_sources(source_name, source_type) VALUES('Chrome', 'classic'),
+                                                                                 ('V-Source', 'classic');",
+            )
+            .unwrap();
+        }
+        drop(conn);
+    }
+
+    fn run_batch(db_path: &Path, batch: &mut Vec<(ParsedEvent, Option<Value>)>) {
+        let mut db = MessageDb::open(db_path.to_str().unwrap()).unwrap();
+        db.load_registry_sources().unwrap();
+        db.load_param_refs("en-US").unwrap();
+        let msg_db: Option<Arc<Mutex<MessageDb>>> = Some(Arc::new(Mutex::new(db)));
+        let mut keys: Vec<crate::VariantKey> = Vec::new();
+        process_parallel_batch(&msg_db, &mut keys, "en-US", batch);
+    }
+
+    fn via(e: &ParsedEvent) -> Option<RenderVia> {
+        e.render_via
+    }
+
+    #[test]
+    fn variant_hit_marks_verified_variant() {
+        let tmp = tmp_path("via_variant");
+        setup_db(&tmp, false);
+        let mut batch = vec![(
+            mk_event("V-Source", 100),
+            data_value(&["hello"]),
+        )];
+        // variant_cache 由 warmup 填充：探针 key 必须先入列（生产端 parser 收集同款）。
+        let mut keys = vec![crate::VariantKey {
+            provider_name: "V-Source".into(),
+            event_id: 100,
+            version: 0,
+            level: 0,
+            opcode: 0,
+            task: 0,
+            keywords: 0,
+            channel: 0,
+            message_id: 0,
+        }];
+        let mut db = MessageDb::open(tmp.to_str().unwrap()).unwrap();
+        db.load_registry_sources().unwrap();
+        db.load_param_refs("en-US").unwrap();
+        let msg_db: Option<Arc<Mutex<MessageDb>>> = Some(Arc::new(Mutex::new(db)));
+        process_parallel_batch(&msg_db, &mut keys, "en-US", &mut batch);
+        assert_eq!(batch[0].0.message.as_deref(), Some("variant text hello"));
+        assert_eq!(via(&batch[0].0), Some(RenderVia::Variant), "主链命中必须标 variant");
+        assert!(batch[0].0.render_via.unwrap().is_verified());
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn r29_win32_eid_fallback_marks_low_confidence() {
+        // R29 语义本体：未注册 classic + eid 恰为 Win32 错误码 → 渲染系统错误文本。
+        // R49 新契约：必须标 Win32EidFallback（Disk/51 事故的静默失败模式显式化）。
+        let tmp = tmp_path("via_r29");
+        setup_db(&tmp, false);
+        let mut batch = vec![(
+            mk_event("Totally-Unregistered", 1001),
+            data_value(&["ignored-by-r29"]),
+        )];
+        run_batch(&tmp, &mut batch);
+        assert_eq!(batch[0].0.message.as_deref(), Some("win32-text-1001"));
+        assert_eq!(
+            via(&batch[0].0),
+            Some(RenderVia::Win32EidFallback),
+            "R29 eid-当-Win32-错误码渲染必须显式标注——不得伪装成主链命中"
+        );
+        assert!(!batch[0].0.render_via.unwrap().is_verified());
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn r21_eid_zero_marks_win32_zero_fallback() {
+        let tmp = tmp_path("via_r21");
+        setup_db(&tmp, false);
+        let mut batch = vec![(
+            mk_event("Orphan-Classic", 0),
+            data_value(&["CServiceControl in OnStart"]),
+        )];
+        run_batch(&tmp, &mut batch);
+        assert_eq!(batch[0].0.message.as_deref(), Some("win32-text-zero"));
+        assert_eq!(
+            via(&batch[0].0),
+            Some(RenderVia::Win32ZeroFallback),
+            "R21 eid=0 FormatMessage(0) 渲染必须显式标注"
+        );
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn unregistered_na_marks_na() {
+        // R12：eid 无 Win32 文本查不到 → N/A（诚实占位，也是独立标注值）。
+        let tmp = tmp_path("via_na");
+        setup_db(&tmp, false);
+        let mut batch = vec![(
+            mk_event("Totally-Unregistered", 2562),
+            data_value(&["MSIXDeployment"]),
+        )];
+        run_batch(&tmp, &mut batch);
+        assert_eq!(batch[0].0.message.as_deref(), Some("N/A"));
+        assert_eq!(via(&batch[0].0), Some(RenderVia::Na));
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn data_text_passthrough_marks_data_text() {
+        // registry 快照未知（空表）→ N/A 门关闭 → Data ;;-join 透传。
+        let tmp = tmp_path("via_data_text");
+        setup_db(&tmp, true);
+        let mut batch = vec![(
+            mk_event("Never-Registered-Anywhere", 2562),
+            data_value(&["raw payload"]),
+        )];
+        run_batch(&tmp, &mut batch);
+        assert_eq!(batch[0].0.message.as_deref(), Some("raw payload;;"));
+        assert_eq!(via(&batch[0].0), Some(RenderVia::DataText));
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn synthetic_tail_marks_generated() {
+        // 无 Data 可透传（data_value=None）→ generate_fallback_message 合成兜底。
+        let tmp = tmp_path("via_generated");
+        setup_db(&tmp, true);
+        let mut batch = vec![(mk_event("Never-Registered-Anywhere", 2562), None)];
+        run_batch(&tmp, &mut batch);
+        let m = batch[0].0.message.as_deref().expect("generated fallback must set message");
+        assert!(!m.is_empty());
+        assert_eq!(via(&batch[0].0), Some(RenderVia::Generated));
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    /// 产物序列化形：snake_case 稳定契约（CSV/sqlite TEXT/JSON 消费方依赖）。
+    #[test]
+    fn render_via_serialization_is_stable_snake_case() {
+        assert_eq!(RenderVia::Variant.as_str(), "variant");
+        assert_eq!(RenderVia::VariantQualifier.as_str(), "variant_qualifier");
+        assert_eq!(RenderVia::Win32EidFallback.as_str(), "win32_eid_fallback");
+        assert_eq!(RenderVia::Win32ZeroFallback.as_str(), "win32_zero_fallback");
+        assert_eq!(RenderVia::DataText.as_str(), "data_text");
+        assert_eq!(RenderVia::Generated.as_str(), "generated");
+        assert_eq!(RenderVia::Na.as_str(), "na");
+        for v in [
+            RenderVia::Variant,
+            RenderVia::VariantQualifier,
+            RenderVia::Win32EidFallback,
+            RenderVia::Win32ZeroFallback,
+            RenderVia::DataText,
+            RenderVia::Generated,
+            RenderVia::Na,
+        ] {
+            assert_eq!(RenderVia::from_str_opt(v.as_str()), Some(v));
+        }
+        assert_eq!(RenderVia::from_str_opt("nonsense"), None);
     }
 }
 
@@ -2491,6 +2840,7 @@ mod batch_resolve_tests {
             file_name: None,
             sequence_number: None,
             logon_type: None,
+            render_via: None,
         };
         let data = serde_json::json!({ "LogonType": "2", "TargetUserName": "10" });
         (ev, Some(data))

@@ -1,0 +1,27 @@
+{
+  "config_name": "evtx-analysis",
+  "time": "2026-10-06T11:29:29.902649+08:00",
+  "total_seconds": 180.0281943,
+  "summary": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "sources": [
+    {
+      "path": "Security.db",
+      "module": "evtx-analysis",
+      "label": "Security.evtx",
+      "render": "evtx-view",
+      "badge": 0,
+      "duration": 180.0281943,
+      "summary": "Security · 2034603 events"
+    }
+  ],
+  "variables": {
+    "db_path": "E:/Code/evet/evtx-parity-test/big-evtx/Security.evtx-analysis\\Security.db",
+    "evtx_path": "E:/Code/evet/evtx-parity-test/big-evtx/Security.evtx",
+    "rules_used": []
+  }
+}

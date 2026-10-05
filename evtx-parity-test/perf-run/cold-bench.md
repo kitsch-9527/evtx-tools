@@ -35,3 +35,32 @@
    可延后到 GUI 首次用到对应筛选时由 ensure 路径补建（机制已存在），解析期只建
    record_id/event_time 等基础 7 个 → 省 ~13s/次解析。
 3. 长线：输出与输入分盘（读写分离消除 HDD 混寻道），或 msgdb 与 EVTX 同盘预读。
+
+## R47 延迟化实测补遗（2026-10-05 深夜）
+
+| 场景（Security db t4） | 全量 finalize | --defer-indexes | Δ |
+|---|---|---|---|
+| 热 | 138.5 s | **82.4 s** | **−40.5%**（扩展索引 32s+回压联动消除） |
+| 冷 | 159.7 s | 158.4 s | ≈0（盘被 1GB 读+3.2GB 写打满，索引藏在读写等待里） |
+
+- 新日志形态：`messages db loaded in 0.36s`（冷 0.28s——再次证实库加载非瓶颈）、
+  progress 行含 elapsed/overall ev/s/batch 速率（尾批可见写盘回压：末批降至 ~20k ev/s）、
+  `[done] … in 82.39s (24694 ev/s)`。
+- 冷跑结论不变：绑定约束是单 HDD 读写混寻道；代码侧延迟化只在热/温缓存场景兑现。
+  GUI 冷跑要质变只有输出换盘（SSD/第二块盘）。
+
+## R47c mimalloc A/B（2026-10-05 深夜，空闲机器双轮，Security db t4 defer）
+
+| 变体 | wall（ps1） | wall（[done]） | CPU（TotalProcessorTime） |
+|---|---|---|---|
+| A 默认堆 | 96.8 / 101.2 s | 95.89 / 95.15 s | 353.8 s |
+| **B mimalloc** | **73.2 / 80.5 s** | **72.47 / 73.77 s** | **276.1 / 285.7 s** |
+| Δ | **−20%** | −23% | **−20.6%** |
+
+- 经典归类：多核分配器争用（锁竞争×伪共享变体）——render/extract 每事件几十次
+  String 构造、12 线程并行，默认 Windows 堆的中心化分配是渲染段最大非语义开销。
+- 方法注意：首轮 A 基线（200.9/188.4s）被并发 GUI 分析负载污染废弃；
+  A/B 必须同条件交错/相邻测。CPU 时间对磁盘等待与调度不敏感，适合隔离分配器效应。
+- 落地：evtx-tools-cli 与 GUI src-tauri 双侧 `#[global_allocator] MiMalloc`。
+- 叠加坐标（Security db t4 defer 热）：R47 前 138.5s → R47 延迟化 82.4s → R47c 73.2s
+  （对战役起点 91.5s 的 CSV 形态：db 形态如今反超 CSV 历史值）。
