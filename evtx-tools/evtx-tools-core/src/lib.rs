@@ -89,6 +89,10 @@ pub struct ParsedEvent {
     /// Global sequence number — monotonically incrementing parse order.
     /// Preserves Event Viewer sequence even across EVTX files.
     pub sequence_number: Option<u64>,
+    /// EventData 白名单字段（源头宽表抽取，storage::EVENT_DATA_INDEXED_FIELDS 同步）：
+    /// 解析期从结构化 Value 树直接取值（数字/文本统一字符串化），落 events
+    /// 真实列 + 索引。v1 仅 LogonType；新增字段 = 白名单 + parser + DDL/insert 同步。
+    pub logon_type: Option<String>,
 }
 
 /// Variant identity — 8-tuple Message Variant (CONTEXT.md: Variant Identity).
@@ -239,6 +243,7 @@ mod tests {
             event_data: Some(r#"{"TargetUserName":"admin"}"#.into()),
             raw_xml: None,
             sequence_number: None,
+            logon_type: None,
             file_name: Some("test.evtx".into()),
         };
 
@@ -288,6 +293,7 @@ mod tests {
             event_data: None,
             raw_xml: None,
             sequence_number: None,
+            logon_type: None,
             file_name: None,
         };
 

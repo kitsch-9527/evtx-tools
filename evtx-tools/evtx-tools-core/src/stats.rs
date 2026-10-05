@@ -439,6 +439,7 @@ mod tests {
             raw_xml: None,
             file_name: None,
             sequence_number: None,
+            logon_type: None,
         };
         c.feed(&ev);
         c.write(&conn).unwrap();
@@ -490,6 +491,7 @@ mod tests {
             event_data: None,
             raw_xml: None,
             sequence_number: None,
+            logon_type: None,
             file_name: None,
         }
     }

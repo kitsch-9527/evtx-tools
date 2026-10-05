@@ -1840,6 +1840,7 @@ mod r10_typed_tests {
             raw_xml: None,
             file_name: None,
             sequence_number: None,
+            logon_type: None,
         };
         let data = serde_json::json!({ "errorCode": "0x8024200b" });
         (ev, Some(data))
@@ -2146,6 +2147,7 @@ mod r12_na_tests {
             raw_xml: None,
             file_name: None,
             sequence_number: None,
+            logon_type: None,
         }
     }
 
@@ -2371,6 +2373,7 @@ mod batch_resolve_tests {
             raw_xml: None,
             file_name: None,
             sequence_number: None,
+            logon_type: None,
         };
         let data = serde_json::json!({ "LogonType": "2", "TargetUserName": "10" });
         (ev, Some(data))

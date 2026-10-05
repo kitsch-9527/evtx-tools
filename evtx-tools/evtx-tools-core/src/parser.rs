@@ -428,6 +428,16 @@ pub fn extract_fields(
     };
     let event_data = event_data_value.as_ref().map(|v| serde_json::to_string(v).unwrap_or_default());
 
+    // ---- EventData 白名单字段（源头宽表抽取：树遍历时顺手取值，零额外解析）----
+    // 值统一字符串化（JSON 数字 2 → "2"，与文本 "2" 同值——查询不赌编码）
+    let logon_type = event_data_value.as_ref().and_then(|v| v.get("LogonType")).and_then(|v| {
+        match v {
+            serde_json::Value::String(s) => Some(s.clone()),
+            serde_json::Value::Number(n) => Some(n.to_string()),
+            _ => None,
+        }
+    });
+
     // ---- user_name / user_sid from EventData/UserData (evtx 0.12) ----
     // In evtx 0.12, System.Security is null — UserID/UserName are in EventData
     // as SubjectUserName / SubjectUserSid (or TargetUserName for logon events).
@@ -483,6 +493,7 @@ pub fn extract_fields(
         raw_xml,
         file_name: Some(file_name.to_string()),
         sequence_number: None,
+        logon_type,
     };
     (parsed, event_data_value)
 }

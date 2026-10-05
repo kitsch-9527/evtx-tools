@@ -32,7 +32,9 @@ CREATE TABLE IF NOT EXISTS events (
     event_data          TEXT,
     raw_xml             TEXT,
     file_name           TEXT,
-    sequence_number     INTEGER
+    sequence_number     INTEGER,
+    -- EventData 白名单宽表列（parser 源头抽取，EVENT_DATA_INDEXED_FIELDS 同步）
+    logon_type          TEXT
 );
 ";
 
@@ -73,6 +75,7 @@ const CREATE_INDEXES: &[&str] = &[
     "CREATE INDEX IF NOT EXISTS idx_events_user_name ON events(user_name);",
     "CREATE INDEX IF NOT EXISTS idx_events_task_category ON events(task_category);",
     "CREATE INDEX IF NOT EXISTS idx_events_keywords_name ON events(keywords_name);",
+    "CREATE INDEX IF NOT EXISTS idx_events_logon_type ON events(logon_type);",
 ];
 
 /// Batch size for INSERT statements.
@@ -175,6 +178,8 @@ pub fn insert_events(conn: &Connection, batch: &[ParsedEvent]) -> Result<()> {
             append_text_opt(&mut sql, &event.file_name);
             sql.push(',');
             append_int_opt(&mut sql, &event.sequence_number);
+            sql.push(',');
+            append_text_opt(&mut sql, &event.logon_type);
             sql.push(')');
         }
 
@@ -321,6 +326,7 @@ fn append_field_value(sql: &mut String, col: &str, event: &ParsedEvent) {
         "event_data" => append_text_opt(sql, &event.event_data),
         "raw_xml" => append_text_opt(sql, &event.raw_xml),
         "file_name" => append_text_opt(sql, &event.file_name),
+        "logon_type" => append_text_opt(sql, &event.logon_type),
         "sequence_number" => append_int_opt(sql, &event.sequence_number),
         _ => sql.push_str("NULL"),
     }
@@ -409,6 +415,7 @@ mod scenario_tests {
             message: Some("登录成功".into()),
             file_name: Some("test.evtx".into()),
             sequence_number: Some(0),
+            logon_type: None,
             // Everything else None
             provider_guid: None,
             qualifiers: None,
@@ -612,6 +619,7 @@ mod tests {
             event_data: None,
             raw_xml: None,
             sequence_number: None,
+            logon_type: None,
             file_name: Some("test.evtx".into()),
         }
     }
@@ -713,6 +721,7 @@ mod tests {
             event_data: None,
             raw_xml: None,
             sequence_number: None,
+            logon_type: None,
             file_name: None,
         };
 
@@ -756,7 +765,7 @@ mod tests {
             .conn()
             .query_row("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND tbl_name='events'", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(index_count, 10, "expected 10 indexes after finalize");
+        assert_eq!(index_count, 11, "expected 11 indexes after finalize");
 
         // R44：record_id 索引必须存在——查看器默认排序与详情点查的唯一检索路径
         let record_idx: i64 = db

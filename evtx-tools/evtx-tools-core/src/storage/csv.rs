@@ -170,6 +170,7 @@ mod tests {
             event_data: Some(r#"{"TargetUserName":"admin"}"#.into()),
             raw_xml: None,
             sequence_number: None,
+            logon_type: None,
             file_name: Some("test.evtx".into()),
         }
     }
@@ -271,6 +272,7 @@ mod tests {
             event_data: None,
             raw_xml: None,
             sequence_number: None,
+            logon_type: None,
             file_name: None,
         };
         write_events(&mut output, &[event]).unwrap();
@@ -336,6 +338,7 @@ mod tests {
             raw_xml: Some("<Event>...</Event>".into()),
             file_name: Some("security.evtx".into()),
             sequence_number: None,
+            logon_type: None,
         };
         write_events(&mut output, &[event]).unwrap();
         let content = String::from_utf8(output).unwrap();

@@ -279,6 +279,7 @@ mod tests {
             event_data: None,
             raw_xml: None,
             sequence_number: None,
+            logon_type: None,
             file_name: None,
         }
     }
