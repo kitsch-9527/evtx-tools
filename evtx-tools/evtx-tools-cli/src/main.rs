@@ -102,6 +102,12 @@ struct ParseArgs {
     /// Skip statistics table generation
     #[arg(long)]
     no_stats: bool,
+    /// R47: defer extended index builds out of the parse critical path —
+    /// finalize creates only the viewer-core indexes (record_id/event_time);
+    /// call `ensure_events_indexes` later (or re-run without this flag on a
+    /// snapshot-semantics output) to build the rest.
+    #[arg(long)]
+    defer_indexes: bool,
 }
 
 #[derive(clap::Args)]
@@ -169,6 +175,23 @@ mod tests {
         ]);
         match cli.command {
             Command::Parse(args) => assert_eq!(args.shard, 4),
+            _ => panic!("expected parse subcommand"),
+        }
+    }
+
+    /// R47：--defer-indexes 默认关（行为不变），显式开启走延迟 finalize。
+    #[test]
+    fn test_defer_indexes_defaults_false_and_accepts_flag() {
+        let cli = Cli::parse_from(["evtx-tools", "parse", "-o", "out.db", "in.evtx"]);
+        match cli.command {
+            Command::Parse(args) => assert!(!args.defer_indexes, "默认必须全量 finalize"),
+            _ => panic!("expected parse subcommand"),
+        }
+        let cli = Cli::parse_from([
+            "evtx-tools", "parse", "-o", "out.db", "--defer-indexes", "in.evtx",
+        ]);
+        match cli.command {
+            Command::Parse(args) => assert!(args.defer_indexes),
             _ => panic!("expected parse subcommand"),
         }
     }

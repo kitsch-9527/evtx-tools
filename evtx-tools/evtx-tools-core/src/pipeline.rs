@@ -93,12 +93,17 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
     let msg_db: Option<MessageDb> = match config.msg_db_path {
         Some(ref p) => {
             eprintln!("[info] loading messages db: {p}");
+            let t_load = std::time::Instant::now();
             let mut db = MessageDb::open(p)?;
             db.load_param_refs(&target_lang)?;
             db.load_value_maps(&target_lang)?;
             db.load_registry_sources()?;
             db.load_variant_providers()?;
             db.load_param_types()?;
+            eprintln!(
+                "[info] messages db loaded in {:.2}s",
+                t_load.elapsed().as_secs_f64()
+            );
             Some(db)
         }
         None => {
@@ -157,6 +162,9 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
         .spawn(move || -> crate::Result<u64> {
             let mut csv_writer = csv_writer;
             let mut total = 0u64;
+            let t_start = std::time::Instant::now();
+            let mut t_last = t_start;
+            let mut total_last = 0u64;
             let mut stats = StatsCollector::new();
             let has_rules = router.has_rules();
             let mut tables_created: HashSet<String> = HashSet::new();
@@ -181,7 +189,18 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
                 }
 
                 total += events.len() as u64;
-                eprintln!("[progress] {total} events processed");
+                let now = std::time::Instant::now();
+                let elapsed = now.duration_since(t_start);
+                let batch_dt = now.duration_since(t_last).as_secs_f64();
+                let batch_n = total - total_last;
+                eprintln!(
+                    "[progress] {total} events processed (elapsed {:.1}s, overall {:.0} ev/s, batch {batch_n} in {batch_dt:.2}s → {:.0} ev/s)",
+                    elapsed.as_secs_f64(),
+                    total as f64 / elapsed.as_secs_f64().max(1e-9),
+                    batch_n as f64 / batch_dt.max(1e-9),
+                );
+                t_last = now;
+                total_last = total;
                 if let Some(cb) = &progress {
                     cb(total);
                 }
@@ -209,7 +228,11 @@ pub fn run(config: PipelineConfig) -> crate::Result<PipelineResult> {
                 }
             }
 
-            eprintln!("[done] {total} events written to {output_display}");
+            let wall = t_start.elapsed().as_secs_f64();
+            eprintln!(
+                "[done] {total} events written to {output_display} in {wall:.2}s ({:.0} ev/s)",
+                total as f64 / wall.max(1e-9),
+            );
             if phase_trace_enabled() {
                 let us = |c: &std::sync::atomic::AtomicU64| {
                     c.load(std::sync::atomic::Ordering::Relaxed)

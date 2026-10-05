@@ -47,7 +47,7 @@ pub fn run_parse(args: &ParseArgs) -> Result<()> {
         output_csv_path: (args.format == "csv" || args.format == "both")
             .then(|| args.output.to_string_lossy().to_string()),
         write_stats: !args.no_stats,
-        defer_indexes: false, // CLI 默认全量 finalize（GUI 经 PipelineConfig 置 true 延迟化）
+        defer_indexes: args.defer_indexes,
         router,
         on_progress: None,
         cancel: None,
