@@ -241,6 +241,7 @@ mod routing_tests {
             task_category: None,
             opcode: None,
             keywords: None,
+            logon_type: None,
             computer: None,
             process_id: None,
             thread_id: None,
